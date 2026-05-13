@@ -1,0 +1,12 @@
+# Python
+venv/
+__pycache__/
+*.pyc
+*.pyo
+
+# Node.js
+node_modules/
+.next/
+
+# データファイル（必要なら削除してください）
+# kakeibo_data.json
