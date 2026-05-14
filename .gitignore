@@ -10,3 +10,9 @@ node_modules/
 
 # データファイル（必要なら削除してください）
 # kakeibo_data.json
+
+# APIキー・シークレット
+restaurant-search/config.json
+
+# ローカルDBファイル
+restaurant-search/restaurants.db
