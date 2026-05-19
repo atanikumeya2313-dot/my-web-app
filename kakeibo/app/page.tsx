@@ -103,7 +103,7 @@ export default function Home() {
           </div>
           <div className="p-4">
             {tab === '一覧'      && <TransactionList transactions={monthTxs} categories={cats} onDelete={handleDelete} onEdit={handleEdit} />}
-            {tab === 'カレンダー' && <Calendar yearMonth={month} transactions={monthTxs} />}
+            {tab === 'カレンダー' && <Calendar yearMonth={month} transactions={monthTxs} categories={cats} />}
             {tab === 'グラフ'    && <ExpensePieChart transactions={monthTxs} categories={cats} />}
             {tab === '年間'      && <AnnualGraph transactions={txs} />}
           </div>
