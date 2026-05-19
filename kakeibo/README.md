@@ -1,36 +1,147 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 家計簿アプリ
 
-## Getting Started
+個人用のブラウザ家計簿アプリ。スマホ対応・サーバー不要・データはブラウザに保存。
 
-First, run the development server:
+**本番URL**: https://kakeibo-seven-iota.vercel.app
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+---
+
+## 機能一覧
+
+### ホーム画面
+
+| 機能 | 説明 |
+|------|------|
+| 月次サマリー | 収入・支出・残高を月単位で表示 |
+| 予算プログレスバー | カテゴリごとの予算消化率（80%超：オレンジ、超過：赤） |
+| 取引追加ボタン | 右下の `+` ボタンから収入・支出を登録 |
+| 月切り替え | ヘッダーの `‹` `›` で前後の月に移動 |
+
+### タブ
+
+| タブ | 内容 |
+|------|------|
+| 一覧 | 当月の取引リスト。タップで編集、スワイプで削除 |
+| カレンダー | 月カレンダー表示。日付タップで日別明細を確認 |
+| グラフ | 当月の支出カテゴリ別円グラフ |
+| 年間 | 過去12ヶ月の収入・支出棒グラフ |
+
+### 設定画面
+
+| 機能 | 説明 |
+|------|------|
+| 固定費・固定収入 | 毎月自動で追加される定期項目（家賃・サブスクなど） |
+| カテゴリ管理 | カテゴリの追加・削除 |
+| 予算設定 | カテゴリごとの月次予算 |
+| CSVインポート | 外部CSVから取引を一括取り込み |
+| CSVエクスポート | 今月分・全期間のCSVをダウンロード |
+
+---
+
+## CSVインポート対応形式
+
+| サービス | 取得方法 |
+|----------|----------|
+| マネーフォワードME | 家計簿 → 収入・支出詳細 → CSV出力 |
+| 楽天銀行 | 明細照会 → CSV出力 |
+| 住信SBIネット銀行 | 入出金明細 → CSVダウンロード |
+| 三菱UFJ銀行 | 入出金明細照会 → CSVダウンロード |
+| ゆうちょ銀行 | 通帳照会 → CSVダウンロード |
+| 本アプリのエクスポートCSV | そのまま再インポート可 |
+
+**注意**: 振替（口座間移動）は自動的に除外されます。同一データの重複インポートも防止されます。
+
+### マネーフォワードのカテゴリ自動マッピング
+
+| マネーフォワード大項目 | 家計簿カテゴリ |
+|------------------------|----------------|
+| 食費 | 食費 |
+| 交通費 | 交通費 |
+| 光熱費 | 光熱費 |
+| 住宅 | 住居費 |
+| 日用品 | 日用品 |
+| 趣味・娯楽 | 娯楽費 |
+| 収入 | 給与 |
+| その他（保険・通信費など） | その他 |
+
+---
+
+## データ保存
+
+すべてのデータはブラウザの `localStorage` に保存されます。サーバーへの送信はありません。
+
+| キー | 内容 |
+|------|------|
+| `kakeibo_transactions` | 取引データ（全期間） |
+| `kakeibo_categories` | カテゴリ一覧 |
+| `kakeibo_budgets` | 予算設定 |
+| `kakeibo_fixed` | 固定費・固定収入 |
+| `kakeibo_applied_months` | 固定費を適用済みの月（重複防止） |
+
+> **注意**: ブラウザのデータを削除するとすべての取引が消えます。定期的にCSVエクスポートでバックアップを取ることを推奨します。
+
+---
+
+## デフォルトカテゴリ
+
+### 支出
+食費 / 交通費 / 光熱費 / 住居費 / 日用品 / 娯楽費 / その他
+
+### 収入
+給与 / 臨時収入 / その他
+
+---
+
+## ファイル構成
+
+```
+kakeibo/
+├── app/
+│   ├── page.tsx               # ホーム画面（メインページ）
+│   ├── layout.tsx             # 共通レイアウト・BottomNav
+│   ├── types.ts               # 型定義（Transaction / Category / Budget / FixedItem）
+│   ├── lib/
+│   │   └── storage.ts         # localStorage 読み書き関数
+│   ├── components/
+│   │   ├── Summary.tsx        # 月次サマリー（収入・支出・残高）
+│   │   ├── BudgetProgress.tsx # 予算プログレスバー
+│   │   ├── TransactionList.tsx# 取引一覧
+│   │   ├── TransactionForm.tsx# 取引追加・編集フォーム
+│   │   ├── Calendar.tsx       # カレンダー（日付タップで明細表示）
+│   │   ├── ExpensePieChart.tsx# 支出カテゴリ円グラフ
+│   │   ├── AnnualGraph.tsx    # 年間収支棒グラフ（過去12ヶ月）
+│   │   ├── FixedManager.tsx   # 固定費管理
+│   │   ├── CategoryManager.tsx# カテゴリ管理
+│   │   ├── BudgetManager.tsx  # 予算管理
+│   │   ├── CSVImport.tsx      # CSVインポート
+│   │   ├── CSVExport.tsx      # CSVエクスポート
+│   │   └── BottomNav.tsx      # 下部ナビゲーション
+│   └── settings/
+│       └── page.tsx           # 設定画面
+└── README.md                  # このファイル
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+---
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 開発・デプロイ
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```powershell
+# kakeibo/ ディレクトリで実行
 
-## Learn More
+# 開発サーバー起動
+npm run dev
+# → http://localhost:3000
 
-To learn more about Next.js, take a look at the following resources:
+# Vercel へデプロイ
+vercel --prod
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### 技術スタック
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+| 項目 | 内容 |
+|------|------|
+| フレームワーク | Next.js 16.2.6（App Router） |
+| スタイリング | Tailwind CSS v4 |
+| グラフ | Recharts v3 |
+| データ保存 | localStorage |
+| デプロイ | Vercel |
