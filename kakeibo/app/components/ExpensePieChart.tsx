@@ -1,57 +1,28 @@
 'use client';
+import { PieChart, Pie, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { Transaction, Category } from '../types';
 
-import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { Transaction } from '../types';
+const COLORS = ['#6366f1','#f59e0b','#10b981','#ef4444','#8b5cf6','#06b6d4','#f97316','#84cc16'];
 
-const COLORS = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#3b82f6', '#8b5cf6', '#ec4899'];
+export default function ExpensePieChart({ transactions, categories }: { transactions: Transaction[]; categories: Category[] }) {
+  const catName = (id: string) => categories.find(c => c.id === id)?.name ?? id;
 
-interface ExpensePieChartProps {
-  transactions: Transaction[];
-}
-
-export default function ExpensePieChart({ transactions }: ExpensePieChartProps) {
-  const expenses = transactions.filter((t) => t.type === 'expense');
-
-  const data = expenses.reduce<{ name: string; value: number }[]>((acc, t) => {
-    const existing = acc.find((d) => d.name === t.category);
-    if (existing) {
-      existing.value += t.amount;
-    } else {
-      acc.push({ name: t.category, value: t.amount });
-    }
-    return acc;
-  }, []);
-
-  if (data.length === 0) {
-    return (
-      <div className="flex items-center justify-center h-48 text-gray-400 text-sm">
-        支出データがありません
-      </div>
-    );
+  const grouped: Record<string, number> = {};
+  for (const t of transactions.filter(t => t.type === 'expense')) {
+    grouped[t.category] = (grouped[t.category] ?? 0) + t.amount;
   }
+  const data = Object.entries(grouped).map(([id, value], i) => ({
+    name: catName(id), value, fill: COLORS[i % COLORS.length],
+  }));
 
-  const fmt = (value: number) =>
-    value.toLocaleString('ja-JP', { style: 'currency', currency: 'JPY' });
+  if (data.length === 0) return <p className="text-center text-gray-400 text-sm py-6">支出データがありません</p>;
 
   return (
-    <ResponsiveContainer width="100%" height={280}>
+    <ResponsiveContainer width="100%" height={220}>
       <PieChart>
-        <Pie
-          data={data}
-          cx="50%"
-          cy="50%"
-          innerRadius={60}
-          outerRadius={100}
-          dataKey="value"
-          label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-          labelLine={false}
-        >
-          {data.map((_, index) => (
-            <Cell key={index} fill={COLORS[index % COLORS.length]} />
-          ))}
-        </Pie>
-        <Tooltip formatter={(value: number) => fmt(value)} />
-        <Legend />
+        <Pie data={data} cx="50%" cy="50%" outerRadius={80} dataKey="value" label={false} />
+        <Tooltip formatter={(v) => typeof v === 'number' ? `¥${v.toLocaleString()}` : v} />
+        <Legend iconSize={10} iconType="circle" />
       </PieChart>
     </ResponsiveContainer>
   );

@@ -1,138 +1,71 @@
 'use client';
+import { useState, useEffect } from 'react';
+import { Transaction, Category, TxType } from '../types';
 
-import { useState } from 'react';
-import { Transaction, TransactionType, EXPENSE_CATEGORIES, INCOME_CATEGORIES } from '../types';
-
-interface TransactionFormProps {
-  onAdd: (tx: Transaction) => void;
+interface Props {
+  categories: Category[];
+  onSave: (tx: Transaction) => void;
   onClose: () => void;
   defaultDate: string;
+  editing?: Transaction;
 }
 
-export default function TransactionForm({ onAdd, onClose, defaultDate }: TransactionFormProps) {
-  const [type, setType] = useState<TransactionType>('expense');
-  const [date, setDate] = useState(defaultDate);
-  const [amount, setAmount] = useState('');
-  const [category, setCategory] = useState(EXPENSE_CATEGORIES[0] as string);
-  const [memo, setMemo] = useState('');
+export default function TransactionForm({ categories, onSave, onClose, defaultDate, editing }: Props) {
+  const [type, setType]     = useState<TxType>(editing?.type ?? 'expense');
+  const [date, setDate]     = useState(editing?.date ?? defaultDate);
+  const [amount, setAmount] = useState(editing ? String(editing.amount) : '');
+  const [category, setCat]  = useState(editing?.category ?? '');
+  const [memo, setMemo]     = useState(editing?.memo ?? '');
 
-  const categories = type === 'expense' ? EXPENSE_CATEGORIES : INCOME_CATEGORIES;
+  const filteredCats = categories.filter(c => c.type === type);
 
-  const handleTypeChange = (t: TransactionType) => {
-    setType(t);
-    setCategory(t === 'expense' ? EXPENSE_CATEGORIES[0] : INCOME_CATEGORIES[0]);
-  };
+  useEffect(() => {
+    if (!filteredCats.find(c => c.id === category)) {
+      setCat(filteredCats[0]?.id ?? '');
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [type]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    const parsed = parseInt(amount, 10);
-    if (!parsed || parsed <= 0) return;
-    onAdd({
-      id: crypto.randomUUID(),
-      date,
-      amount: parsed,
-      type,
-      category: category as Transaction['category'],
-      memo,
-    });
+    if (!amount || !category) return;
+    onSave({ id: editing?.id ?? crypto.randomUUID(), date, amount: Number(amount), type, category, memo });
     onClose();
-  };
+  }
 
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6">
-        <h2 className="text-lg font-bold mb-4">収支を追加</h2>
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {/* 収入 / 支出 切り替え */}
+    <div className="fixed inset-0 bg-black/50 flex items-end z-[200]" onClick={onClose}>
+      <div className="bg-white w-full rounded-t-2xl p-5 max-w-lg mx-auto" onClick={e => e.stopPropagation()}>
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="font-bold text-gray-800">{editing ? '取引を編集' : '取引を追加'}</h2>
+          <button onClick={onClose} className="text-gray-400 text-xl leading-none">✕</button>
+        </div>
+        <form onSubmit={handleSubmit} className="space-y-3">
           <div className="flex rounded-lg overflow-hidden border border-gray-200">
-            <button
-              type="button"
-              onClick={() => handleTypeChange('expense')}
-              className={`flex-1 py-2 text-sm font-medium transition-colors ${
-                type === 'expense' ? 'bg-red-500 text-white' : 'text-gray-500 hover:bg-gray-50'
-              }`}
-            >
-              支出
-            </button>
-            <button
-              type="button"
-              onClick={() => handleTypeChange('income')}
-              className={`flex-1 py-2 text-sm font-medium transition-colors ${
-                type === 'income' ? 'bg-blue-500 text-white' : 'text-gray-500 hover:bg-gray-50'
-              }`}
-            >
-              収入
-            </button>
+            {(['expense', 'income'] as TxType[]).map(t => (
+              <button type="button" key={t}
+                className={`flex-1 py-2 text-sm font-medium transition-colors ${type === t ? (t === 'expense' ? 'bg-red-500 text-white' : 'bg-green-500 text-white') : 'bg-white text-gray-500'}`}
+                onClick={() => setType(t)}>
+                {t === 'expense' ? '支出' : '収入'}
+              </button>
+            ))}
           </div>
-
-          {/* 日付 */}
-          <div>
-            <label className="block text-sm text-gray-600 mb-1">日付</label>
-            <input
-              type="date"
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-              required
-              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
-            />
-          </div>
-
-          {/* 金額 */}
-          <div>
-            <label className="block text-sm text-gray-600 mb-1">金額（円）</label>
-            <input
-              type="number"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              placeholder="0"
-              min={1}
-              required
-              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
-            />
-          </div>
-
-          {/* カテゴリ */}
-          <div>
-            <label className="block text-sm text-gray-600 mb-1">カテゴリ</label>
-            <select
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
-            >
-              {categories.map((c) => (
-                <option key={c} value={c}>{c}</option>
-              ))}
-            </select>
-          </div>
-
-          {/* メモ */}
-          <div>
-            <label className="block text-sm text-gray-600 mb-1">メモ（任意）</label>
-            <input
-              type="text"
-              value={memo}
-              onChange={(e) => setMemo(e.target.value)}
-              placeholder="例：スーパーで買い物"
-              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
-            />
-          </div>
-
-          <div className="flex gap-3 pt-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 py-2 rounded-lg border border-gray-200 text-sm text-gray-500 hover:bg-gray-50 transition-colors"
-            >
-              キャンセル
-            </button>
-            <button
-              type="submit"
-              className="flex-1 py-2 rounded-lg bg-blue-500 text-white text-sm font-medium hover:bg-blue-600 transition-colors"
-            >
-              追加
-            </button>
-          </div>
+          <input type="date" value={date} onChange={e => setDate(e.target.value)}
+            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" required />
+          <input type="number" value={amount} onChange={e => setAmount(e.target.value)}
+            placeholder="金額" min="1"
+            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" required />
+          <select value={category} onChange={e => setCat(e.target.value)}
+            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" required>
+            {filteredCats.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+          </select>
+          <input type="text" value={memo} onChange={e => setMemo(e.target.value)}
+            placeholder="メモ（任意）"
+            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" />
+          <button type="submit"
+            className="w-full py-3 bg-blue-500 text-white rounded-lg font-medium">
+            {editing ? '更新する' : '追加する'}
+          </button>
         </form>
       </div>
     </div>

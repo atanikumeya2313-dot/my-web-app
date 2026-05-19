@@ -1,117 +1,92 @@
 'use client';
-
 import { useEffect, useState } from 'react';
-import { Transaction } from './types';
-import { loadTransactions, addTransaction, deleteTransaction } from './lib/storage';
+import { Transaction, Category, Budget } from './types';
+import { loadTransactions, addTransaction, updateTransaction, deleteTransaction, loadCategories, loadBudgets } from './lib/storage';
 import Summary from './components/Summary';
-import ExpensePieChart from './components/ExpensePieChart';
+import BudgetProgress from './components/BudgetProgress';
 import TransactionList from './components/TransactionList';
 import TransactionForm from './components/TransactionForm';
 import Calendar from './components/Calendar';
+import ExpensePieChart from './components/ExpensePieChart';
 
-function toYearMonth(date: Date): string {
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-}
+type Tab = '一覧' | 'カレンダー' | 'グラフ';
 
-function formatYearMonth(ym: string): string {
-  const [y, m] = ym.split('-');
-  return `${y}年${parseInt(m)}月`;
-}
-
-function addMonth(ym: string, delta: number): string {
-  const [y, m] = ym.split('-').map(Number);
-  const date = new Date(y, m - 1 + delta, 1);
-  return toYearMonth(date);
+function toYM(d: Date) { return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`; }
+function fmtYM(ym: string) { const [y,m] = ym.split('-'); return `${y}年${parseInt(m)}月`; }
+function addMonth(ym: string, d: number) {
+  const [y,m] = ym.split('-').map(Number);
+  return toYM(new Date(y, m-1+d, 1));
 }
 
 export default function Home() {
   const today = new Date();
-  const [currentMonth, setCurrentMonth] = useState(toYearMonth(today));
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [month, setMonth]     = useState(toYM(today));
+  const [txs, setTxs]         = useState<Transaction[]>([]);
+  const [cats, setCats]       = useState<Category[]>([]);
+  const [budgets, setBudgets] = useState<Budget[]>([]);
   const [showForm, setShowForm] = useState(false);
+  const [editing, setEditing] = useState<Transaction | undefined>();
+  const [tab, setTab]         = useState<Tab>('一覧');
 
   useEffect(() => {
-    setTransactions(loadTransactions());
+    setTxs(loadTransactions());
+    setCats(loadCategories());
+    setBudgets(loadBudgets());
   }, []);
 
-  const monthTransactions = transactions.filter((t) =>
-    t.date.startsWith(currentMonth)
-  );
+  const monthTxs  = txs.filter(t => t.date.startsWith(month));
+  const defaultDate = `${month}-${String(today.getDate()).padStart(2,'0')}`;
 
-  const handleAdd = (tx: Transaction) => {
-    const updated = addTransaction(tx);
-    setTransactions(updated);
+  const handleSave = (tx: Transaction) => {
+    setTxs(editing ? updateTransaction(tx) : addTransaction(tx));
+    setEditing(undefined);
   };
-
-  const handleDelete = (id: string) => {
-    const updated = deleteTransaction(id);
-    setTransactions(updated);
-  };
-
-  const defaultDate = `${currentMonth}-${String(today.getDate()).padStart(2, '0')}`;
+  const handleEdit = (tx: Transaction) => { setEditing(tx); setShowForm(true); };
+  const handleDelete = (id: string) => { if (confirm('削除しますか？')) setTxs(deleteTransaction(id)); };
+  const openAdd = () => { setEditing(undefined); setShowForm(true); };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen">
       <header className="bg-white border-b border-gray-100 sticky top-0 z-10">
-        <div className="max-w-6xl mx-auto px-4 py-4">
-          <h1 className="text-xl font-bold text-gray-800">家計簿</h1>
+        <div className="px-4 py-3 flex items-center justify-between">
+          <h1 className="text-base font-bold text-gray-800">家計簿</h1>
+          <div className="flex items-center gap-2">
+            <button onClick={() => setMonth(m => addMonth(m,-1))} className="text-gray-400 hover:text-gray-600 w-8 h-8 flex items-center justify-center text-lg">‹</button>
+            <span className="text-sm font-semibold text-gray-700 w-24 text-center">{fmtYM(month)}</span>
+            <button onClick={() => setMonth(m => addMonth(m,1))}  className="text-gray-400 hover:text-gray-600 w-8 h-8 flex items-center justify-center text-lg">›</button>
+          </div>
         </div>
       </header>
 
-      <main className="max-w-6xl mx-auto px-4 py-6">
-        {/* 月切り替え */}
-        <div className="flex items-center justify-between bg-white rounded-xl px-4 py-3 shadow-sm mb-6">
-          <button
-            onClick={() => setCurrentMonth((m) => addMonth(m, -1))}
-            className="text-gray-400 hover:text-gray-600 text-xl px-2 transition-colors"
-          >
-            ‹
-          </button>
-          <span className="font-semibold text-gray-700">{formatYearMonth(currentMonth)}</span>
-          <button
-            onClick={() => setCurrentMonth((m) => addMonth(m, 1))}
-            className="text-gray-400 hover:text-gray-600 text-xl px-2 transition-colors"
-          >
-            ›
-          </button>
-        </div>
+      <main className="px-4 py-4 space-y-4">
+        <Summary transactions={monthTxs} />
+        <BudgetProgress transactions={monthTxs} categories={cats} budgets={budgets} />
 
-        <div className="grid grid-cols-1 lg:grid-cols-[380px_1fr] gap-6 items-start">
-          {/* 左カラム */}
-          <div className="space-y-6">
-            <Summary transactions={monthTransactions} />
-
-            <div className="bg-white rounded-xl shadow-sm p-4">
-              <h2 className="text-sm font-semibold text-gray-600 mb-2">支出の内訳</h2>
-              <ExpensePieChart transactions={monthTransactions} />
-            </div>
-
-            <div className="bg-white rounded-xl shadow-sm p-4">
-              <h2 className="text-sm font-semibold text-gray-600 mb-2">明細</h2>
-              <TransactionList transactions={monthTransactions} onDelete={handleDelete} />
-            </div>
+        <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+          <div className="flex border-b border-gray-100">
+            {(['一覧','カレンダー','グラフ'] as Tab[]).map(t => (
+              <button key={t} onClick={() => setTab(t)}
+                className={`flex-1 py-2.5 text-sm font-medium transition-colors ${tab===t ? 'text-blue-500 border-b-2 border-blue-500' : 'text-gray-400'}`}>
+                {t}
+              </button>
+            ))}
           </div>
-
-          {/* 右カラム：カレンダー */}
-          <Calendar yearMonth={currentMonth} transactions={monthTransactions} />
+          <div className="p-4">
+            {tab === '一覧'     && <TransactionList transactions={monthTxs} categories={cats} onDelete={handleDelete} onEdit={handleEdit} />}
+            {tab === 'カレンダー' && <Calendar yearMonth={month} transactions={monthTxs} />}
+            {tab === 'グラフ'   && <ExpensePieChart transactions={monthTxs} categories={cats} />}
+          </div>
         </div>
       </main>
 
-      {/* 追加ボタン */}
-      <button
-        onClick={() => setShowForm(true)}
-        className="fixed bottom-6 right-6 w-14 h-14 bg-blue-500 text-white rounded-full text-3xl shadow-lg hover:bg-blue-600 transition-colors flex items-center justify-center"
-        aria-label="収支を追加"
-      >
+      <button onClick={openAdd}
+        className="fixed bottom-20 right-4 w-14 h-14 bg-blue-500 text-white rounded-full text-2xl shadow-lg hover:bg-blue-600 flex items-center justify-center z-40">
         +
       </button>
 
       {showForm && (
-        <TransactionForm
-          onAdd={handleAdd}
-          onClose={() => setShowForm(false)}
-          defaultDate={defaultDate}
-        />
+        <TransactionForm categories={cats} onSave={handleSave} editing={editing}
+          onClose={() => { setShowForm(false); setEditing(undefined); }} defaultDate={defaultDate} />
       )}
     </div>
   );
