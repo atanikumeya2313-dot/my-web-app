@@ -1,9 +1,11 @@
-﻿import { Transaction, Category, Budget, DEFAULT_CATEGORIES } from '../types';
+﻿import { Transaction, Category, Budget, FixedItem, DEFAULT_CATEGORIES } from '../types';
 
 const KEYS = {
-  transactions: 'kakeibo_transactions',
-  categories:   'kakeibo_categories',
-  budgets:      'kakeibo_budgets',
+  transactions:   'kakeibo_transactions',
+  categories:     'kakeibo_categories',
+  budgets:        'kakeibo_budgets',
+  fixed:          'kakeibo_fixed',
+  appliedMonths:  'kakeibo_applied_months',
 };
 
 // ── Transactions ──────────────────────────────────────────
@@ -11,7 +13,7 @@ export function loadTransactions(): Transaction[] {
   try { return JSON.parse(localStorage.getItem(KEYS.transactions) || '[]'); }
   catch { return []; }
 }
-function saveTransactions(txs: Transaction[]) {
+export function saveTransactions(txs: Transaction[]) {
   localStorage.setItem(KEYS.transactions, JSON.stringify(txs));
 }
 export function addTransaction(tx: Transaction): Transaction[] {
@@ -48,4 +50,25 @@ export function loadBudgets(): Budget[] {
 }
 export function saveBudgets(budgets: Budget[]) {
   localStorage.setItem(KEYS.budgets, JSON.stringify(budgets));
+}
+
+// ── Fixed items ───────────────────────────────────────────
+export function loadFixed(): FixedItem[] {
+  try { return JSON.parse(localStorage.getItem(KEYS.fixed) || '[]'); }
+  catch { return []; }
+}
+export function saveFixed(items: FixedItem[]) {
+  localStorage.setItem(KEYS.fixed, JSON.stringify(items));
+}
+
+// ── Applied months（固定費を適用済みの月） ─────────────────
+export function loadAppliedMonths(): string[] {
+  try { return JSON.parse(localStorage.getItem(KEYS.appliedMonths) || '[]'); }
+  catch { return []; }
+}
+export function markMonthApplied(ym: string) {
+  const list = loadAppliedMonths();
+  if (!list.includes(ym)) {
+    localStorage.setItem(KEYS.appliedMonths, JSON.stringify([...list, ym]));
+  }
 }

@@ -21,6 +21,15 @@ export interface Budget {
   amount: number;
 }
 
+export interface FixedItem {
+  id: string;
+  name: string;
+  amount: number;
+  type: TxType;
+  category: string;
+  day: number; // 引き落とし日（1〜31）
+}
+
 export const DEFAULT_CATEGORIES: Category[] = [
   { id: 'exp_food',          name: '食費',   type: 'expense', isDefault: true },
   { id: 'exp_transport',     name: '交通費', type: 'expense', isDefault: true },

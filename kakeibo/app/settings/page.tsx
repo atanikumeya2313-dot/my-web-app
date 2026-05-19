@@ -1,19 +1,26 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { Category, Budget } from '../types';
-import { loadCategories, saveCategories, loadBudgets, saveBudgets } from '../lib/storage';
+import { Category, Budget, FixedItem } from '../types';
+import { loadCategories, saveCategories, loadBudgets, saveBudgets, loadFixed, saveFixed } from '../lib/storage';
 import CategoryManager from '../components/CategoryManager';
 import BudgetManager from '../components/BudgetManager';
+import FixedManager from '../components/FixedManager';
 import CSVExport from '../components/CSVExport';
 
 export default function Settings() {
   const [cats, setCats]       = useState<Category[]>([]);
   const [budgets, setBudgets] = useState<Budget[]>([]);
+  const [fixed, setFixed]     = useState<FixedItem[]>([]);
 
-  useEffect(() => { setCats(loadCategories()); setBudgets(loadBudgets()); }, []);
+  useEffect(() => {
+    setCats(loadCategories());
+    setBudgets(loadBudgets());
+    setFixed(loadFixed());
+  }, []);
 
-  const handleCats = (c: Category[]) => { saveCategories(c); setCats(c); };
-  const handleBudgets = (b: Budget[]) => { saveBudgets(b); setBudgets(b); };
+  const handleCats    = (c: Category[])   => { saveCategories(c); setCats(c); };
+  const handleBudgets = (b: Budget[])     => { saveBudgets(b); setBudgets(b); };
+  const handleFixed   = (f: FixedItem[])  => { saveFixed(f); setFixed(f); };
 
   return (
     <div className="min-h-screen">
@@ -23,6 +30,7 @@ export default function Settings() {
         </div>
       </header>
       <main className="px-4 py-4 space-y-4">
+        <FixedManager items={fixed} categories={cats} onChange={handleFixed} />
         <CategoryManager categories={cats} onChange={handleCats} />
         <BudgetManager categories={cats} budgets={budgets} onChange={handleBudgets} />
         <CSVExport />

@@ -1,26 +1,35 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { Transaction, Category, Budget } from './types';
-import { loadTransactions, addTransaction, updateTransaction, deleteTransaction, loadCategories, loadBudgets } from './lib/storage';
+import { Transaction, Category, Budget, FixedItem } from './types';
+import {
+  loadTransactions, saveTransactions, addTransaction, updateTransaction, deleteTransaction,
+  loadCategories, loadBudgets, loadFixed, loadAppliedMonths, markMonthApplied,
+} from './lib/storage';
 import Summary from './components/Summary';
 import BudgetProgress from './components/BudgetProgress';
 import TransactionList from './components/TransactionList';
 import TransactionForm from './components/TransactionForm';
 import Calendar from './components/Calendar';
 import ExpensePieChart from './components/ExpensePieChart';
+import AnnualGraph from './components/AnnualGraph';
 
-type Tab = '一覧' | 'カレンダー' | 'グラフ';
+type Tab = '一覧' | 'カレンダー' | 'グラフ' | '年間';
 
 function toYM(d: Date) { return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`; }
 function fmtYM(ym: string) { const [y,m] = ym.split('-'); return `${y}年${parseInt(m)}月`; }
-function addMonth(ym: string, d: number) {
+function shiftMonth(ym: string, d: number) {
   const [y,m] = ym.split('-').map(Number);
   return toYM(new Date(y, m-1+d, 1));
+}
+function daysInMonth(ym: string) {
+  const [y,m] = ym.split('-').map(Number);
+  return new Date(y, m, 0).getDate();
 }
 
 export default function Home() {
   const today = new Date();
-  const [month, setMonth]     = useState(toYM(today));
+  const thisMonth = toYM(today);
+  const [month, setMonth]     = useState(thisMonth);
   const [txs, setTxs]         = useState<Transaction[]>([]);
   const [cats, setCats]       = useState<Category[]>([]);
   const [budgets, setBudgets] = useState<Budget[]>([]);
@@ -29,21 +38,42 @@ export default function Home() {
   const [tab, setTab]         = useState<Tab>('一覧');
 
   useEffect(() => {
-    setTxs(loadTransactions());
+    const allTxs   = loadTransactions();
+    const allFixed = loadFixed();
     setCats(loadCategories());
     setBudgets(loadBudgets());
+
+    // 今月まだ固定費を適用していなければ自動追加
+    if (allFixed.length > 0 && !loadAppliedMonths().includes(thisMonth)) {
+      const maxDay = daysInMonth(thisMonth);
+      const newTxs: Transaction[] = allFixed.map(f => ({
+        id: crypto.randomUUID(),
+        date: `${thisMonth}-${String(Math.min(f.day, maxDay)).padStart(2,'0')}`,
+        amount: f.amount,
+        type: f.type,
+        category: f.category,
+        memo: f.name,
+      }));
+      const merged = [...newTxs, ...allTxs];
+      saveTransactions(merged);
+      setTxs(merged);
+      markMonthApplied(thisMonth);
+    } else {
+      setTxs(allTxs);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const monthTxs  = txs.filter(t => t.date.startsWith(month));
+  const monthTxs    = txs.filter(t => t.date.startsWith(month));
   const defaultDate = `${month}-${String(today.getDate()).padStart(2,'0')}`;
 
   const handleSave = (tx: Transaction) => {
     setTxs(editing ? updateTransaction(tx) : addTransaction(tx));
     setEditing(undefined);
   };
-  const handleEdit = (tx: Transaction) => { setEditing(tx); setShowForm(true); };
+  const handleEdit   = (tx: Transaction) => { setEditing(tx); setShowForm(true); };
   const handleDelete = (id: string) => { if (confirm('削除しますか？')) setTxs(deleteTransaction(id)); };
-  const openAdd = () => { setEditing(undefined); setShowForm(true); };
+  const openAdd      = () => { setEditing(undefined); setShowForm(true); };
 
   return (
     <div className="min-h-screen">
@@ -51,9 +81,9 @@ export default function Home() {
         <div className="px-4 py-3 flex items-center justify-between">
           <h1 className="text-base font-bold text-gray-800">家計簿</h1>
           <div className="flex items-center gap-2">
-            <button onClick={() => setMonth(m => addMonth(m,-1))} className="text-gray-400 hover:text-gray-600 w-8 h-8 flex items-center justify-center text-lg">‹</button>
+            <button onClick={() => setMonth(m => shiftMonth(m,-1))} className="text-gray-400 hover:text-gray-600 w-8 h-8 flex items-center justify-center text-lg">‹</button>
             <span className="text-sm font-semibold text-gray-700 w-24 text-center">{fmtYM(month)}</span>
-            <button onClick={() => setMonth(m => addMonth(m,1))}  className="text-gray-400 hover:text-gray-600 w-8 h-8 flex items-center justify-center text-lg">›</button>
+            <button onClick={() => setMonth(m => shiftMonth(m,1))}  className="text-gray-400 hover:text-gray-600 w-8 h-8 flex items-center justify-center text-lg">›</button>
           </div>
         </div>
       </header>
@@ -64,17 +94,18 @@ export default function Home() {
 
         <div className="bg-white rounded-xl shadow-sm overflow-hidden">
           <div className="flex border-b border-gray-100">
-            {(['一覧','カレンダー','グラフ'] as Tab[]).map(t => (
+            {(['一覧','カレンダー','グラフ','年間'] as Tab[]).map(t => (
               <button key={t} onClick={() => setTab(t)}
-                className={`flex-1 py-2.5 text-sm font-medium transition-colors ${tab===t ? 'text-blue-500 border-b-2 border-blue-500' : 'text-gray-400'}`}>
+                className={`flex-1 py-2.5 text-xs font-medium transition-colors ${tab===t ? 'text-blue-500 border-b-2 border-blue-500' : 'text-gray-400'}`}>
                 {t}
               </button>
             ))}
           </div>
           <div className="p-4">
-            {tab === '一覧'     && <TransactionList transactions={monthTxs} categories={cats} onDelete={handleDelete} onEdit={handleEdit} />}
+            {tab === '一覧'      && <TransactionList transactions={monthTxs} categories={cats} onDelete={handleDelete} onEdit={handleEdit} />}
             {tab === 'カレンダー' && <Calendar yearMonth={month} transactions={monthTxs} />}
-            {tab === 'グラフ'   && <ExpensePieChart transactions={monthTxs} categories={cats} />}
+            {tab === 'グラフ'    && <ExpensePieChart transactions={monthTxs} categories={cats} />}
+            {tab === '年間'      && <AnnualGraph transactions={txs} />}
           </div>
         </div>
       </main>
