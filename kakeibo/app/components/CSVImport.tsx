@@ -35,6 +35,17 @@ function toAmount(s: string): number {
   return parseInt(s.replace(/[^0-9]/g, '') || '0');
 }
 
+// マネーフォワードの大項目 → 家計簿カテゴリ名
+const MF_CATEGORY_MAP: Record<string, string> = {
+  '食費':       '食費',
+  '交通費':     '交通費',
+  '光熱費':     '光熱費',
+  '住宅':       '住居費',
+  '日用品':     '日用品',
+  '趣味・娯楽': '娯楽費',
+  '収入':       '給与',
+};
+
 function parseCSV(text: string): ParsedRow[] | { error: string } {
   const lines = text.replace(/\r/g, '').split('\n').map(l => l.trim()).filter(Boolean);
   if (lines.length < 2) return { error: 'データが少なすぎます' };
@@ -107,7 +118,34 @@ function parseCSV(text: string): ParsedRow[] | { error: string } {
       });
   }
 
-  return { error: '対応していない形式です。家計簿エクスポート・楽天銀行・SBI・三菱UFJ・ゆうちょに対応しています。' };
+  // マネーフォワードME: 計算対象, 日付, 内容, 金額（円）, 保有金融機関, 大項目, 中項目, メモ, 振替, ID
+  if (idx('計算対象') >= 0 && idx('金額（円）', '金額') >= 0 && idx('内容') >= 0) {
+    const targetIdx = idx('計算対象');
+    const di  = idx('日付');
+    const ai  = idx('金額（円）', '金額');
+    const mi  = idx('内容');
+    const cati = idx('大項目');
+    const trIdx = idx('振替');
+    return rows
+      .filter(r => r.length > Math.max(di, ai))
+      .filter(r => r[trIdx] !== '1')       // 振替（口座間移動）を除外
+      .filter(r => r[targetIdx] === '1')   // 計算対象外を除外
+      .map(r => {
+        const signed = parseInt(r[ai].replace(/[^0-9\-]/g, '') || '0');
+        const mfCat  = cati >= 0 ? r[cati] : '';
+        const mappedCat = MF_CATEGORY_MAP[mfCat] ?? '';
+        return {
+          date:     toDate(r[di]),
+          type:     (signed >= 0 ? 'income' : 'expense') as TxType,
+          amount:   Math.abs(signed),
+          memo:     r[mi] ?? '',
+          category: mappedCat,
+        };
+      })
+      .filter(r => r.amount > 0);
+  }
+
+  return { error: '対応していない形式です。マネーフォワード・家計簿エクスポート・楽天銀行・SBI・三菱UFJ・ゆうちょに対応しています。' };
 }
 
 export default function CSVImport() {
@@ -123,13 +161,18 @@ export default function CSVImport() {
 
     const reader = new FileReader();
     reader.onload = ev => {
-      const text = ev.target?.result as string;
+      const buffer = ev.target?.result as ArrayBuffer;
+      let text = new TextDecoder('utf-8').decode(buffer);
+      // 文字化けしていればShift-JISで再デコード
+      if (text.includes('�')) {
+        text = new TextDecoder('shift-jis').decode(buffer);
+      }
       const result = parseCSV(text);
       if ('error' in result) { setError(result.error); return; }
       if (result.length === 0) { setError('取り込めるデータがありませんでした'); return; }
       setPreview(result);
     };
-    reader.readAsText(file, 'UTF-8');
+    reader.readAsArrayBuffer(file);
   }
 
   function handleImport() {
@@ -169,7 +212,7 @@ export default function CSVImport() {
   return (
     <div className="bg-white rounded-xl shadow-sm p-4">
       <h2 className="text-sm font-semibold text-gray-600 mb-1">CSVインポート</h2>
-      <p className="text-xs text-gray-400 mb-3">家計簿・楽天銀行・SBI・三菱UFJ・ゆうちょのCSVに対応</p>
+      <p className="text-xs text-gray-400 mb-3">マネーフォワード・楽天銀行・SBI・三菱UFJ・ゆうちょ・家計簿エクスポートに対応</p>
 
       <input ref={fileRef} type="file" accept=".csv" onChange={handleFile}
         className="block w-full text-xs text-gray-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-medium file:bg-blue-50 file:text-blue-600 hover:file:bg-blue-100" />
