@@ -6,6 +6,7 @@ import CategoryManager from '../components/CategoryManager';
 import BudgetManager from '../components/BudgetManager';
 import FixedManager from '../components/FixedManager';
 import CSVExport from '../components/CSVExport';
+import CSVImport from '../components/CSVImport';
 
 export default function Settings() {
   const [cats, setCats]       = useState<Category[]>([]);
@@ -33,6 +34,7 @@ export default function Settings() {
         <FixedManager items={fixed} categories={cats} onChange={handleFixed} />
         <CategoryManager categories={cats} onChange={handleCats} />
         <BudgetManager categories={cats} budgets={budgets} onChange={handleBudgets} />
+        <CSVImport />
         <CSVExport />
       </main>
     </div>
