@@ -12,7 +12,8 @@
 
 | 機能 | 説明 |
 |------|------|
-| 月次サマリー | 収入・支出・残高を月単位で表示 |
+| 資産サマリー | 登録した銀行口座・投資口座の合計残高を表示 |
+| 月次サマリー | 収入・支出・残高を月単位で表示（前月比較付き） |
 | 予算プログレスバー | カテゴリごとの予算消化率（80%超：オレンジ、超過：赤） |
 | 取引追加ボタン | 右下の `+` ボタンから収入・支出を登録 |
 | 月切り替え | ヘッダーの `‹` `›` で前後の月に移動 |
@@ -31,11 +32,13 @@
 
 | 機能 | 説明 |
 |------|------|
+| 資産管理 | 銀行口座・投資口座の登録・編集・削除 |
 | 固定費・固定収入 | 毎月自動で追加される定期項目（家賃・サブスクなど） |
 | カテゴリ管理 | カテゴリの追加・削除 |
 | 予算設定 | カテゴリごとの月次予算 |
 | CSVインポート | 外部CSVから取引を一括取り込み |
 | CSVエクスポート | 今月分・全期間のCSVをダウンロード |
+| JSONバックアップ | 全データ（取引・カテゴリ・予算・固定費・資産）をまとめて保存・復元 |
 
 ---
 
@@ -78,8 +81,9 @@
 | `kakeibo_budgets` | 予算設定 |
 | `kakeibo_fixed` | 固定費・固定収入 |
 | `kakeibo_applied_months` | 固定費を適用済みの月（重複防止） |
+| `kakeibo_assets` | 資産口座一覧（銀行・投資） |
 
-> **注意**: ブラウザのデータを削除するとすべての取引が消えます。定期的にCSVエクスポートでバックアップを取ることを推奨します。
+> **注意**: ブラウザのデータを削除するとすべての取引が消えます。設定画面の **JSONバックアップ** で定期的にバックアップを取ることを推奨します。
 
 ---
 
@@ -104,7 +108,7 @@ kakeibo/
 │   ├── lib/
 │   │   └── storage.ts         # localStorage 読み書き関数
 │   ├── components/
-│   │   ├── Summary.tsx        # 月次サマリー（収入・支出・残高）
+│   │   ├── Summary.tsx        # 月次サマリー（収入・支出・残高・前月比）
 │   │   ├── BudgetProgress.tsx # 予算プログレスバー
 │   │   ├── TransactionList.tsx# 取引一覧
 │   │   ├── TransactionForm.tsx# 取引追加・編集フォーム
@@ -112,14 +116,23 @@ kakeibo/
 │   │   ├── ExpensePieChart.tsx# 支出カテゴリ円グラフ
 │   │   ├── AnnualGraph.tsx    # 年間収支棒グラフ（過去12ヶ月）
 │   │   ├── CategoryTrendGraph.tsx # カテゴリ別月次推移折れ線グラフ
+│   │   ├── AssetSummary.tsx   # ホーム資産合計表示
+│   │   ├── AssetManager.tsx   # 資産口座管理（設定画面）
 │   │   ├── FixedManager.tsx   # 固定費管理
 │   │   ├── CategoryManager.tsx# カテゴリ管理
 │   │   ├── BudgetManager.tsx  # 予算管理
-│   │   ├── CSVImport.tsx      # CSVインポート
+│   │   ├── CSVImport.tsx      # CSVインポート（マネーフォワードME対応）
 │   │   ├── CSVExport.tsx      # CSVエクスポート
+│   │   ├── JSONBackup.tsx     # JSONバックアップ・復元
 │   │   └── BottomNav.tsx      # 下部ナビゲーション
 │   └── settings/
 │       └── page.tsx           # 設定画面
+├── public/
+│   ├── manifest.json          # PWAマニフェスト
+│   ├── icon-192.png           # PWAアイコン（192×192）
+│   └── icon-512.png           # PWAアイコン（512×512）
+├── scripts/
+│   └── gen-icons.mjs          # アイコン生成スクリプト
 └── README.md                  # このファイル
 ```
 
@@ -147,3 +160,20 @@ vercel --prod
 | グラフ | Recharts v3 |
 | データ保存 | localStorage |
 | デプロイ | Vercel |
+| PWA | manifest.json + Apple Web App メタタグ |
+
+---
+
+## PWA（ホーム画面追加）
+
+スマートフォンのホーム画面にアイコンとして追加できます。
+
+**iPhone (Safari)**
+1. Safariで本番URLを開く
+2. 共有ボタン → 「ホーム画面に追加」
+
+**Android (Chrome)**
+1. Chromeで本番URLを開く
+2. メニュー → 「ホーム画面に追加」
+
+> **注意**: SafariとPWA（ホーム画面アプリ）はlocalStorageが独立しています。初回はJSONバックアップでデータを移行してください。以降はホーム画面アイコンから開けばデータが保持されます。
