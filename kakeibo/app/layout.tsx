@@ -5,11 +5,22 @@ import BottomNav from './components/BottomNav';
 export const metadata: Metadata = {
   title: '家計簿',
   description: '個人用家計簿アプリ',
+  manifest: '/manifest.json',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: '家計簿',
+  },
+  icons: {
+    icon: '/icon-192.png',
+    apple: '/icon-192.png',
+  },
 };
 
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
+  themeColor: '#3b82f6',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
