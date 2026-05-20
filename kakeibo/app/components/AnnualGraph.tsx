@@ -2,7 +2,7 @@
 import { BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { Transaction } from '../types';
 
-const fmt = (v: number) => v >= 10000 ? `${Math.round(v / 10000)}万` : String(v);
+const fmt = (v: number) => v >= 10000 ? `${Math.round(v / 10000)}万` : v.toLocaleString('ja-JP');
 
 export default function AnnualGraph({ transactions }: { transactions: Transaction[] }) {
   const now = new Date();
