@@ -8,6 +8,7 @@ import FixedManager from '../components/FixedManager';
 import AssetManager from '../components/AssetManager';
 import CSVExport from '../components/CSVExport';
 import CSVImport from '../components/CSVImport';
+import JSONBackup from '../components/JSONBackup';
 
 export default function Settings() {
   const [cats, setCats]       = useState<Category[]>([]);
@@ -41,6 +42,7 @@ export default function Settings() {
         <BudgetManager categories={cats} budgets={budgets} onChange={handleBudgets} />
         <CSVImport />
         <CSVExport />
+        <JSONBackup />
       </main>
     </div>
   );

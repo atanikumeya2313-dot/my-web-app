@@ -69,8 +69,10 @@ export default function Home() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const monthTxs    = txs.filter(t => t.date.startsWith(month));
-  const defaultDate = `${month}-${String(today.getDate()).padStart(2,'0')}`;
+  const monthTxs     = txs.filter(t => t.date.startsWith(month));
+  const prevMonth    = shiftMonth(month, -1);
+  const prevMonthTxs = txs.filter(t => t.date.startsWith(prevMonth));
+  const defaultDate  = `${month}-${String(today.getDate()).padStart(2,'0')}`;
 
   const handleSave = (tx: Transaction) => {
     setTxs(editing ? updateTransaction(tx) : addTransaction(tx));
@@ -95,7 +97,7 @@ export default function Home() {
 
       <main className="px-4 py-4 space-y-4">
         <AssetSummary assets={assets} transactions={txs} />
-        <Summary transactions={monthTxs} />
+        <Summary transactions={monthTxs} prevTransactions={prevMonthTxs} />
         <BudgetProgress transactions={monthTxs} categories={cats} budgets={budgets} />
 
         <div className="bg-white rounded-xl shadow-sm overflow-hidden">
