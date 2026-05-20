@@ -25,6 +25,7 @@
 | カレンダー | 月カレンダー表示。日付タップで日別明細を確認 |
 | グラフ | 当月の支出カテゴリ別円グラフ |
 | 年間 | 過去12ヶ月の収入・支出棒グラフ |
+| 推移 | カテゴリ別の月次推移折れ線グラフ（支出／収入切替・カテゴリ個別表示切替可） |
 
 ### 設定画面
 
@@ -110,6 +111,7 @@ kakeibo/
 │   │   ├── Calendar.tsx       # カレンダー（日付タップで明細表示）
 │   │   ├── ExpensePieChart.tsx# 支出カテゴリ円グラフ
 │   │   ├── AnnualGraph.tsx    # 年間収支棒グラフ（過去12ヶ月）
+│   │   ├── CategoryTrendGraph.tsx # カテゴリ別月次推移折れ線グラフ
 │   │   ├── FixedManager.tsx   # 固定費管理
 │   │   ├── CategoryManager.tsx# カテゴリ管理
 │   │   ├── BudgetManager.tsx  # 予算管理
