@@ -12,8 +12,9 @@ import TransactionForm from './components/TransactionForm';
 import Calendar from './components/Calendar';
 import ExpensePieChart from './components/ExpensePieChart';
 import AnnualGraph from './components/AnnualGraph';
+import CategoryTrendGraph from './components/CategoryTrendGraph';
 
-type Tab = '一覧' | 'カレンダー' | 'グラフ' | '年間';
+type Tab = '一覧' | 'カレンダー' | 'グラフ' | '年間' | '推移';
 
 function toYM(d: Date) { return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`; }
 function fmtYM(ym: string) { const [y,m] = ym.split('-'); return `${y}年${parseInt(m)}月`; }
@@ -94,7 +95,7 @@ export default function Home() {
 
         <div className="bg-white rounded-xl shadow-sm overflow-hidden">
           <div className="flex border-b border-gray-100">
-            {(['一覧','カレンダー','グラフ','年間'] as Tab[]).map(t => (
+            {(['一覧','カレンダー','グラフ','年間','推移'] as Tab[]).map(t => (
               <button key={t} onClick={() => setTab(t)}
                 className={`flex-1 py-2.5 text-xs font-medium transition-colors ${tab===t ? 'text-blue-500 border-b-2 border-blue-500' : 'text-gray-400'}`}>
                 {t}
@@ -106,6 +107,7 @@ export default function Home() {
             {tab === 'カレンダー' && <Calendar yearMonth={month} transactions={monthTxs} categories={cats} />}
             {tab === 'グラフ'    && <ExpensePieChart transactions={monthTxs} categories={cats} />}
             {tab === '年間'      && <AnnualGraph transactions={txs} />}
+            {tab === '推移'      && <CategoryTrendGraph transactions={txs} categories={cats} />}
           </div>
         </div>
       </main>
