@@ -1,9 +1,10 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { Transaction, Category, Budget, FixedItem } from './types';
+import { Transaction, Category, Budget, FixedItem, Asset } from './types';
 import {
   loadTransactions, saveTransactions, addTransaction, updateTransaction, deleteTransaction,
   loadCategories, loadBudgets, loadFixed, loadAppliedMonths, markMonthApplied,
+  loadAssets,
 } from './lib/storage';
 import Summary from './components/Summary';
 import BudgetProgress from './components/BudgetProgress';
@@ -13,6 +14,7 @@ import Calendar from './components/Calendar';
 import ExpensePieChart from './components/ExpensePieChart';
 import AnnualGraph from './components/AnnualGraph';
 import CategoryTrendGraph from './components/CategoryTrendGraph';
+import AssetSummary from './components/AssetSummary';
 
 type Tab = '一覧' | 'カレンダー' | 'グラフ' | '年間' | '推移';
 
@@ -34,15 +36,17 @@ export default function Home() {
   const [txs, setTxs]         = useState<Transaction[]>([]);
   const [cats, setCats]       = useState<Category[]>([]);
   const [budgets, setBudgets] = useState<Budget[]>([]);
+  const [assets, setAssets]     = useState<Asset[]>([]);
   const [showForm, setShowForm] = useState(false);
-  const [editing, setEditing] = useState<Transaction | undefined>();
-  const [tab, setTab]         = useState<Tab>('一覧');
+  const [editing, setEditing]   = useState<Transaction | undefined>();
+  const [tab, setTab]           = useState<Tab>('一覧');
 
   useEffect(() => {
     const allTxs   = loadTransactions();
     const allFixed = loadFixed();
     setCats(loadCategories());
     setBudgets(loadBudgets());
+    setAssets(loadAssets());
 
     // 今月まだ固定費を適用していなければ自動追加
     if (allFixed.length > 0 && !loadAppliedMonths().includes(thisMonth)) {
@@ -90,6 +94,7 @@ export default function Home() {
       </header>
 
       <main className="px-4 py-4 space-y-4">
+        <AssetSummary assets={assets} transactions={txs} />
         <Summary transactions={monthTxs} />
         <BudgetProgress transactions={monthTxs} categories={cats} budgets={budgets} />
 

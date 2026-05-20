@@ -21,6 +21,16 @@ export interface Budget {
   amount: number;
 }
 
+export type AssetType = 'bank' | 'investment';
+
+export interface Asset {
+  id: string;
+  name: string;
+  type: AssetType;
+  initialBalance: number; // 初期残高
+  initialDate: string;    // 初期残高の基準日 (YYYY-MM-DD)。銀行口座のみ使用
+}
+
 export interface FixedItem {
   id: string;
   name: string;
