@@ -61,12 +61,18 @@ NISA枠を超えた積み立て分は課税口座扱い（利益に20.315%課税
 savings-sim/
 ├── app/
 │   ├── page.tsx           # メインページ（入力・サマリー・テーブル）
-│   ├── layout.tsx         # 共通レイアウト
+│   ├── layout.tsx         # 共通レイアウト・PWAメタタグ
 │   ├── globals.css        # グローバルCSS
 │   ├── lib/
 │   │   └── calc.ts        # 積み立て計算ロジック（simulate関数）
 │   └── components/
 │       └── TrendChart.tsx # 年次推移グラフ（積み上げ棒グラフ）
+├── public/
+│   ├── manifest.json      # PWAマニフェスト
+│   ├── icon-192.png       # PWAアイコン（192×192）
+│   └── icon-512.png       # PWAアイコン（512×512）
+├── scripts/
+│   └── gen-icons.mjs      # アイコン生成スクリプト
 └── README.md              # このファイル
 ```
 
@@ -94,3 +100,18 @@ vercel --prod
 | グラフ | Recharts v3 |
 | データ保存 | なし（計算のみ、localStorage不使用） |
 | デプロイ | Vercel |
+| PWA | manifest.json + Apple Web App メタタグ |
+
+---
+
+## PWA（ホーム画面追加）
+
+スマートフォンのホーム画面にアイコンとして追加できます。
+
+**iPhone (Safari)**
+1. Safariで本番URLを開く
+2. 共有ボタン → 「ホーム画面に追加」
+
+**Android (Chrome)**
+1. Chromeで本番URLを開く
+2. メニュー → 「ホーム画面に追加」
