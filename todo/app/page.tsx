@@ -38,7 +38,9 @@ export default function Home() {
   }, []);
 
   const todayTasks   = getTodayTasks(tasks, completed);
-  const filteredTasks = filterCat
+  const filteredTasks = filterCat === '__other__'
+    ? todayTasks.filter(t => !t.category)
+    : filterCat
     ? todayTasks.filter(t => t.category === filterCat)
     : todayTasks;
 
@@ -104,8 +106,8 @@ export default function Home() {
     setTasks(next);
   }
 
-  // 今日のタスクに含まれるカテゴリだけ表示
   const activeCategories = [...new Set(todayTasks.map(t => t.category).filter(Boolean))] as string[];
+  const hasOther = todayTasks.some(t => !t.category);
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
@@ -119,18 +121,20 @@ export default function Home() {
         </div>
 
         {/* カテゴリフィルター */}
-        {activeCategories.length > 0 && (
+        {(activeCategories.length > 0) && (
           <div className="max-w-lg mx-auto px-4 pb-2 flex gap-1.5 overflow-x-auto scrollbar-hide">
-            <button onClick={() => setFilterCat('')}
-              className={`shrink-0 px-3 py-1 rounded-full text-xs font-medium transition-colors ${!filterCat ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-500'}`}>
-              すべて
-            </button>
             {activeCategories.map(cat => (
               <button key={cat} onClick={() => setFilterCat(cat === filterCat ? '' : cat)}
                 className={`shrink-0 px-3 py-1 rounded-full text-xs font-medium transition-colors ${filterCat === cat ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-500'}`}>
                 {cat}
               </button>
             ))}
+            {hasOther && (
+              <button onClick={() => setFilterCat(filterCat === '__other__' ? '' : '__other__')}
+                className={`shrink-0 px-3 py-1 rounded-full text-xs font-medium transition-colors ${filterCat === '__other__' ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-500'}`}>
+                その他
+              </button>
+            )}
           </div>
         )}
       </header>
@@ -140,7 +144,7 @@ export default function Home() {
           <div className="text-center py-16">
             <p className="text-4xl mb-3">✓</p>
             <p className="text-gray-400 text-sm">
-              {filterCat ? `「${filterCat}」のタスクはありません` : '今日のタスクはすべて完了です'}
+              {filterCat === '__other__' ? '「その他」のタスクはありません' : filterCat ? `「${filterCat}」のタスクはありません` : '今日のタスクはすべて完了です'}
             </p>
           </div>
         ) : (
