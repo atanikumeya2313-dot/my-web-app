@@ -36,25 +36,43 @@ export function toYMD(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 }
 
+function diffDays(ymd1: string, ymd2: string): number {
+  return Math.round((new Date(ymd1).getTime() - new Date(ymd2).getTime()) / 86_400_000);
+}
+
+function shouldShow(task: Task, ymd: string, todayYmd: string): boolean {
+  const dow = new Date(ymd).getDay();
+  const dom = new Date(ymd).getDate();
+
+  if (task.repeat === 'none') {
+    return task.date ? task.date === ymd : ymd === todayYmd;
+  }
+  if (task.repeat === 'daily')    return true;
+  if (task.repeat === 'weekly')   return (task.weekdays ?? []).includes(dow);
+  if (task.repeat === 'monthly')  return task.monthDay === dom;
+  if (task.repeat === 'interval') {
+    const start = task.startDate ?? todayYmd;
+    const diff  = diffDays(ymd, start);
+    return diff >= 0 && task.intervalDays! > 0 && diff % task.intervalDays! === 0;
+  }
+  return false;
+}
+
 export function getTodayTasks(tasks: Task[], completed: CompletedMap): Task[] {
-  const today = new Date();
-  const ymd   = toYMD(today);
-  const dow   = today.getDay();
-  const dom   = today.getDate();
-
+  const today = toYMD(new Date());
   return tasks.filter(task => {
-    const doneToday = (completed[task.id] ?? []).includes(ymd);
-    if (doneToday) return false;
+    if ((completed[task.id] ?? []).includes(today)) return false;
+    return shouldShow(task, today, today);
+  });
+}
 
-    if (task.repeat === 'none') {
-      // 日付指定あり → その日のみ表示
-      if (task.date) return task.date === ymd;
-      return true;
-    }
-    if (task.repeat === 'daily')   return true;
-    if (task.repeat === 'weekly')  return (task.weekdays ?? []).includes(dow);
-    if (task.repeat === 'monthly') return task.monthDay === dom;
-    return false;
+// カレンダー用：dailyは今日のみ
+export function getTasksForDate(tasks: Task[], completed: CompletedMap, ymd: string): Task[] {
+  const today = toYMD(new Date());
+  return tasks.filter(task => {
+    if ((completed[task.id] ?? []).includes(ymd)) return false;
+    if (task.repeat === 'daily') return ymd === today;
+    return shouldShow(task, ymd, today);
   });
 }
 
@@ -62,8 +80,16 @@ export function completeOnce(tasks: Task[], id: string): Task[] {
   return tasks.filter(t => t.id !== id);
 }
 
-export function completeRepeat(completed: CompletedMap, id: string): CompletedMap {
-  const ymd  = toYMD(new Date());
+export function completeRepeat(completed: CompletedMap, id: string, ymd?: string): CompletedMap {
+  const date = ymd ?? toYMD(new Date());
   const prev = completed[id] ?? [];
-  return { ...completed, [id]: [...prev, ymd] };
+  return { ...completed, [id]: [...prev, date] };
+}
+
+export function undoRepeat(completed: CompletedMap, id: string): CompletedMap {
+  const ymd  = toYMD(new Date());
+  const prev = (completed[id] ?? []).filter(d => d !== ymd);
+  const next = { ...completed };
+  if (prev.length === 0) delete next[id]; else next[id] = prev;
+  return next;
 }

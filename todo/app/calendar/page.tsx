@@ -92,7 +92,7 @@ export default function CalendarPage() {
       showUndo({ task, prevTasks: prev });
     } else {
       const prev = completed;
-      const next = completeRepeat(completed, id);
+      const next = completeRepeat(completed, id, selectedYmd);
       saveCompleted(next);
       setCompleted(next);
       showUndo({ task, prevCompleted: prev });
@@ -110,10 +110,10 @@ export default function CalendarPage() {
       showUndo({ task, message: `「${task.title}」を${newDate}に変更`, prevTasks: prev });
     } else if (task.repeat !== 'none') {
       const prev = completed;
-      const next = completeRepeat(completed, id);
+      const next = completeRepeat(completed, id, selectedYmd);
       saveCompleted(next);
       setCompleted(next);
-      showUndo({ task, message: `「${task.title}」を今日スキップ`, prevCompleted: prev });
+      showUndo({ task, message: `「${task.title}」をスキップ`, prevCompleted: prev });
     }
   }
 
