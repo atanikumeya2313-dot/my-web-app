@@ -22,12 +22,21 @@ function todayLabel() {
   return `${d.getMonth()+1}月${d.getDate()}日（${DOW[d.getDay()]}）`;
 }
 
+function defaultTimeSlot(): TimeSlot {
+  const h = new Date().getHours();
+  if (h >= 5  && h < 12) return 'morning';
+  if (h >= 12 && h < 18) return 'afternoon';
+  if (h >= 18)           return 'evening';
+  return 'anytime';
+}
+
 export default function Home() {
   const [tasks,      setTasks]      = useState<Task[]>([]);
   const [completed,  setCompleted]  = useState<CompletedMap>({});
   const [categories, setCategories] = useState<string[]>([]);
   const [showForm,   setShowForm]   = useState(false);
   const [filterCat,  setFilterCat]  = useState('');
+  const [timeFilter, setTimeFilter] = useState<TimeSlot>(defaultTimeSlot());
   const [undo,       setUndo]       = useState<UndoAction | null>(null);
   const undoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -43,6 +52,7 @@ export default function Home() {
     : filterCat
     ? todayTasks.filter(t => t.category === filterCat)
     : todayTasks;
+  const slotTasks = filteredTasks.filter(t => (t.timeSlot ?? 'anytime') === timeFilter);
 
   function showUndo(action: UndoAction) {
     if (undoTimer.current) clearTimeout(undoTimer.current);
@@ -117,11 +127,11 @@ export default function Home() {
             <h1 className="text-base font-bold text-gray-800">今日のタスク</h1>
             <p className="text-xs text-gray-400">{todayLabel()}</p>
           </div>
-          <span className="text-xs text-gray-400">{filteredTasks.length}件</span>
+          <span className="text-xs text-gray-400">{slotTasks.length}件</span>
         </div>
 
         {/* カテゴリフィルター */}
-        {(activeCategories.length > 0) && (
+        {activeCategories.length > 0 && (
           <div className="max-w-lg mx-auto px-4 pb-2 flex gap-1.5 overflow-x-auto scrollbar-hide">
             {activeCategories.map(cat => (
               <button key={cat} onClick={() => setFilterCat(cat === filterCat ? '' : cat)}
@@ -137,35 +147,42 @@ export default function Home() {
             )}
           </div>
         )}
+
+        {/* 時間帯タブ */}
+        <div className="max-w-lg mx-auto flex border-t border-gray-100">
+          {SECTIONS.map(({ slot, label, icon }) => {
+            const count  = filteredTasks.filter(t => (t.timeSlot ?? 'anytime') === slot).length;
+            const active = timeFilter === slot;
+            return (
+              <button key={slot} onClick={() => setTimeFilter(slot)}
+                className={`relative flex-1 flex flex-col items-center py-2 gap-0.5 transition-colors
+                  ${active ? 'text-blue-500' : 'text-gray-400'}`}>
+                <span className="text-base leading-none">{icon}</span>
+                <span className="text-[11px] font-medium">{label}</span>
+                <span className={`text-[10px] ${active ? 'text-blue-400' : 'text-gray-300'}`}>
+                  {count}
+                </span>
+                {active && <span className="absolute bottom-0 inset-x-3 h-0.5 bg-blue-500 rounded-full" />}
+              </button>
+            );
+          })}
+        </div>
       </header>
 
-      <main className="max-w-lg mx-auto px-4 py-4 space-y-5">
-        {filteredTasks.length === 0 ? (
+      <main className="max-w-lg mx-auto px-4 py-4">
+        {slotTasks.length === 0 ? (
           <div className="text-center py-16">
-            <p className="text-4xl mb-3">✓</p>
+            <p className="text-4xl mb-3">{SECTIONS.find(s => s.slot === timeFilter)?.icon}</p>
             <p className="text-gray-400 text-sm">
-              {filterCat === '__other__' ? '「その他」のタスクはありません' : filterCat ? `「${filterCat}」のタスクはありません` : '今日のタスクはすべて完了です'}
+              {SECTIONS.find(s => s.slot === timeFilter)?.label}のタスクはありません
             </p>
           </div>
         ) : (
-          SECTIONS.map(({ slot, label, icon }) => {
-            const sectionTasks = filteredTasks.filter(t => (t.timeSlot ?? 'anytime') === slot);
-            if (sectionTasks.length === 0) return null;
-            return (
-              <section key={slot}>
-                <div className="flex items-center gap-1.5 mb-2">
-                  <span className="text-base">{icon}</span>
-                  <h2 className="text-xs font-semibold text-gray-500">{label}</h2>
-                  <span className="text-xs text-gray-300">{sectionTasks.length}</span>
-                </div>
-                <div className="space-y-2">
-                  {sectionTasks.map(task => (
-                    <TaskItem key={task.id} task={task} onComplete={handleComplete} onReschedule={handleReschedule} />
-                  ))}
-                </div>
-              </section>
-            );
-          })
+          <div className="space-y-2">
+            {slotTasks.map(task => (
+              <TaskItem key={task.id} task={task} onComplete={handleComplete} onReschedule={handleReschedule} />
+            ))}
+          </div>
         )}
       </main>
 

@@ -56,10 +56,12 @@ export default function CalendarPage() {
   }
 
   function hasTask(day: number) {
-    return getTasksForDate(tasks, completed, ymdOf(day)).length > 0;
+    const ymd = ymdOf(day);
+    if (ymd < today) return false;
+    return getTasksForDate(tasks, completed, ymd).length > 0;
   }
 
-  const selectedTasks = getTasksForDate(tasks, completed, selectedYmd);
+  const selectedTasks = selectedYmd < today ? [] : getTasksForDate(tasks, completed, selectedYmd);
 
   function showUndo(action: UndoAction) {
     if (undoTimer.current) clearTimeout(undoTimer.current);
@@ -160,15 +162,16 @@ export default function CalendarPage() {
               const ymd      = ymdOf(day);
               const isToday  = ymd === today;
               const isSelected = ymd === selectedYmd;
+              const isPast   = ymd < today;
               const hasDot   = hasTask(day);
               const dow      = (firstDay + day - 1) % 7;
 
               return (
                 <button key={day} onClick={() => setSelectedYmd(ymd)}
                   className={`flex flex-col items-center py-1.5 rounded-lg transition-colors
-                    ${isSelected ? 'bg-blue-500' : isToday ? 'bg-blue-50' : 'hover:bg-gray-50'}`}>
+                    ${isSelected ? 'bg-blue-500' : isToday ? 'bg-blue-50' : isPast ? '' : 'hover:bg-gray-50'}`}>
                   <span className={`text-xs font-medium
-                    ${isSelected ? 'text-white' : isToday ? 'text-blue-500' :
+                    ${isSelected ? 'text-white' : isPast ? 'text-gray-300' : isToday ? 'text-blue-500' :
                       dow === 0 ? 'text-red-400' : dow === 6 ? 'text-blue-400' : 'text-gray-700'}`}>
                     {day}
                   </span>
