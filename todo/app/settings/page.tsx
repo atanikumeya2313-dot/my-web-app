@@ -1,10 +1,14 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { Task } from '../types';
+import { Task, TimeSlot } from '../types';
 import { loadTasks, saveTasks } from '../lib/storage';
 import TaskForm from '../components/TaskForm';
 
 const DOW = ['日','月','火','水','木','金','土'];
+
+const SLOT_LABEL: Record<TimeSlot, string> = {
+  morning: '🌅 朝', afternoon: '☀️ 昼', evening: '🌙 夜', anytime: '📋 その日',
+};
 
 function repeatDetail(task: Task): string {
   if (task.repeat === 'daily')   return '毎日';
@@ -36,15 +40,8 @@ export default function Settings() {
     setTasks(next);
   }
 
-  function openEdit(task: Task) {
-    setEditing(task);
-    setShowForm(true);
-  }
-
-  function openAdd() {
-    setEditing(undefined);
-    setShowForm(true);
-  }
+  function openEdit(task: Task) { setEditing(task); setShowForm(true); }
+  function openAdd()             { setEditing(undefined); setShowForm(true); }
 
   const repeating = tasks.filter(t => t.repeat !== 'none');
   const once      = tasks.filter(t => t.repeat === 'none');
@@ -69,7 +66,11 @@ export default function Settings() {
                 <div key={task.id} className="bg-white rounded-xl px-4 py-3 flex items-center gap-3 shadow-sm">
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-gray-800 truncate">{task.title}</p>
-                    <p className="text-xs text-blue-400 mt-0.5">{repeatDetail(task)}</p>
+                    <div className="flex gap-2 mt-0.5">
+                      <span className="text-xs text-blue-400">{repeatDetail(task)}</span>
+                      <span className="text-xs text-gray-300">·</span>
+                      <span className="text-xs text-gray-400">{SLOT_LABEL[task.timeSlot ?? 'anytime']}</span>
+                    </div>
                   </div>
                   <button onClick={() => openEdit(task)} className="text-gray-400 hover:text-blue-500 p-1.5 rounded-lg hover:bg-blue-50 transition-colors text-sm">✎</button>
                   <button onClick={() => handleDelete(task.id)} className="text-gray-400 hover:text-red-500 p-1.5 rounded-lg hover:bg-red-50 transition-colors text-sm">✕</button>
@@ -79,7 +80,7 @@ export default function Settings() {
           )}
         </section>
 
-        {/* 通常タスク（残っているもの） */}
+        {/* 通常タスク */}
         {once.length > 0 && (
           <section>
             <h2 className="text-xs font-semibold text-gray-500 mb-2">通常タスク（未完了）</h2>
@@ -88,6 +89,7 @@ export default function Settings() {
                 <div key={task.id} className="bg-white rounded-xl px-4 py-3 flex items-center gap-3 shadow-sm">
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-gray-800 truncate">{task.title}</p>
+                    <span className="text-xs text-gray-400">{SLOT_LABEL[task.timeSlot ?? 'anytime']}</span>
                   </div>
                   <button onClick={() => handleDelete(task.id)} className="text-gray-400 hover:text-red-500 p-1.5 rounded-lg hover:bg-red-50 transition-colors text-sm">✕</button>
                 </div>

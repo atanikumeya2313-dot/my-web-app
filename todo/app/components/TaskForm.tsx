@@ -1,8 +1,15 @@
 'use client';
 import { useState } from 'react';
-import { Task, RepeatType } from '../types';
+import { Task, RepeatType, TimeSlot } from '../types';
 
 const DOW_LABELS = ['日','月','火','水','木','金','土'];
+
+const TIME_SLOTS: { value: TimeSlot; label: string; icon: string }[] = [
+  { value: 'morning',   label: '朝',    icon: '🌅' },
+  { value: 'afternoon', label: '昼',    icon: '☀️' },
+  { value: 'evening',   label: '夜',    icon: '🌙' },
+  { value: 'anytime',   label: 'その日', icon: '📋' },
+];
 
 interface Props {
   onSave: (task: Task) => void;
@@ -11,10 +18,11 @@ interface Props {
 }
 
 export default function TaskForm({ onSave, onClose, editing }: Props) {
-  const [title,    setTitle]    = useState(editing?.title ?? '');
-  const [repeat,   setRepeat]   = useState<RepeatType>(editing?.repeat ?? 'none');
-  const [weekdays, setWeekdays] = useState<number[]>(editing?.weekdays ?? []);
-  const [monthDay, setMonthDay] = useState<number>(editing?.monthDay ?? 1);
+  const [title,    setTitle]    = useState(editing?.title    ?? '');
+  const [repeat,   setRepeat]   = useState<RepeatType>(editing?.repeat   ?? 'none');
+  const [timeSlot, setTimeSlot] = useState<TimeSlot>(editing?.timeSlot ?? 'anytime');
+  const [weekdays, setWeekdays] = useState<number[]>(editing?.weekdays  ?? []);
+  const [monthDay, setMonthDay] = useState<number>(editing?.monthDay   ?? 1);
 
   function toggleDow(d: number) {
     setWeekdays(prev => prev.includes(d) ? prev.filter(x => x !== d) : [...prev, d].sort());
@@ -27,6 +35,7 @@ export default function TaskForm({ onSave, onClose, editing }: Props) {
       id:       editing?.id ?? crypto.randomUUID(),
       title:    t,
       repeat,
+      timeSlot,
       ...(repeat === 'weekly'  ? { weekdays } : {}),
       ...(repeat === 'monthly' ? { monthDay } : {}),
     };
@@ -49,6 +58,20 @@ export default function TaskForm({ onSave, onClose, editing }: Props) {
           placeholder="タスク名"
           className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
         />
+
+        {/* 時間帯 */}
+        <div>
+          <p className="text-xs text-gray-500 mb-2">時間帯</p>
+          <div className="grid grid-cols-4 gap-1.5">
+            {TIME_SLOTS.map(({ value, label, icon }) => (
+              <button key={value} onClick={() => setTimeSlot(value)}
+                className={`py-2 rounded-lg text-xs font-medium transition-colors flex flex-col items-center gap-0.5 ${timeSlot === value ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-600'}`}>
+                <span>{icon}</span>
+                <span>{label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
 
         {/* 繰り返し */}
         <div>
