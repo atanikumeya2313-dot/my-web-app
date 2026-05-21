@@ -23,18 +23,19 @@ function fmtYM(ym: string) {
   return `${y}年${parseInt(m)}月`;
 }
 
-// その日に表示すべきタスクを返す
+// その日に表示すべきタスクを返す（カレンダー用: dailyは今日のみ）
 function getTasksForDate(tasks: Task[], completed: CompletedMap, ymd: string): Task[] {
-  const d   = new Date(ymd);
-  const dow = d.getDay();
-  const dom = d.getDate();
+  const today = toYMD(new Date());
+  const d     = new Date(ymd);
+  const dow   = d.getDay();
+  const dom   = d.getDate();
 
   return tasks.filter(task => {
     const doneToday = (completed[task.id] ?? []).includes(ymd);
     if (doneToday) return false;
 
-    if (task.repeat === 'none')    return task.date ? task.date === ymd : toYMD(new Date()) === ymd;
-    if (task.repeat === 'daily')   return true;
+    if (task.repeat === 'none')    return task.date ? task.date === ymd : ymd === today;
+    if (task.repeat === 'daily')   return ymd === today; // 今日のみ表示
     if (task.repeat === 'weekly')  return (task.weekdays ?? []).includes(dow);
     if (task.repeat === 'monthly') return task.monthDay === dom;
     return false;
