@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Task, CompletedMap, UndoAction } from '../types';
 import {
   loadTasks, saveTasks, loadCompleted, saveCompleted, loadCategories,
-  toYMD, getTasksForDate, completeOnce, completeRepeat, undoRepeat,
+  toYMD, getTasksForDate, completeOnce, completeRepeat,
 } from '../lib/storage';
 import TaskItem from '../components/TaskItem';
 import TaskForm from '../components/TaskForm';
@@ -99,6 +99,24 @@ export default function CalendarPage() {
     }
   }
 
+  function handleReschedule(id: string, newDate?: string) {
+    const task = tasks.find(t => t.id === id);
+    if (!task) return;
+    if (task.repeat === 'none' && newDate) {
+      const prev = tasks;
+      const next = tasks.map(t => t.id === id ? { ...t, date: newDate } : t);
+      saveTasks(next);
+      setTasks(next);
+      showUndo({ task, message: `「${task.title}」を${newDate}に変更`, prevTasks: prev });
+    } else if (task.repeat !== 'none') {
+      const prev = completed;
+      const next = completeRepeat(completed, id);
+      saveCompleted(next);
+      setCompleted(next);
+      showUndo({ task, message: `「${task.title}」を今日スキップ`, prevCompleted: prev });
+    }
+  }
+
   function handleAdd(task: Task) {
     const next = [...tasks, task];
     saveTasks(next);
@@ -174,7 +192,7 @@ export default function CalendarPage() {
         ) : (
           <div className="space-y-2">
             {selectedTasks.map(task => (
-              <TaskItem key={task.id} task={task} onComplete={handleComplete} />
+              <TaskItem key={task.id} task={task} onComplete={handleComplete} onReschedule={handleReschedule} />
             ))}
           </div>
         )}
@@ -197,7 +215,7 @@ export default function CalendarPage() {
 
       {undo && (
         <div className="fixed bottom-24 left-4 right-4 max-w-lg mx-auto bg-gray-800 text-white rounded-xl px-4 py-3 flex items-center justify-between shadow-lg z-50">
-          <span className="text-sm truncate mr-3">「{undo.task.title}」を完了</span>
+          <span className="text-sm truncate mr-3">{undo.message ?? `「${undo.task.title}」を完了`}</span>
           <button onClick={handleUndo}
             className="shrink-0 text-sm font-medium text-blue-300 hover:text-blue-200">
             元に戻す
