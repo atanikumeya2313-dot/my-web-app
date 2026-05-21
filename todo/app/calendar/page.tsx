@@ -1,9 +1,9 @@
 'use client';
-import { useEffect, useState } from 'react';
-import { Task, CompletedMap } from '../types';
+import { useEffect, useRef, useState } from 'react';
+import { Task, CompletedMap, UndoAction } from '../types';
 import {
   loadTasks, saveTasks, loadCompleted, saveCompleted, loadCategories,
-  toYMD, completeOnce, completeRepeat,
+  toYMD, getTasksForDate, completeOnce, completeRepeat, undoRepeat,
 } from '../lib/storage';
 import TaskItem from '../components/TaskItem';
 import TaskForm from '../components/TaskForm';
@@ -23,24 +23,6 @@ function fmtYM(ym: string) {
   return `${y}年${parseInt(m)}月`;
 }
 
-// その日に表示すべきタスクを返す（カレンダー用: dailyは今日のみ）
-function getTasksForDate(tasks: Task[], completed: CompletedMap, ymd: string): Task[] {
-  const today = toYMD(new Date());
-  const d     = new Date(ymd);
-  const dow   = d.getDay();
-  const dom   = d.getDate();
-
-  return tasks.filter(task => {
-    const doneToday = (completed[task.id] ?? []).includes(ymd);
-    if (doneToday) return false;
-
-    if (task.repeat === 'none')    return task.date ? task.date === ymd : ymd === today;
-    if (task.repeat === 'daily')   return ymd === today; // 今日のみ表示
-    if (task.repeat === 'weekly')  return (task.weekdays ?? []).includes(dow);
-    if (task.repeat === 'monthly') return task.monthDay === dom;
-    return false;
-  });
-}
 
 export default function CalendarPage() {
   const [tasks,      setTasks]      = useState<Task[]>([]);
@@ -49,6 +31,8 @@ export default function CalendarPage() {
   const [ym,         setYm]         = useState(toYM(new Date()));
   const [selectedYmd,setSelectedYmd]= useState(toYMD(new Date()));
   const [showForm,   setShowForm]   = useState(false);
+  const [undo,       setUndo]       = useState<UndoAction | null>(null);
+  const undoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     setTasks(loadTasks());
@@ -77,17 +61,41 @@ export default function CalendarPage() {
 
   const selectedTasks = getTasksForDate(tasks, completed, selectedYmd);
 
+  function showUndo(action: UndoAction) {
+    if (undoTimer.current) clearTimeout(undoTimer.current);
+    setUndo(action);
+    undoTimer.current = setTimeout(() => setUndo(null), 5000);
+  }
+
+  function handleUndo() {
+    if (!undo) return;
+    if (undoTimer.current) clearTimeout(undoTimer.current);
+    if (undo.prevTasks !== undefined) {
+      saveTasks(undo.prevTasks);
+      setTasks(undo.prevTasks);
+    }
+    if (undo.prevCompleted !== undefined) {
+      saveCompleted(undo.prevCompleted);
+      setCompleted(undo.prevCompleted);
+    }
+    setUndo(null);
+  }
+
   function handleComplete(id: string) {
     const task = tasks.find(t => t.id === id);
     if (!task) return;
     if (task.repeat === 'none') {
+      const prev = tasks;
       const next = completeOnce(tasks, id);
       saveTasks(next);
       setTasks(next);
+      showUndo({ task, prevTasks: prev });
     } else {
+      const prev = completed;
       const next = completeRepeat(completed, id);
       saveCompleted(next);
       setCompleted(next);
+      showUndo({ task, prevCompleted: prev });
     }
   }
 
@@ -185,6 +193,16 @@ export default function CalendarPage() {
           categories={categories}
           defaultDate={selectedYmd}
         />
+      )}
+
+      {undo && (
+        <div className="fixed bottom-24 left-4 right-4 max-w-lg mx-auto bg-gray-800 text-white rounded-xl px-4 py-3 flex items-center justify-between shadow-lg z-50">
+          <span className="text-sm truncate mr-3">「{undo.task.title}」を完了</span>
+          <button onClick={handleUndo}
+            className="shrink-0 text-sm font-medium text-blue-300 hover:text-blue-200">
+            元に戻す
+          </button>
+        </div>
       )}
     </div>
   );

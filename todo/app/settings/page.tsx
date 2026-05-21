@@ -11,9 +11,10 @@ const SLOT_LABEL: Record<TimeSlot, string> = {
 };
 
 function repeatDetail(task: Task): string {
-  if (task.repeat === 'daily')   return '毎日';
-  if (task.repeat === 'weekly')  return `毎週${(task.weekdays ?? []).map(d => DOW[d]).join('・')}`;
-  if (task.repeat === 'monthly') return `毎月${task.monthDay}日`;
+  if (task.repeat === 'daily')    return '毎日';
+  if (task.repeat === 'weekly')   return `毎週${(task.weekdays ?? []).map(d => DOW[d]).join('・')}`;
+  if (task.repeat === 'monthly')  return `毎月${task.monthDay}日`;
+  if (task.repeat === 'interval') return `${task.intervalDays}日ごと`;
   return '繰り返しなし';
 }
 

@@ -1,9 +1,9 @@
 'use client';
-import { useEffect, useState } from 'react';
-import { Task, CompletedMap, TimeSlot } from './types';
+import { useEffect, useRef, useState } from 'react';
+import { Task, CompletedMap, TimeSlot, UndoAction } from './types';
 import {
   loadTasks, saveTasks, loadCompleted, saveCompleted, loadCategories,
-  getTodayTasks, completeOnce, completeRepeat,
+  getTodayTasks, completeOnce, completeRepeat, undoRepeat,
 } from './lib/storage';
 import TaskItem from './components/TaskItem';
 import TaskForm from './components/TaskForm';
@@ -28,6 +28,8 @@ export default function Home() {
   const [categories, setCategories] = useState<string[]>([]);
   const [showForm,   setShowForm]   = useState(false);
   const [filterCat,  setFilterCat]  = useState('');
+  const [undo,       setUndo]       = useState<UndoAction | null>(null);
+  const undoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     setTasks(loadTasks());
@@ -40,17 +42,41 @@ export default function Home() {
     ? todayTasks.filter(t => t.category === filterCat)
     : todayTasks;
 
+  function showUndo(action: UndoAction) {
+    if (undoTimer.current) clearTimeout(undoTimer.current);
+    setUndo(action);
+    undoTimer.current = setTimeout(() => setUndo(null), 5000);
+  }
+
+  function handleUndo() {
+    if (!undo) return;
+    if (undoTimer.current) clearTimeout(undoTimer.current);
+    if (undo.prevTasks !== undefined) {
+      saveTasks(undo.prevTasks);
+      setTasks(undo.prevTasks);
+    }
+    if (undo.prevCompleted !== undefined) {
+      saveCompleted(undo.prevCompleted);
+      setCompleted(undo.prevCompleted);
+    }
+    setUndo(null);
+  }
+
   function handleComplete(id: string) {
     const task = tasks.find(t => t.id === id);
     if (!task) return;
     if (task.repeat === 'none') {
+      const prev = tasks;
       const next = completeOnce(tasks, id);
       saveTasks(next);
       setTasks(next);
+      showUndo({ task, prevTasks: prev });
     } else {
+      const prev = completed;
       const next = completeRepeat(completed, id);
       saveCompleted(next);
       setCompleted(next);
+      showUndo({ task, prevCompleted: prev });
     }
   }
 
@@ -132,6 +158,16 @@ export default function Home() {
           onClose={() => setShowForm(false)}
           categories={categories}
         />
+      )}
+
+      {undo && (
+        <div className="fixed bottom-24 left-4 right-4 max-w-lg mx-auto bg-gray-800 text-white rounded-xl px-4 py-3 flex items-center justify-between shadow-lg z-50">
+          <span className="text-sm truncate mr-3">「{undo.task.title}」を完了</span>
+          <button onClick={handleUndo}
+            className="shrink-0 text-sm font-medium text-blue-300 hover:text-blue-200">
+            元に戻す
+          </button>
+        </div>
       )}
     </div>
   );
