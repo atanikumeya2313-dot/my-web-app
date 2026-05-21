@@ -50,9 +50,19 @@ export default function TaskItem({ task, onComplete }: Props) {
         {/* テキスト */}
         <div className="flex-1 min-w-0">
           <p className="text-sm font-medium text-gray-800 truncate">{task.title}</p>
-          {detail && (
-            <p className="text-xs text-blue-400 mt-0.5">{detail}</p>
-          )}
+          <div className="flex items-center flex-wrap gap-1.5 mt-1">
+            {task.category && (
+              <span className="text-[10px] bg-blue-50 text-blue-500 px-2 py-0.5 rounded-full font-medium">
+                {task.category}
+              </span>
+            )}
+            {detail && (
+              <span className="text-[10px] text-gray-400">{detail}</span>
+            )}
+            {task.date && task.repeat === 'none' && (
+              <span className="text-[10px] text-gray-400">{task.date}</span>
+            )}
+          </div>
         </div>
       </button>
     </div>

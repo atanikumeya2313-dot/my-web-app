@@ -1,6 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { Task, RepeatType, TimeSlot } from '../types';
+import { toYMD } from '../lib/storage';
 
 const DOW_LABELS = ['日','月','火','水','木','金','土'];
 
@@ -15,14 +16,19 @@ interface Props {
   onSave: (task: Task) => void;
   onClose: () => void;
   editing?: Task;
+  categories: string[];
 }
 
-export default function TaskForm({ onSave, onClose, editing }: Props) {
+export default function TaskForm({ onSave, onClose, editing, categories }: Props) {
   const [title,    setTitle]    = useState(editing?.title    ?? '');
   const [repeat,   setRepeat]   = useState<RepeatType>(editing?.repeat   ?? 'none');
-  const [timeSlot, setTimeSlot] = useState<TimeSlot>(editing?.timeSlot ?? 'anytime');
+  const [timeSlot, setTimeSlot] = useState<TimeSlot>(editing?.timeSlot  ?? 'anytime');
+  const [date,     setDate]     = useState(editing?.date     ?? '');
+  const [category, setCategory] = useState(editing?.category ?? '');
   const [weekdays, setWeekdays] = useState<number[]>(editing?.weekdays  ?? []);
   const [monthDay, setMonthDay] = useState<number>(editing?.monthDay   ?? 1);
+
+  const today = toYMD(new Date());
 
   function toggleDow(d: number) {
     setWeekdays(prev => prev.includes(d) ? prev.filter(x => x !== d) : [...prev, d].sort());
@@ -36,6 +42,8 @@ export default function TaskForm({ onSave, onClose, editing }: Props) {
       title:    t,
       repeat,
       timeSlot,
+      ...(category ? { category } : {}),
+      ...(repeat === 'none' && date ? { date } : {}),
       ...(repeat === 'weekly'  ? { weekdays } : {}),
       ...(repeat === 'monthly' ? { monthDay } : {}),
     };
@@ -45,7 +53,8 @@ export default function TaskForm({ onSave, onClose, editing }: Props) {
 
   return (
     <div className="fixed inset-0 bg-black/40 z-50 flex items-end" onClick={onClose}>
-      <div className="bg-white w-full rounded-t-2xl p-5 space-y-4" onClick={e => e.stopPropagation()}>
+      <div className="bg-white w-full rounded-t-2xl p-5 space-y-4 max-h-[90vh] overflow-y-auto"
+        onClick={e => e.stopPropagation()}>
         <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto" />
         <h2 className="text-sm font-bold text-gray-700">{editing ? 'タスクを編集' : 'タスクを追加'}</h2>
 
@@ -58,6 +67,25 @@ export default function TaskForm({ onSave, onClose, editing }: Props) {
           placeholder="タスク名"
           className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
         />
+
+        {/* カテゴリ */}
+        {categories.length > 0 && (
+          <div>
+            <p className="text-xs text-gray-500 mb-2">カテゴリ</p>
+            <div className="flex flex-wrap gap-1.5">
+              <button onClick={() => setCategory('')}
+                className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${!category ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-600'}`}>
+                なし
+              </button>
+              {categories.map(cat => (
+                <button key={cat} onClick={() => setCategory(cat)}
+                  className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${category === cat ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-600'}`}>
+                  {cat}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* 時間帯 */}
         <div>
@@ -85,6 +113,17 @@ export default function TaskForm({ onSave, onClose, editing }: Props) {
             ))}
           </div>
         </div>
+
+        {/* 日付指定（repeat=none のとき） */}
+        {repeat === 'none' && (
+          <div>
+            <p className="text-xs text-gray-500 mb-2">日付指定（省略すると今日）</p>
+            <input type="date" value={date} min={today}
+              onChange={e => setDate(e.target.value)}
+              className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
+            />
+          </div>
+        )}
 
         {/* 曜日選択（weekly） */}
         {repeat === 'weekly' && (

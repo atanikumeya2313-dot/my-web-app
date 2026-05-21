@@ -6,8 +6,10 @@ export interface Task {
   title: string;
   repeat: RepeatType;
   timeSlot: TimeSlot;
-  weekdays?: number[];  // 0=日〜6=土（weekly用）
-  monthDay?: number;    // 1〜31（monthly用）
+  date?: string;      // YYYY-MM-DD（repeat='none'のとき日付指定）
+  category?: string;  // カテゴリ名
+  weekdays?: number[]; // 0=日〜6=土（weekly用）
+  monthDay?: number;   // 1〜31（monthly用）
 }
 
 // タスクIDごとの完了日（YYYY-MM-DD）リスト
