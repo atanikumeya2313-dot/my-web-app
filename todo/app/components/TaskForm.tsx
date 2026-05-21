@@ -17,13 +17,14 @@ interface Props {
   onClose: () => void;
   editing?: Task;
   categories: string[];
+  defaultDate?: string;
 }
 
-export default function TaskForm({ onSave, onClose, editing, categories }: Props) {
+export default function TaskForm({ onSave, onClose, editing, categories, defaultDate }: Props) {
   const [title,    setTitle]    = useState(editing?.title    ?? '');
   const [repeat,   setRepeat]   = useState<RepeatType>(editing?.repeat   ?? 'none');
   const [timeSlot, setTimeSlot] = useState<TimeSlot>(editing?.timeSlot  ?? 'anytime');
-  const [date,     setDate]     = useState(editing?.date     ?? '');
+  const [date,     setDate]     = useState(editing?.date     ?? defaultDate ?? '');
   const [category, setCategory] = useState(editing?.category ?? '');
   const [weekdays, setWeekdays] = useState<number[]>(editing?.weekdays  ?? []);
   const [monthDay, setMonthDay] = useState<number>(editing?.monthDay   ?? 1);

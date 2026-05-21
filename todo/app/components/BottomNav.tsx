@@ -3,8 +3,9 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
 const ITEMS = [
-  { href: '/',         label: 'タスク',  icon: '✓' },
-  { href: '/settings', label: '設定',    icon: '⚙' },
+  { href: '/',          label: 'タスク',      icon: '✓' },
+  { href: '/calendar',  label: 'カレンダー',  icon: '📅' },
+  { href: '/settings',  label: '設定',        icon: '⚙' },
 ];
 
 export default function BottomNav() {

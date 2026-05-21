@@ -24,3 +24,8 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* iOSの自動ズーム防止: input/selectのfont-sizeを16px以上に */
+input, select, textarea {
+  font-size: 16px;
+}
