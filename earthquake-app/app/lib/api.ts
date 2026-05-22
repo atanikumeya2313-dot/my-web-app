@@ -15,6 +15,12 @@ export interface Earthquake {
   hypocenter: Hypocenter;
   maxScale: Scale;
   domesticTsunami: string;
+  prefectures: string[];
+}
+
+interface RawPoint {
+  pref: string;
+  scale: number;
 }
 
 interface RawQuake {
@@ -26,6 +32,7 @@ interface RawQuake {
     maxScale: Scale;
     domesticTsunami: string;
   };
+  points?: RawPoint[];
 }
 
 const API_URL =
@@ -35,13 +42,24 @@ export async function fetchEarthquakes(): Promise<Earthquake[]> {
   const res = await fetch(API_URL, { cache: 'no-store' });
   if (!res.ok) throw new Error('APIの取得に失敗しました');
   const data: RawQuake[] = await res.json();
-  return data.map((q) => ({
-    id: q.id,
-    time: q.earthquake.time,
-    hypocenter: q.earthquake.hypocenter,
-    maxScale: q.earthquake.maxScale,
-    domesticTsunami: q.earthquake.domesticTsunami,
-  }));
+  return data.map((q) => {
+    const prefMax = new Map<string, number>();
+    for (const p of q.points ?? []) {
+      if (p.scale <= 0) continue;
+      if ((prefMax.get(p.pref) ?? -1) < p.scale) prefMax.set(p.pref, p.scale);
+    }
+    const prefectures = [...prefMax.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .map(([pref]) => pref);
+    return {
+      id: q.id,
+      time: q.earthquake.time,
+      hypocenter: q.earthquake.hypocenter,
+      maxScale: q.earthquake.maxScale,
+      domesticTsunami: q.earthquake.domesticTsunami,
+      prefectures,
+    };
+  });
 }
 
 export function scaleLabel(scale: Scale): string {

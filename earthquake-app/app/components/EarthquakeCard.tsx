@@ -41,6 +41,19 @@ export default function EarthquakeCard({ quake, isLatest }: Props) {
           {depth >= 0 && <span>深さ {depth === 0 ? 'ごく浅い' : `${depth}km`}</span>}
         </div>
 
+        {quake.prefectures.length > 0 && (
+          <div className="flex flex-wrap gap-1 mt-1.5">
+            {quake.prefectures.slice(0, 6).map(pref => (
+              <span key={pref} className="text-[10px] bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded-full">
+                {pref}
+              </span>
+            ))}
+            {quake.prefectures.length > 6 && (
+              <span className="text-[10px] text-gray-400 self-center">他{quake.prefectures.length - 6}県</span>
+            )}
+          </div>
+        )}
+
         {tsunami && (
           <div className="mt-1.5 text-xs font-semibold text-red-600 bg-red-50 rounded px-2 py-0.5 inline-block">
             {tsunami}
