@@ -1,4 +1,4 @@
-import { Earthquake, scaleLabel, scaleColor, scaleBorder, tsunamiLabel, fmtTime } from '../lib/api';
+import { Earthquake, scaleLabel, scaleColor, scaleBorder, tsunamiLabel, fmtTime, extractPrefecture } from '../lib/api';
 
 interface Props {
   quake: Earthquake;
@@ -13,6 +13,7 @@ export default function EarthquakeCard({ quake, isLatest }: Props) {
   const tsunami = tsunamiLabel(quake.domesticTsunami);
   const mag     = quake.hypocenter.magnitude;
   const depth   = quake.hypocenter.depth;
+  const pref    = extractPrefecture(quake.hypocenter.name);
 
   return (
     <div className={`bg-white rounded-xl border-l-4 ${border} shadow-sm p-4 flex gap-3 items-start`}>
@@ -28,6 +29,9 @@ export default function EarthquakeCard({ quake, isLatest }: Props) {
           <span className="text-sm font-bold text-gray-800 truncate">{quake.hypocenter.name || '震源地不明'}</span>
           {isLatest && (
             <span className="text-[10px] bg-red-500 text-white px-1.5 py-0.5 rounded-full font-medium shrink-0">最新</span>
+          )}
+          {pref && (
+            <span className="text-[10px] bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded-full font-medium shrink-0">{pref}</span>
           )}
         </div>
 
