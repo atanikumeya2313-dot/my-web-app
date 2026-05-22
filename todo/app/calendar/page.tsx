@@ -103,19 +103,31 @@ export default function CalendarPage() {
 
   function handleReschedule(id: string, newDate?: string) {
     const task = tasks.find(t => t.id === id);
-    if (!task) return;
-    if (task.repeat === 'none' && newDate) {
-      const prev = tasks;
-      const next = tasks.map(t => t.id === id ? { ...t, date: newDate } : t);
-      saveTasks(next);
-      setTasks(next);
-      showUndo({ task, message: `「${task.title}」を${newDate}に変更`, prevTasks: prev });
-    } else if (task.repeat !== 'none') {
-      const prev = completed;
-      const next = completeRepeat(completed, id, selectedYmd);
-      saveCompleted(next);
-      setCompleted(next);
-      showUndo({ task, message: `「${task.title}」をスキップ`, prevCompleted: prev });
+    if (!task || !newDate) return;
+    if (task.repeat === 'none') {
+      const prevTasks = tasks;
+      const nextTasks = tasks.map(t => t.id === id ? { ...t, date: newDate } : t);
+      saveTasks(nextTasks);
+      setTasks(nextTasks);
+      showUndo({ task, message: `「${task.title}」を${newDate}に変更`, prevTasks });
+    } else {
+      const prevTasks     = tasks;
+      const prevCompleted = completed;
+      const nextCompleted = completeRepeat(completed, id, selectedYmd);
+      const oneTime: Task = {
+        id: crypto.randomUUID(),
+        title: task.title,
+        repeat: 'none',
+        timeSlot: task.timeSlot,
+        date: newDate,
+        ...(task.category ? { category: task.category } : {}),
+      };
+      const nextTasks = [...tasks, oneTime];
+      saveTasks(nextTasks);
+      saveCompleted(nextCompleted);
+      setTasks(nextTasks);
+      setCompleted(nextCompleted);
+      showUndo({ task, message: `「${task.title}」を${newDate}に移動`, prevTasks, prevCompleted });
     }
   }
 

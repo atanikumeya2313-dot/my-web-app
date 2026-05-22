@@ -34,11 +34,6 @@ export default function TaskItem({ task, onComplete, onReschedule }: Props) {
     setShowPanel(false);
   }
 
-  function confirmSkip() {
-    onReschedule?.(task.id);
-    setShowPanel(false);
-  }
-
   function repeatDetail() {
     if (task.repeat === 'weekly' && task.weekdays?.length) {
       return `毎週${task.weekdays.map(d => DOW[d]).join('・')}`;
@@ -102,35 +97,22 @@ export default function TaskItem({ task, onComplete, onReschedule }: Props) {
 
         {showPanel && onReschedule && (
           <div className="border-t border-gray-100 bg-blue-50 px-4 py-3">
-            {isRepeat ? (
-              <div className="flex items-center justify-between gap-3">
-                <span className="text-xs text-gray-500">今日をスキップ（次回予定日に表示）</span>
-                <div className="flex gap-2 shrink-0">
-                  <button onClick={confirmSkip}
-                    className="px-3 py-1.5 bg-blue-500 text-white rounded-lg text-xs font-medium">
-                    スキップ
-                  </button>
-                  <button onClick={() => setShowPanel(false)}
-                    className="px-3 py-1.5 bg-gray-200 text-gray-600 rounded-lg text-xs font-medium">
-                    ×
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <div className="flex items-center gap-2">
-                <input type="date" value={newDate} min={tomorrow}
-                  onChange={e => setNewDate(e.target.value)}
-                  className="flex-1 border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300 bg-white"
-                />
-                <button onClick={confirmReschedule} disabled={!newDate}
-                  className="px-3 py-1.5 bg-blue-500 text-white rounded-lg text-xs font-medium disabled:opacity-40 shrink-0">
-                  変更
-                </button>
-                <button onClick={() => setShowPanel(false)}
-                  className="px-3 py-1.5 bg-gray-200 text-gray-600 rounded-lg text-xs font-medium shrink-0">
-                  ×
-                </button>
-              </div>
+            <div className="flex items-center gap-2">
+              <input type="date" value={newDate} min={tomorrow}
+                onChange={e => setNewDate(e.target.value)}
+                className="flex-1 border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300 bg-white"
+              />
+              <button onClick={confirmReschedule} disabled={!newDate}
+                className="px-3 py-1.5 bg-blue-500 text-white rounded-lg text-xs font-medium disabled:opacity-40 shrink-0">
+                変更
+              </button>
+              <button onClick={() => setShowPanel(false)}
+                className="px-3 py-1.5 bg-gray-200 text-gray-600 rounded-lg text-xs font-medium shrink-0">
+                ×
+              </button>
+            </div>
+            {isRepeat && (
+              <p className="text-[10px] text-gray-400 mt-1.5">今日をスキップして指定日に移動します（繰り返しは継続）</p>
             )}
           </div>
         )}
