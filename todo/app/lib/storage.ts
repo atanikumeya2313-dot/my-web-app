@@ -40,20 +40,28 @@ function diffDays(ymd1: string, ymd2: string): number {
   return Math.round((new Date(ymd1).getTime() - new Date(ymd2).getTime()) / 86_400_000);
 }
 
-function shouldShow(task: Task, ymd: string, todayYmd: string): boolean {
+function shouldShow(task: Task, ymd: string, todayYmd: string, completed?: CompletedMap): boolean {
   const dow = new Date(ymd).getDay();
   const dom = new Date(ymd).getDate();
 
   if (task.repeat === 'none') {
     return task.date ? task.date === ymd : ymd === todayYmd;
   }
-  if (task.repeat === 'daily')    return true;
-  if (task.repeat === 'weekly')   return (task.weekdays ?? []).includes(dow);
-  if (task.repeat === 'monthly')  return task.monthDay === dom;
+  if (task.repeat === 'daily')   return true;
+  if (task.repeat === 'weekly')  return (task.weekdays ?? []).includes(dow);
+  if (task.repeat === 'monthly') return task.monthDay === dom;
   if (task.repeat === 'interval') {
-    const start = task.startDate ?? todayYmd;
-    const diff  = diffDays(ymd, start);
-    return diff >= 0 && task.intervalDays! > 0 && diff % task.intervalDays! === 0;
+    const pastDates  = (completed?.[task.id] ?? []).filter(d => d !== ymd);
+    const lastDone   = pastDates.length > 0 ? [...pastDates].sort().at(-1)! : null;
+    if (lastDone) {
+      // 前回完了日から intervalDays 日後のみ表示
+      return diffDays(ymd, lastDone) === task.intervalDays!;
+    } else {
+      // 未完了の間は startDate 起算の固定インターバル（消えないように）
+      const start = task.startDate ?? todayYmd;
+      const diff  = diffDays(ymd, start);
+      return diff >= 0 && task.intervalDays! > 0 && diff % task.intervalDays! === 0;
+    }
   }
   return false;
 }
@@ -62,7 +70,7 @@ export function getTodayTasks(tasks: Task[], completed: CompletedMap): Task[] {
   const today = toYMD(new Date());
   return tasks.filter(task => {
     if ((completed[task.id] ?? []).includes(today)) return false;
-    return shouldShow(task, today, today);
+    return shouldShow(task, today, today, completed);
   });
 }
 
@@ -72,7 +80,7 @@ export function getTasksForDate(tasks: Task[], completed: CompletedMap, ymd: str
   return tasks.filter(task => {
     if ((completed[task.id] ?? []).includes(ymd)) return false;
     if (task.repeat === 'daily') return ymd === today;
-    return shouldShow(task, ymd, today);
+    return shouldShow(task, ymd, today, completed);
   });
 }
 
