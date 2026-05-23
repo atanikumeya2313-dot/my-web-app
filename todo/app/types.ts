@@ -1,4 +1,4 @@
-export type RepeatType = 'none' | 'daily' | 'weekly' | 'monthly' | 'interval';
+export type RepeatType = 'none' | 'daily' | 'weekly' | 'monthly' | 'interval' | 'monthly-interval';
 export type TimeSlot   = 'morning' | 'afternoon' | 'evening' | 'anytime';
 
 export interface Task {
@@ -10,8 +10,9 @@ export interface Task {
   category?: string;
   weekdays?: number[];   // 0=日〜6=土（weekly用）
   monthDay?: number;     // 1〜31（monthly用）
-  intervalDays?: number; // N日ごと（interval用）
-  startDate?: string;    // インターバル基準日 YYYY-MM-DD（interval用）
+  intervalDays?: number;         // N日ごと（interval用）
+  monthIntervalMonths?: number;  // N月ごと（monthly-interval用）
+  startDate?: string;            // 基準日 YYYY-MM-DD（interval/monthly-interval用）
 }
 
 export type CompletedMap = Record<string, string[]>;

@@ -13,11 +13,12 @@ const TIME_SLOTS: { value: TimeSlot; label: string; icon: string }[] = [
 ];
 
 const REPEATS: { value: RepeatType; label: string }[] = [
-  { value: 'none',     label: 'なし' },
-  { value: 'daily',    label: '毎日' },
-  { value: 'weekly',   label: '毎週' },
-  { value: 'monthly',  label: '毎月' },
-  { value: 'interval', label: 'N日ごと' },
+  { value: 'none',              label: 'なし' },
+  { value: 'daily',             label: '毎日' },
+  { value: 'weekly',            label: '毎週' },
+  { value: 'monthly',           label: '毎月' },
+  { value: 'interval',          label: 'N日ごと' },
+  { value: 'monthly-interval',  label: 'N月ごと' },
 ];
 
 interface Props {
@@ -36,7 +37,8 @@ export default function TaskForm({ onSave, onClose, editing, categories, default
   const [category,     setCategory]     = useState(editing?.category     ?? '');
   const [weekdays,     setWeekdays]     = useState<number[]>(editing?.weekdays     ?? []);
   const [monthDay,     setMonthDay]     = useState<number>(editing?.monthDay     ?? 1);
-  const [intervalDays, setIntervalDays] = useState<number>(editing?.intervalDays ?? 3);
+  const [intervalDays,        setIntervalDays]        = useState<number>(editing?.intervalDays        ?? 3);
+  const [monthIntervalMonths, setMonthIntervalMonths] = useState<number>(editing?.monthIntervalMonths ?? 2);
 
   const today = toYMD(new Date());
 
@@ -56,7 +58,8 @@ export default function TaskForm({ onSave, onClose, editing, categories, default
       ...(repeat === 'none'     && date         ? { date }                                   : {}),
       ...(repeat === 'weekly'                   ? { weekdays }                               : {}),
       ...(repeat === 'monthly'                  ? { monthDay }                               : {}),
-      ...(repeat === 'interval'                 ? { intervalDays, startDate: editing?.startDate ?? today } : {}),
+      ...(repeat === 'interval'          ? { intervalDays,        startDate: editing?.startDate ?? today } : {}),
+      ...(repeat === 'monthly-interval' ? { monthIntervalMonths, startDate: editing?.startDate ?? today } : {}),
     };
     onSave(task);
     onClose();
@@ -114,7 +117,7 @@ export default function TaskForm({ onSave, onClose, editing, categories, default
         {/* 繰り返し */}
         <div>
           <p className="text-xs text-gray-500 mb-2">繰り返し</p>
-          <div className="grid grid-cols-5 gap-1.5">
+          <div className="grid grid-cols-3 gap-1.5">
             {REPEATS.map(r => (
               <button key={r.value} onClick={() => setRepeat(r.value)}
                 className={`py-2 rounded-lg text-xs font-medium transition-colors ${repeat === r.value ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-600'}`}>
@@ -176,6 +179,20 @@ export default function TaskForm({ onSave, onClose, editing, categories, default
                 className="w-20 border border-gray-200 rounded-xl px-3 py-2 text-sm text-center focus:outline-none focus:ring-2 focus:ring-blue-300"
               />
               <span className="text-sm text-gray-500">日ごと（今日から起算）</span>
+            </div>
+          </div>
+        )}
+
+        {/* N月ごと（monthly-interval） */}
+        {repeat === 'monthly-interval' && (
+          <div>
+            <p className="text-xs text-gray-500 mb-2">何か月ごと？</p>
+            <div className="flex items-center gap-3">
+              <input type="number" min={2} max={24} value={monthIntervalMonths}
+                onChange={e => setMonthIntervalMonths(Math.min(24, Math.max(2, Number(e.target.value))))}
+                className="w-20 border border-gray-200 rounded-xl px-3 py-2 text-sm text-center focus:outline-none focus:ring-2 focus:ring-blue-300"
+              />
+              <span className="text-sm text-gray-500">か月ごと（今日から起算）</span>
             </div>
           </div>
         )}

@@ -40,6 +40,12 @@ function diffDays(ymd1: string, ymd2: string): number {
   return Math.round((new Date(ymd1).getTime() - new Date(ymd2).getTime()) / 86_400_000);
 }
 
+function addMonths(ymd: string, months: number): string {
+  const d = new Date(ymd);
+  d.setMonth(d.getMonth() + months);
+  return toYMD(d);
+}
+
 function shouldShow(task: Task, ymd: string, todayYmd: string, completed?: CompletedMap): boolean {
   const dow = new Date(ymd).getDay();
   const dom = new Date(ymd).getDate();
@@ -54,13 +60,28 @@ function shouldShow(task: Task, ymd: string, todayYmd: string, completed?: Compl
     const pastDates  = (completed?.[task.id] ?? []).filter(d => d !== ymd);
     const lastDone   = pastDates.length > 0 ? [...pastDates].sort().at(-1)! : null;
     if (lastDone) {
-      // 前回完了日から intervalDays 日後のみ表示
       return diffDays(ymd, lastDone) === task.intervalDays!;
     } else {
-      // 未完了の間は startDate 起算の固定インターバル（消えないように）
       const start = task.startDate ?? todayYmd;
       const diff  = diffDays(ymd, start);
       return diff >= 0 && task.intervalDays! > 0 && diff % task.intervalDays! === 0;
+    }
+  }
+  if (task.repeat === 'monthly-interval') {
+    const n         = task.monthIntervalMonths ?? 1;
+    const pastDates = (completed?.[task.id] ?? []).filter(d => d !== ymd);
+    const lastDone  = pastDates.length > 0 ? [...pastDates].sort().at(-1)! : null;
+    if (lastDone) {
+      return addMonths(lastDone, n) === ymd;
+    } else {
+      const start      = task.startDate ?? todayYmd;
+      if (ymd < start) return false;
+      const startDate  = new Date(start);
+      const ymdDate    = new Date(ymd);
+      const monthsDiff = (ymdDate.getFullYear() - startDate.getFullYear()) * 12
+                       + (ymdDate.getMonth()    - startDate.getMonth());
+      return n > 0 && monthsDiff >= 0 && monthsDiff % n === 0
+          && ymdDate.getDate() === startDate.getDate();
     }
   }
   return false;
@@ -106,6 +127,9 @@ export function nextOccurrenceAfter(task: Task, doneYmd: string): string | null 
   }
   if (task.repeat === 'interval') {
     const d = new Date(doneYmd); d.setDate(d.getDate() + (task.intervalDays ?? 1)); return toYMD(d);
+  }
+  if (task.repeat === 'monthly-interval') {
+    return addMonths(doneYmd, task.monthIntervalMonths ?? 1);
   }
   return null;
 }
