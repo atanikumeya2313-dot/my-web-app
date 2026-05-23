@@ -84,6 +84,32 @@ export function getTasksForDate(tasks: Task[], completed: CompletedMap, ymd: str
   });
 }
 
+export function nextOccurrenceAfter(task: Task, doneYmd: string): string | null {
+  if (task.repeat === 'daily') {
+    const d = new Date(doneYmd); d.setDate(d.getDate() + 1); return toYMD(d);
+  }
+  if (task.repeat === 'weekly') {
+    const wds = task.weekdays ?? [];
+    if (wds.length === 0) return null;
+    for (let i = 1; i <= 7; i++) {
+      const d = new Date(doneYmd); d.setDate(d.getDate() + i);
+      if (wds.includes(d.getDay())) return toYMD(d);
+    }
+    return null;
+  }
+  if (task.repeat === 'monthly') {
+    const day  = task.monthDay ?? 1;
+    const done = new Date(doneYmd);
+    const same = new Date(done.getFullYear(), done.getMonth(), day);
+    if (same > done) return toYMD(same);
+    return toYMD(new Date(done.getFullYear(), done.getMonth() + 1, day));
+  }
+  if (task.repeat === 'interval') {
+    const d = new Date(doneYmd); d.setDate(d.getDate() + (task.intervalDays ?? 1)); return toYMD(d);
+  }
+  return null;
+}
+
 export function completeOnce(tasks: Task[], id: string): Task[] {
   return tasks.filter(t => t.id !== id);
 }

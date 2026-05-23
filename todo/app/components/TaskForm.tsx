@@ -12,6 +12,14 @@ const TIME_SLOTS: { value: TimeSlot; label: string; icon: string }[] = [
   { value: 'anytime',   label: 'その日', icon: '📋' },
 ];
 
+const REPEATS: { value: RepeatType; label: string }[] = [
+  { value: 'none',     label: 'なし' },
+  { value: 'daily',    label: '毎日' },
+  { value: 'weekly',   label: '毎週' },
+  { value: 'monthly',  label: '毎月' },
+  { value: 'interval', label: 'N日ごと' },
+];
+
 interface Props {
   onSave: (task: Task) => void;
   onClose: () => void;
@@ -21,13 +29,14 @@ interface Props {
 }
 
 export default function TaskForm({ onSave, onClose, editing, categories, defaultDate }: Props) {
-  const [title,    setTitle]    = useState(editing?.title    ?? '');
-  const [repeat,   setRepeat]   = useState<RepeatType>(editing?.repeat   ?? 'none');
-  const [timeSlot, setTimeSlot] = useState<TimeSlot>(editing?.timeSlot  ?? 'anytime');
-  const [date,     setDate]     = useState(editing?.date     ?? defaultDate ?? '');
-  const [category, setCategory] = useState(editing?.category ?? '');
-  const [weekdays, setWeekdays] = useState<number[]>(editing?.weekdays  ?? []);
-  const [monthDay, setMonthDay] = useState<number>(editing?.monthDay   ?? 1);
+  const [title,        setTitle]        = useState(editing?.title        ?? '');
+  const [repeat,       setRepeat]       = useState<RepeatType>(editing?.repeat       ?? 'none');
+  const [timeSlot,     setTimeSlot]     = useState<TimeSlot>(editing?.timeSlot     ?? 'anytime');
+  const [date,         setDate]         = useState(editing?.date         ?? defaultDate ?? '');
+  const [category,     setCategory]     = useState(editing?.category     ?? '');
+  const [weekdays,     setWeekdays]     = useState<number[]>(editing?.weekdays     ?? []);
+  const [monthDay,     setMonthDay]     = useState<number>(editing?.monthDay     ?? 1);
+  const [intervalDays, setIntervalDays] = useState<number>(editing?.intervalDays ?? 3);
 
   const today = toYMD(new Date());
 
@@ -44,9 +53,10 @@ export default function TaskForm({ onSave, onClose, editing, categories, default
       repeat,
       timeSlot,
       ...(category ? { category } : {}),
-      ...(repeat === 'none' && date ? { date } : {}),
-      ...(repeat === 'weekly'  ? { weekdays } : {}),
-      ...(repeat === 'monthly' ? { monthDay } : {}),
+      ...(repeat === 'none'     && date         ? { date }                                   : {}),
+      ...(repeat === 'weekly'                   ? { weekdays }                               : {}),
+      ...(repeat === 'monthly'                  ? { monthDay }                               : {}),
+      ...(repeat === 'interval'                 ? { intervalDays, startDate: editing?.startDate ?? today } : {}),
     };
     onSave(task);
     onClose();
@@ -95,8 +105,7 @@ export default function TaskForm({ onSave, onClose, editing, categories, default
             {TIME_SLOTS.map(({ value, label, icon }) => (
               <button key={value} onClick={() => setTimeSlot(value)}
                 className={`py-2 rounded-lg text-xs font-medium transition-colors flex flex-col items-center gap-0.5 ${timeSlot === value ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-600'}`}>
-                <span>{icon}</span>
-                <span>{label}</span>
+                <span>{icon}</span><span>{label}</span>
               </button>
             ))}
           </div>
@@ -105,17 +114,17 @@ export default function TaskForm({ onSave, onClose, editing, categories, default
         {/* 繰り返し */}
         <div>
           <p className="text-xs text-gray-500 mb-2">繰り返し</p>
-          <div className="grid grid-cols-4 gap-1.5">
-            {(['none','daily','weekly','monthly'] as RepeatType[]).map(r => (
-              <button key={r} onClick={() => setRepeat(r)}
-                className={`py-2 rounded-lg text-xs font-medium transition-colors ${repeat === r ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-600'}`}>
-                {r === 'none' ? 'なし' : r === 'daily' ? '毎日' : r === 'weekly' ? '毎週' : '毎月'}
+          <div className="grid grid-cols-5 gap-1.5">
+            {REPEATS.map(r => (
+              <button key={r.value} onClick={() => setRepeat(r.value)}
+                className={`py-2 rounded-lg text-xs font-medium transition-colors ${repeat === r.value ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-600'}`}>
+                {r.label}
               </button>
             ))}
           </div>
         </div>
 
-        {/* 日付指定（repeat=none のとき） */}
+        {/* 日付指定（none） */}
         {repeat === 'none' && (
           <div>
             <p className="text-xs text-gray-500 mb-2">日付指定（省略すると今日）</p>
@@ -145,12 +154,28 @@ export default function TaskForm({ onSave, onClose, editing, categories, default
         {repeat === 'monthly' && (
           <div>
             <p className="text-xs text-gray-500 mb-2">毎月何日？</p>
+            <div className="grid grid-cols-7 gap-1">
+              {Array.from({ length: 31 }, (_, i) => i + 1).map(d => (
+                <button key={d} type="button" onClick={() => setMonthDay(d)}
+                  className={`py-1.5 rounded-lg text-xs font-medium transition-colors
+                    ${monthDay === d ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-600'}`}>
+                  {d}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* N日ごと（interval） */}
+        {repeat === 'interval' && (
+          <div>
+            <p className="text-xs text-gray-500 mb-2">何日ごと？</p>
             <div className="flex items-center gap-3">
-              <input type="number" min={1} max={31} value={monthDay}
-                onChange={e => setMonthDay(Math.min(31, Math.max(1, Number(e.target.value))))}
+              <input type="number" min={2} max={365} value={intervalDays}
+                onChange={e => setIntervalDays(Math.min(365, Math.max(2, Number(e.target.value))))}
                 className="w-20 border border-gray-200 rounded-xl px-3 py-2 text-sm text-center focus:outline-none focus:ring-2 focus:ring-blue-300"
               />
-              <span className="text-sm text-gray-500">日</span>
+              <span className="text-sm text-gray-500">日ごと（今日から起算）</span>
             </div>
           </div>
         )}

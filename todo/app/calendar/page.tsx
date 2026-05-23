@@ -3,8 +3,13 @@ import { useEffect, useRef, useState } from 'react';
 import { Task, CompletedMap, UndoAction } from '../types';
 import {
   loadTasks, saveTasks, loadCompleted, saveCompleted, loadCategories,
-  toYMD, getTasksForDate, completeOnce, completeRepeat,
+  toYMD, getTasksForDate, completeOnce, completeRepeat, nextOccurrenceAfter,
 } from '../lib/storage';
+
+function fmtDate(ymd: string): string {
+  const d = new Date(ymd);
+  return `${d.getMonth() + 1}月${d.getDate()}日`;
+}
 import TaskItem from '../components/TaskItem';
 import TaskForm from '../components/TaskForm';
 
@@ -93,11 +98,12 @@ export default function CalendarPage() {
       setTasks(next);
       showUndo({ task, prevTasks: prev });
     } else {
-      const prev = completed;
-      const next = completeRepeat(completed, id, selectedYmd);
+      const prev     = completed;
+      const next     = completeRepeat(completed, id, selectedYmd);
       saveCompleted(next);
       setCompleted(next);
-      showUndo({ task, prevCompleted: prev });
+      const nextDate = nextOccurrenceAfter(task, selectedYmd);
+      showUndo({ task, prevCompleted: prev, nextDate: nextDate ?? undefined });
     }
   }
 
@@ -230,7 +236,12 @@ export default function CalendarPage() {
 
       {undo && (
         <div className="fixed bottom-24 left-4 right-4 max-w-lg mx-auto bg-gray-800 text-white rounded-xl px-4 py-3 flex items-center justify-between shadow-lg z-50">
-          <span className="text-sm truncate mr-3">{undo.message ?? `「${undo.task.title}」を完了`}</span>
+          <div className="min-w-0 mr-3">
+            <p className="text-sm truncate">{undo.message ?? `「${undo.task.title}」を完了`}</p>
+            {undo.nextDate && (
+              <p className="text-xs text-blue-300 mt-0.5">次回: {fmtDate(undo.nextDate)}</p>
+            )}
+          </div>
           <button onClick={handleUndo}
             className="shrink-0 text-sm font-medium text-blue-300 hover:text-blue-200">
             元に戻す

@@ -20,6 +20,7 @@ export type CompletedMap = Record<string, string[]>;
 export interface UndoAction {
   task: Task;
   message?: string;
-  prevTasks?: Task[];         // none タスク削除の場合
-  prevCompleted?: CompletedMap; // repeat タスク完了の場合
+  nextDate?: string;
+  prevTasks?: Task[];
+  prevCompleted?: CompletedMap;
 }
