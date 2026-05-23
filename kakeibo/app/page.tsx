@@ -15,6 +15,7 @@ import ExpensePieChart from './components/ExpensePieChart';
 import AnnualGraph from './components/AnnualGraph';
 import CategoryTrendGraph from './components/CategoryTrendGraph';
 import AssetSummary from './components/AssetSummary';
+import WeeklySummary from './components/WeeklySummary';
 
 type Tab = '一覧' | 'カレンダー' | 'グラフ' | '年間' | '推移';
 
@@ -99,6 +100,7 @@ export default function Home() {
         <AssetSummary assets={assets} transactions={txs} />
         <Summary transactions={monthTxs} prevTransactions={prevMonthTxs} />
         <BudgetProgress transactions={monthTxs} categories={cats} budgets={budgets} />
+        <WeeklySummary transactions={monthTxs} yearMonth={month} />
 
         <div className="bg-white rounded-xl shadow-sm overflow-hidden">
           <div className="flex border-b border-gray-100">
