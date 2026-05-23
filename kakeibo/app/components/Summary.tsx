@@ -11,9 +11,10 @@ function diff(curr: number, prev: number): { value: number; sign: '+' | '-' } | 
 interface Props {
   transactions: Transaction[];
   prevTransactions?: Transaction[];
+  samePeriod?: boolean;
 }
 
-export default function Summary({ transactions, prevTransactions }: Props) {
+export default function Summary({ transactions, prevTransactions, samePeriod }: Props) {
   const income  = transactions.filter(t => t.type === 'income').reduce((s, t)  => s + t.amount, 0);
   const expense = transactions.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
   const balance = income - expense;
@@ -26,14 +27,13 @@ export default function Summary({ transactions, prevTransactions }: Props) {
   const dExpense = prevExpense !== null ? diff(expense, prevExpense) : null;
   const dBalance = prevBalance !== null ? diff(balance, prevBalance) : null;
 
-  // 支出は増えたら赤（悪化）、減ったら緑（改善）
   const diffColor = (key: 'income' | 'expense' | 'balance', sign: '+' | '-') => {
     if (key === 'expense') return sign === '+' ? 'text-red-400' : 'text-green-500';
     return sign === '+' ? 'text-green-500' : 'text-red-400';
   };
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-1">
       <div className="grid grid-cols-3 gap-2">
         <div className="bg-green-50 rounded-xl p-3 text-center">
           <p className="text-xs text-green-600 mb-1">収入</p>
@@ -64,7 +64,9 @@ export default function Summary({ transactions, prevTransactions }: Props) {
         </div>
       </div>
       {prevTransactions && (
-        <p className="text-[10px] text-gray-400 text-right">※ 数値は先月比</p>
+        <p className="text-[10px] text-gray-400 text-right">
+          ※ {samePeriod ? '先月同期間比' : '先月比'}
+        </p>
       )}
     </div>
   );

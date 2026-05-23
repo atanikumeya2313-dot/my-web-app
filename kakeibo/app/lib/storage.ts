@@ -1,4 +1,4 @@
-﻿import { Transaction, Category, Budget, FixedItem, Asset, DEFAULT_CATEGORIES } from '../types';
+﻿import { Transaction, Category, Budget, FixedItem, Asset, Template, DEFAULT_CATEGORIES } from '../types';
 
 const KEYS = {
   transactions:   'kakeibo_transactions',
@@ -7,6 +7,7 @@ const KEYS = {
   fixed:          'kakeibo_fixed',
   appliedMonths:  'kakeibo_applied_months',
   assets:         'kakeibo_assets',
+  templates:      'kakeibo_templates',
 };
 
 // ── Transactions ──────────────────────────────────────────
@@ -69,6 +70,15 @@ export function loadAssets(): Asset[] {
 }
 export function saveAssets(assets: Asset[]) {
   localStorage.setItem(KEYS.assets, JSON.stringify(assets));
+}
+
+// ── Templates ─────────────────────────────────────────────
+export function loadTemplates(): Template[] {
+  try { return JSON.parse(localStorage.getItem(KEYS.templates) || '[]'); }
+  catch { return []; }
+}
+export function saveTemplates(ts: Template[]) {
+  localStorage.setItem(KEYS.templates, JSON.stringify(ts));
 }
 
 // ── Applied months（固定費を適用済みの月） ─────────────────

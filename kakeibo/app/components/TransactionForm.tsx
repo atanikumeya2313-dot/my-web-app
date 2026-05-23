@@ -1,6 +1,13 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { Transaction, Category, TxType } from '../types';
+import { Transaction, Category, TxType, Template } from '../types';
+
+interface Prefill {
+  type?: TxType;
+  amount?: number;
+  category?: string;
+  memo?: string;
+}
 
 interface Props {
   categories: Category[];
@@ -8,14 +15,17 @@ interface Props {
   onClose: () => void;
   defaultDate: string;
   editing?: Transaction;
+  prefill?: Prefill;
+  onSaveTemplate?: (t: Template) => void;
 }
 
-export default function TransactionForm({ categories, onSave, onClose, defaultDate, editing }: Props) {
-  const [type, setType]     = useState<TxType>(editing?.type ?? 'expense');
-  const [date, setDate]     = useState(editing?.date ?? defaultDate);
-  const [amount, setAmount] = useState(editing ? String(editing.amount) : '');
-  const [category, setCat]  = useState(editing?.category ?? '');
-  const [memo, setMemo]     = useState(editing?.memo ?? '');
+export default function TransactionForm({ categories, onSave, onClose, defaultDate, editing, prefill, onSaveTemplate }: Props) {
+  const [type,     setType]   = useState<TxType>(editing?.type ?? prefill?.type ?? 'expense');
+  const [date,     setDate]   = useState(editing?.date ?? defaultDate);
+  const [amount,   setAmount] = useState(editing ? String(editing.amount) : prefill?.amount ? String(prefill.amount) : '');
+  const [category, setCat]    = useState(editing?.category ?? prefill?.category ?? '');
+  const [memo,     setMemo]   = useState(editing?.memo ?? prefill?.memo ?? '');
+  const [savedMsg, setSavedMsg] = useState(false);
 
   const filteredCats = categories.filter(c => c.type === type);
 
@@ -31,6 +41,21 @@ export default function TransactionForm({ categories, onSave, onClose, defaultDa
     if (!amount || !category) return;
     onSave({ id: editing?.id ?? crypto.randomUUID(), date, amount: Number(amount), type, category, memo });
     onClose();
+  }
+
+  function handleSaveTemplate() {
+    if (!amount || !category || !onSaveTemplate) return;
+    const name = memo.trim() || filteredCats.find(c => c.id === category)?.name || 'テンプレート';
+    onSaveTemplate({
+      id: crypto.randomUUID(),
+      name,
+      amount: Number(amount),
+      type,
+      category,
+      memo,
+    });
+    setSavedMsg(true);
+    setTimeout(() => setSavedMsg(false), 2000);
   }
 
   return (
@@ -62,10 +87,18 @@ export default function TransactionForm({ categories, onSave, onClose, defaultDa
           <input type="text" value={memo} onChange={e => setMemo(e.target.value)}
             placeholder="メモ（任意）"
             className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" />
+
           <button type="submit"
             className="w-full py-3 bg-blue-500 text-white rounded-lg font-medium">
             {editing ? '更新する' : '追加する'}
           </button>
+
+          {onSaveTemplate && !editing && (
+            <button type="button" onClick={handleSaveTemplate}
+              className="w-full py-2 text-xs text-gray-400 hover:text-blue-500 transition-colors">
+              {savedMsg ? '✓ テンプレートに保存しました' : 'テンプレートに保存'}
+            </button>
+          )}
         </form>
       </div>
     </div>
