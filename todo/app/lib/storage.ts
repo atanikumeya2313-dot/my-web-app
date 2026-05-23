@@ -84,6 +84,13 @@ function shouldShow(task: Task, ymd: string, todayYmd: string, completed?: Compl
           && ymdDate.getDate() === startDate.getDate();
     }
   }
+  if (task.repeat === 'monthly-weekday') {
+    const nth = task.monthlyWeekdayNth ?? 1;
+    const dow = task.monthlyWeekdayDow ?? 0;
+    const d   = new Date(ymd);
+    if (d.getDay() !== dow) return false;
+    return Math.ceil(d.getDate() / 7) === nth;
+  }
   return false;
 }
 
@@ -130,6 +137,17 @@ export function nextOccurrenceAfter(task: Task, doneYmd: string): string | null 
   }
   if (task.repeat === 'monthly-interval') {
     return addMonths(doneYmd, task.monthIntervalMonths ?? 1);
+  }
+  if (task.repeat === 'monthly-weekday') {
+    const nth = task.monthlyWeekdayNth ?? 1;
+    const dow = task.monthlyWeekdayDow ?? 0;
+    // 翌月の第nth dow を探す
+    const d = new Date(doneYmd);
+    d.setDate(1);
+    d.setMonth(d.getMonth() + 1);
+    while (d.getDay() !== dow) d.setDate(d.getDate() + 1);
+    d.setDate(d.getDate() + (nth - 1) * 7);
+    return toYMD(d);
   }
   return null;
 }

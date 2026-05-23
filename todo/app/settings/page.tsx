@@ -16,6 +16,7 @@ function repeatDetail(task: Task): string {
   if (task.repeat === 'monthly')  return `毎月${task.monthDay}日`;
   if (task.repeat === 'interval')          return `${task.intervalDays}日ごと`;
   if (task.repeat === 'monthly-interval')  return `${task.monthIntervalMonths}か月ごと`;
+  if (task.repeat === 'monthly-weekday')   return `毎月第${task.monthlyWeekdayNth}${DOW[task.monthlyWeekdayDow ?? 0]}曜日`;
   return '繰り返しなし';
 }
 

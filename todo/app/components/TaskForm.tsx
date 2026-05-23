@@ -13,12 +13,13 @@ const TIME_SLOTS: { value: TimeSlot; label: string; icon: string }[] = [
 ];
 
 const REPEATS: { value: RepeatType; label: string }[] = [
-  { value: 'none',              label: 'なし' },
-  { value: 'daily',             label: '毎日' },
-  { value: 'weekly',            label: '毎週' },
-  { value: 'monthly',           label: '毎月' },
-  { value: 'interval',          label: 'N日ごと' },
-  { value: 'monthly-interval',  label: 'N月ごと' },
+  { value: 'none',             label: 'なし' },
+  { value: 'daily',            label: '毎日' },
+  { value: 'weekly',           label: '毎週' },
+  { value: 'monthly',          label: '毎月' },
+  { value: 'interval',         label: 'N日ごと' },
+  { value: 'monthly-interval', label: 'N月ごと' },
+  { value: 'monthly-weekday',  label: '第N曜日' },
 ];
 
 interface Props {
@@ -30,17 +31,20 @@ interface Props {
 }
 
 export default function TaskForm({ onSave, onClose, editing, categories, defaultDate }: Props) {
-  const [title,        setTitle]        = useState(editing?.title        ?? '');
-  const [repeat,       setRepeat]       = useState<RepeatType>(editing?.repeat       ?? 'none');
-  const [timeSlot,     setTimeSlot]     = useState<TimeSlot>(editing?.timeSlot     ?? 'anytime');
-  const [date,         setDate]         = useState(editing?.date         ?? defaultDate ?? '');
-  const [category,     setCategory]     = useState(editing?.category     ?? '');
-  const [weekdays,     setWeekdays]     = useState<number[]>(editing?.weekdays     ?? []);
-  const [monthDay,     setMonthDay]     = useState<number>(editing?.monthDay     ?? 1);
+  const today = toYMD(new Date());
+
+  const [title,               setTitle]               = useState(editing?.title               ?? '');
+  const [repeat,              setRepeat]              = useState<RepeatType>(editing?.repeat   ?? 'none');
+  const [timeSlot,            setTimeSlot]            = useState<TimeSlot>(editing?.timeSlot   ?? 'anytime');
+  const [date,                setDate]                = useState(editing?.date                 ?? defaultDate ?? '');
+  const [category,            setCategory]            = useState(editing?.category             ?? '');
+  const [weekdays,            setWeekdays]            = useState<number[]>(editing?.weekdays   ?? []);
+  const [monthDay,            setMonthDay]            = useState<number>(editing?.monthDay     ?? 1);
   const [intervalDays,        setIntervalDays]        = useState<number>(editing?.intervalDays        ?? 3);
   const [monthIntervalMonths, setMonthIntervalMonths] = useState<number>(editing?.monthIntervalMonths ?? 2);
-
-  const today = toYMD(new Date());
+  const [startDate,           setStartDate]           = useState(editing?.startDate            ?? today);
+  const [monthlyWeekdayNth,   setMonthlyWeekdayNth]   = useState<number>(editing?.monthlyWeekdayNth ?? 1);
+  const [monthlyWeekdayDow,   setMonthlyWeekdayDow]   = useState<number>(editing?.monthlyWeekdayDow ?? 0);
 
   function toggleDow(d: number) {
     setWeekdays(prev => prev.includes(d) ? prev.filter(x => x !== d) : [...prev, d].sort());
@@ -55,11 +59,12 @@ export default function TaskForm({ onSave, onClose, editing, categories, default
       repeat,
       timeSlot,
       ...(category ? { category } : {}),
-      ...(repeat === 'none'     && date         ? { date }                                   : {}),
-      ...(repeat === 'weekly'                   ? { weekdays }                               : {}),
-      ...(repeat === 'monthly'                  ? { monthDay }                               : {}),
-      ...(repeat === 'interval'          ? { intervalDays,        startDate: editing?.startDate ?? today } : {}),
-      ...(repeat === 'monthly-interval' ? { monthIntervalMonths, startDate: editing?.startDate ?? today } : {}),
+      ...(repeat === 'none'            && date    ? { date }                                                    : {}),
+      ...(repeat === 'weekly'                     ? { weekdays }                                                : {}),
+      ...(repeat === 'monthly'                    ? { monthDay }                                                : {}),
+      ...(repeat === 'interval'                   ? { intervalDays,        startDate: startDate || today }      : {}),
+      ...(repeat === 'monthly-interval'           ? { monthIntervalMonths, startDate: startDate || today }      : {}),
+      ...(repeat === 'monthly-weekday'            ? { monthlyWeekdayNth, monthlyWeekdayDow }                    : {}),
     };
     onSave(task);
     onClose();
@@ -117,7 +122,7 @@ export default function TaskForm({ onSave, onClose, editing, categories, default
         {/* 繰り返し */}
         <div>
           <p className="text-xs text-gray-500 mb-2">繰り返し</p>
-          <div className="grid grid-cols-3 gap-1.5">
+          <div className="grid grid-cols-4 gap-1.5">
             {REPEATS.map(r => (
               <button key={r.value} onClick={() => setRepeat(r.value)}
                 className={`py-2 rounded-lg text-xs font-medium transition-colors ${repeat === r.value ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-600'}`}>
@@ -169,30 +174,76 @@ export default function TaskForm({ onSave, onClose, editing, categories, default
           </div>
         )}
 
+        {/* 第N曜日（monthly-weekday） */}
+        {repeat === 'monthly-weekday' && (
+          <div className="space-y-3">
+            <div>
+              <p className="text-xs text-gray-500 mb-2">第何週？</p>
+              <div className="flex gap-1.5">
+                {[1, 2, 3, 4].map(n => (
+                  <button key={n} type="button" onClick={() => setMonthlyWeekdayNth(n)}
+                    className={`flex-1 py-2 rounded-lg text-xs font-medium transition-colors ${monthlyWeekdayNth === n ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-600'}`}>
+                    第{n}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <p className="text-xs text-gray-500 mb-2">何曜日？</p>
+              <div className="flex gap-1.5">
+                {DOW_LABELS.map((label, i) => (
+                  <button key={i} type="button" onClick={() => setMonthlyWeekdayDow(i)}
+                    className={`flex-1 py-2 rounded-lg text-xs font-medium transition-colors ${monthlyWeekdayDow === i ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-600'}`}>
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* N日ごと（interval） */}
         {repeat === 'interval' && (
-          <div>
-            <p className="text-xs text-gray-500 mb-2">何日ごと？</p>
-            <div className="flex items-center gap-3">
-              <input type="number" min={2} max={365} value={intervalDays}
-                onChange={e => setIntervalDays(Math.min(365, Math.max(2, Number(e.target.value))))}
-                className="w-20 border border-gray-200 rounded-xl px-3 py-2 text-sm text-center focus:outline-none focus:ring-2 focus:ring-blue-300"
+          <div className="space-y-3">
+            <div>
+              <p className="text-xs text-gray-500 mb-2">何日ごと？</p>
+              <div className="flex items-center gap-3">
+                <input type="number" min={2} max={365} value={intervalDays}
+                  onChange={e => setIntervalDays(Math.min(365, Math.max(2, Number(e.target.value))))}
+                  className="w-20 border border-gray-200 rounded-xl px-3 py-2 text-sm text-center focus:outline-none focus:ring-2 focus:ring-blue-300"
+                />
+                <span className="text-sm text-gray-500">日ごと</span>
+              </div>
+            </div>
+            <div>
+              <p className="text-xs text-gray-500 mb-2">開始日</p>
+              <input type="date" value={startDate}
+                onChange={e => setStartDate(e.target.value)}
+                className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
               />
-              <span className="text-sm text-gray-500">日ごと（今日から起算）</span>
             </div>
           </div>
         )}
 
         {/* N月ごと（monthly-interval） */}
         {repeat === 'monthly-interval' && (
-          <div>
-            <p className="text-xs text-gray-500 mb-2">何か月ごと？</p>
-            <div className="flex items-center gap-3">
-              <input type="number" min={2} max={24} value={monthIntervalMonths}
-                onChange={e => setMonthIntervalMonths(Math.min(24, Math.max(2, Number(e.target.value))))}
-                className="w-20 border border-gray-200 rounded-xl px-3 py-2 text-sm text-center focus:outline-none focus:ring-2 focus:ring-blue-300"
+          <div className="space-y-3">
+            <div>
+              <p className="text-xs text-gray-500 mb-2">何か月ごと？</p>
+              <div className="flex items-center gap-3">
+                <input type="number" min={2} max={24} value={monthIntervalMonths}
+                  onChange={e => setMonthIntervalMonths(Math.min(24, Math.max(2, Number(e.target.value))))}
+                  className="w-20 border border-gray-200 rounded-xl px-3 py-2 text-sm text-center focus:outline-none focus:ring-2 focus:ring-blue-300"
+                />
+                <span className="text-sm text-gray-500">か月ごと</span>
+              </div>
+            </div>
+            <div>
+              <p className="text-xs text-gray-500 mb-2">開始日</p>
+              <input type="date" value={startDate}
+                onChange={e => setStartDate(e.target.value)}
+                className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
               />
-              <span className="text-sm text-gray-500">か月ごと（今日から起算）</span>
             </div>
           </div>
         )}
