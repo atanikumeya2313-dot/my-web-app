@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Book, BookStatus } from '../types';
 import { searchByISBN, searchByKeyword, BookInfo } from '../lib/googleBooks';
 
@@ -31,17 +31,23 @@ export default function BookForm({ onSave, onDelete, onClose, editing }: Props) 
   const [query,      setQuery]      = useState('');
   const [results,    setResults]    = useState<BookInfo[]>([]);
   const [searching,  setSearching]  = useState(false);
+  const [noResults,  setNoResults]  = useState(false);
+  const resultsRef = useRef<HTMLDivElement>(null);
 
   async function handleSearch() {
     if (!query.trim()) return;
     setSearching(true);
     setResults([]);
+    setNoResults(false);
     const isIsbn = /^[0-9\-]{9,17}$/.test(query.trim());
     const res = isIsbn
       ? (await searchByISBN(query.replace(/-/g, ''))) ? [await searchByISBN(query.replace(/-/g, '')) as BookInfo] : []
       : await searchByKeyword(query);
-    setResults(res.filter(Boolean));
+    const filtered = res.filter(Boolean);
+    setResults(filtered);
+    setNoResults(filtered.length === 0);
     setSearching(false);
+    setTimeout(() => resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 100);
   }
 
   function applyResult(info: BookInfo) {
@@ -101,21 +107,27 @@ export default function BookForm({ onSave, onDelete, onClose, editing }: Props) 
               </button>
             </div>
             {results.length > 0 && (
-              <div className="mt-2 border border-gray-200 rounded-xl overflow-hidden">
-                {results.map((r, i) => (
-                  <button key={i} onClick={() => applyResult(r)}
-                    className="w-full flex items-center gap-2 px-3 py-2.5 hover:bg-blue-50 border-b border-gray-100 last:border-0 text-left">
-                    {r.thumbnail
-                      ? <img src={r.thumbnail} alt="" className="w-8 h-10 object-cover rounded shrink-0" />
-                      : <span className="w-8 h-10 bg-gray-100 rounded flex items-center justify-center text-lg shrink-0">📖</span>
-                    }
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-semibold text-gray-800 truncate">{r.title}</p>
-                      <p className="text-[10px] text-gray-400 truncate">{r.author}</p>
-                    </div>
-                  </button>
-                ))}
+              <div ref={resultsRef} className="mt-2">
+                <p className="text-xs text-blue-500 font-medium mb-1">📋 {results.length}件見つかりました。タップして選択してください</p>
+                <div className="border border-blue-200 rounded-xl overflow-hidden bg-blue-50/30">
+                  {results.map((r, i) => (
+                    <button key={i} onClick={() => applyResult(r)}
+                      className="w-full flex items-center gap-2 px-3 py-2.5 hover:bg-blue-50 border-b border-gray-100 last:border-0 text-left">
+                      {r.thumbnail
+                        ? <img src={r.thumbnail} alt="" className="w-8 h-10 object-cover rounded shrink-0" />
+                        : <span className="w-8 h-10 bg-gray-100 rounded flex items-center justify-center text-lg shrink-0">📖</span>
+                      }
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-semibold text-gray-800 truncate">{r.title}</p>
+                        <p className="text-[10px] text-gray-400 truncate">{r.author}</p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
               </div>
+            )}
+            {noResults && !searching && (
+              <p ref={resultsRef} className="text-xs text-gray-400 mt-2 text-center py-2">見つかりませんでした</p>
             )}
           </div>
 
