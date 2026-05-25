@@ -1,18 +1,20 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { Book, BookStatus } from './types';
 import { loadBooks, addBook, updateBook, deleteBook } from './lib/storage';
 import BookCard from './components/BookCard';
 import BookForm from './components/BookForm';
 import BookStats from './components/BookStats';
+import { Recommendation } from './api/recommend/route';
 
-type Tab = BookStatus | 'stats';
+type Tab = BookStatus | 'stats' | 'recommend';
 
 const TABS: { value: Tab; label: string; icon: string }[] = [
-  { value: 'want',    label: '読みたい',    icon: '📚' },
-  { value: 'reading', label: '読んでいる',  icon: '📖' },
-  { value: 'done',    label: '読み終わった', icon: '✅' },
-  { value: 'stats',   label: '統計',        icon: '📊' },
+  { value: 'want',      label: '読みたい',    icon: '📚' },
+  { value: 'reading',   label: '読んでいる',  icon: '📖' },
+  { value: 'done',      label: '読み終わった', icon: '✅' },
+  { value: 'stats',     label: '統計',        icon: '📊' },
+  { value: 'recommend', label: 'おすすめ',    icon: '✨' },
 ];
 
 export default function Home() {
@@ -22,20 +24,63 @@ export default function Home() {
   const [editing,  setEditing]  = useState<Book | undefined>();
   const [query,    setQuery]    = useState('');
 
+  const [recs,        setRecs]        = useState<Recommendation[]>([]);
+  const [recsLoading, setRecsLoading] = useState(false);
+  const [recsFetched, setRecsFetched] = useState(false);
+
   useEffect(() => { setBooks(loadBooks()); }, []);
 
+  const fetchRecs = useCallback(async (bookList: Book[]) => {
+    setRecsLoading(true);
+    try {
+      const res = await fetch('/api/recommend', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ books: bookList }),
+      });
+      setRecs(res.ok ? await res.json() : []);
+    } catch {
+      setRecs([]);
+    } finally {
+      setRecsLoading(false);
+      setRecsFetched(true);
+    }
+  }, []);
+
+  const handleTabChange = (t: Tab) => {
+    setTab(t);
+    if (t === 'recommend' && !recsFetched) fetchRecs(books);
+  };
+
   const handleSave = (book: Book) => {
-    setBooks(editing ? updateBook(book) : addBook(book));
+    const updated = editing ? updateBook(book) : addBook(book);
+    setBooks(updated);
     setEditing(undefined);
+    setRecsFetched(false); // reset so recs refresh next time
   };
   const handleDelete = (id: string) => {
     setBooks(deleteBook(id));
     setEditing(undefined);
+    setRecsFetched(false);
   };
   const openEdit = (book: Book) => { setEditing(book); setShowForm(true); };
   const openAdd  = () => { setEditing(undefined); setShowForm(true); };
 
-  const listBooks = tab === 'stats' ? [] : books
+  const addToWantList = (rec: Recommendation) => {
+    const book: Book = {
+      id:        crypto.randomUUID(),
+      title:     rec.title,
+      author:    rec.author,
+      genre:     '',
+      thumbnail: rec.thumbnail,
+      isbn:      rec.isbn,
+      status:    'want',
+      addedAt:   new Date().toISOString(),
+    };
+    setBooks(addBook(book));
+  };
+
+  const listBooks = (tab === 'stats' || tab === 'recommend') ? [] : books
     .filter(b => b.status === tab)
     .filter(b => {
       if (!query) return true;
@@ -44,6 +89,7 @@ export default function Home() {
     });
 
   const countOf = (s: BookStatus) => books.filter(b => b.status === s).length;
+  const doneCount = countOf('done');
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -53,7 +99,7 @@ export default function Home() {
           <span className="text-xs text-gray-400">{books.length}冊登録</span>
         </div>
 
-        {tab !== 'stats' && (
+        {tab !== 'stats' && tab !== 'recommend' && (
           <div className="max-w-lg mx-auto px-4 pb-2">
             <div className="relative">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">🔍</span>
@@ -66,9 +112,10 @@ export default function Home() {
 
         <div className="max-w-lg mx-auto flex border-t border-gray-100">
           {TABS.map(t => {
-            const cnt = t.value !== 'stats' ? countOf(t.value as BookStatus) : null;
+            const cnt = (t.value !== 'stats' && t.value !== 'recommend')
+              ? countOf(t.value as BookStatus) : null;
             return (
-              <button key={t.value} onClick={() => setTab(t.value)}
+              <button key={t.value} onClick={() => handleTabChange(t.value)}
                 className={`relative flex-1 flex flex-col items-center py-2 gap-0.5 transition-colors
                   ${tab === t.value ? 'text-blue-500' : 'text-gray-400'}`}>
                 <span className="text-sm leading-none">{t.icon}</span>
@@ -90,6 +137,62 @@ export default function Home() {
           <div className="bg-white rounded-xl shadow-sm p-4">
             <BookStats books={books} />
           </div>
+
+        ) : tab === 'recommend' ? (
+          <div>
+            {recsLoading ? (
+              <div className="text-center py-16">
+                <p className="text-3xl mb-3 animate-spin inline-block">⚙️</p>
+                <p className="text-gray-400 text-sm mt-2">好みを分析中…</p>
+              </div>
+            ) : doneCount < 2 ? (
+              <div className="text-center py-16">
+                <p className="text-4xl mb-3">✨</p>
+                <p className="text-gray-400 text-sm">
+                  本を2冊以上読んで記録すると<br />おすすめが表示されます
+                </p>
+              </div>
+            ) : recs.length === 0 ? (
+              <div className="text-center py-16">
+                <p className="text-4xl mb-3">🔍</p>
+                <p className="text-gray-400 text-sm">おすすめが見つかりませんでした</p>
+                <button onClick={() => { setRecsFetched(false); fetchRecs(books); }}
+                  className="mt-4 text-xs text-blue-500 underline">再度試す</button>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <p className="text-xs text-gray-400 mb-1">
+                  読んだ{doneCount}冊をもとにおすすめを選びました
+                </p>
+                {recs.map((rec, i) => (
+                  <div key={i} className="bg-white rounded-xl shadow-sm p-3 flex gap-3">
+                    {rec.thumbnail ? (
+                      <img src={rec.thumbnail} alt="" className="w-12 h-16 object-cover rounded shrink-0"
+                        onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                    ) : (
+                      <div className="w-12 h-16 bg-gray-100 rounded shrink-0 flex items-center justify-center text-2xl">📖</div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-sm text-gray-800 leading-snug line-clamp-2">{rec.title}</p>
+                      {rec.author && <p className="text-xs text-gray-500 mt-0.5 truncate">{rec.author}</p>}
+                      <span className="inline-block mt-1.5 text-[10px] bg-blue-50 text-blue-500 px-2 py-0.5 rounded-full">
+                        {rec.reason}
+                      </span>
+                      <button onClick={() => addToWantList(rec)}
+                        className="mt-2 block text-xs bg-blue-500 text-white px-3 py-1 rounded-full">
+                        ＋ 読みたいに追加
+                      </button>
+                    </div>
+                  </div>
+                ))}
+                <button onClick={() => { setRecsFetched(false); fetchRecs(books); }}
+                  className="w-full py-2 text-xs text-gray-400 border border-gray-200 rounded-xl bg-white mt-2">
+                  再度おすすめを取得
+                </button>
+              </div>
+            )}
+          </div>
+
         ) : listBooks.length === 0 ? (
           <div className="text-center py-16">
             <p className="text-4xl mb-3">{TABS.find(t => t.value === tab)?.icon}</p>
@@ -106,10 +209,12 @@ export default function Home() {
         )}
       </main>
 
-      <button onClick={openAdd}
-        className="fixed bottom-20 right-4 w-14 h-14 bg-blue-500 text-white rounded-full text-2xl shadow-lg hover:bg-blue-600 flex items-center justify-center z-40">
-        +
-      </button>
+      {tab !== 'recommend' && (
+        <button onClick={openAdd}
+          className="fixed bottom-20 right-4 w-14 h-14 bg-blue-500 text-white rounded-full text-2xl shadow-lg hover:bg-blue-600 flex items-center justify-center z-40">
+          +
+        </button>
+      )}
 
       {showForm && (
         <BookForm
