@@ -80,8 +80,8 @@ export default function BookForm({ onSave, onDelete, onClose, editing }: Props) 
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-end" onClick={onClose}>
-      <div className="bg-white w-full max-w-lg mx-auto rounded-t-2xl max-h-[92vh] overflow-y-auto"
+    <div className="fixed inset-0 bg-black/50 z-[60] flex items-end" onClick={onClose}>
+      <div className="bg-white w-full max-w-lg mx-auto rounded-t-2xl max-h-[90vh] overflow-y-auto"
         onClick={e => e.stopPropagation()}>
         <div className="p-5 space-y-4">
           <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto" />
@@ -192,7 +192,7 @@ export default function BookForm({ onSave, onDelete, onClose, editing }: Props) 
             className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-300" />
 
           {/* ボタン */}
-          <div className="flex gap-2 pb-2">
+          <div className="flex gap-2 pb-8">
             <button onClick={onClose}
               className="flex-1 py-2.5 bg-gray-100 text-gray-600 rounded-xl text-sm font-medium">
               キャンセル

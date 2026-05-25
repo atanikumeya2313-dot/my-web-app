@@ -43,9 +43,8 @@ export async function searchByISBN(isbn: string): Promise<BookInfo | null> {
 
 export async function searchByKeyword(query: string): Promise<BookInfo[]> {
   try {
-    const res  = await fetch(
-      `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&maxResults=6&langRestrict=ja`
-    );
+    const url = `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&maxResults=8`;
+    const res = await fetch(url);
     if (!res.ok) return [];
     const data = await res.json();
     return (data.items ?? []).map((item: GBVolume) => parseVolume(item.volumeInfo));
