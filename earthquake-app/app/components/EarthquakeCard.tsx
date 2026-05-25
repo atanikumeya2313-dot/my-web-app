@@ -3,9 +3,11 @@ import { Earthquake, scaleLabel, scaleColor, scaleBorder, tsunamiLabel, fmtTime,
 interface Props {
   quake: Earthquake;
   isLatest: boolean;
+  isPinned?: boolean;
+  onClick?: () => void;
 }
 
-export default function EarthquakeCard({ quake, isLatest }: Props) {
+export default function EarthquakeCard({ quake, isLatest, isPinned, onClick }: Props) {
   const { date, time } = fmtTime(quake.time);
   const label   = scaleLabel(quake.maxScale);
   const color   = scaleColor(quake.maxScale);
@@ -16,7 +18,10 @@ export default function EarthquakeCard({ quake, isLatest }: Props) {
   const pref    = extractPrefecture(quake.hypocenter.name);
 
   return (
-    <div className={`bg-white rounded-xl border-l-4 ${border} shadow-sm p-4 flex gap-3 items-start`}>
+    <div
+      onClick={onClick}
+      className={`bg-white rounded-xl border-l-4 ${border} shadow-sm p-4 flex gap-3 items-start ${onClick ? 'cursor-pointer active:opacity-80' : ''}`}
+    >
       {/* 震度バッジ */}
       <div className={`${color} rounded-lg w-14 h-14 flex flex-col items-center justify-center shrink-0`}>
         <span className="text-[10px] font-medium leading-none mb-0.5">震度</span>
@@ -29,6 +34,9 @@ export default function EarthquakeCard({ quake, isLatest }: Props) {
           <span className="text-sm font-bold text-gray-800 truncate">{quake.hypocenter.name || '震源地不明'}</span>
           {isLatest && (
             <span className="text-[10px] bg-red-500 text-white px-1.5 py-0.5 rounded-full font-medium shrink-0">最新</span>
+          )}
+          {isPinned && (
+            <span className="text-[10px] bg-orange-500 text-white px-1.5 py-0.5 rounded-full font-medium shrink-0">📌</span>
           )}
           {pref && (
             <span className="text-[10px] bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded-full font-medium shrink-0">{pref}</span>

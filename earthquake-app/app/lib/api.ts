@@ -9,6 +9,11 @@ export interface Hypocenter {
   magnitude: number;
 }
 
+export interface PrefScale {
+  pref: string;
+  scale: number;
+}
+
 export interface Earthquake {
   id: string;
   time: string;
@@ -16,6 +21,7 @@ export interface Earthquake {
   maxScale: Scale;
   domesticTsunami: string;
   prefectures: string[];
+  prefScales: PrefScale[];
 }
 
 interface RawPoint {
@@ -48,16 +54,15 @@ export async function fetchEarthquakes(): Promise<Earthquake[]> {
       if (p.scale <= 0) continue;
       if ((prefMax.get(p.pref) ?? -1) < p.scale) prefMax.set(p.pref, p.scale);
     }
-    const prefectures = [...prefMax.entries()]
-      .sort((a, b) => b[1] - a[1])
-      .map(([pref]) => pref);
+    const sorted = [...prefMax.entries()].sort((a, b) => b[1] - a[1]);
     return {
       id: q.id,
       time: q.earthquake.time,
       hypocenter: q.earthquake.hypocenter,
       maxScale: q.earthquake.maxScale,
       domesticTsunami: q.earthquake.domesticTsunami,
-      prefectures,
+      prefectures: sorted.map(([pref]) => pref),
+      prefScales:  sorted.map(([pref, scale]) => ({ pref, scale })),
     };
   });
 }
