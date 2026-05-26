@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Task, CompletedMap, TimeSlot, UndoAction } from './types';
 import {
   loadTasks, saveTasks, loadCompleted, saveCompleted, loadCategories,
-  getTodayTasks, completeOnce, completeRepeat, nextOccurrenceAfter, toYMD,
+  getTodayTasks, getTomorrowTasks, completeOnce, completeRepeat, nextOccurrenceAfter, toYMD,
 } from './lib/storage';
 import TaskItem from './components/TaskItem';
 import TaskForm from './components/TaskForm';
@@ -17,8 +17,8 @@ const SECTIONS: { slot: TimeSlot; label: string; icon: string }[] = [
   { slot: 'anytime',   label: 'その日', icon: '📋' },
 ];
 
-function todayLabel() {
-  const d = new Date();
+function dateLabel(offset: number) {
+  const d = new Date(Date.now() + offset * 86_400_000);
   return `${d.getMonth()+1}月${d.getDate()}日（${DOW[d.getDay()]}）`;
 }
 
@@ -43,6 +43,7 @@ export default function Home() {
   const [filterCat,  setFilterCat]  = useState('');
   const [timeFilter, setTimeFilter] = useState<TimeSlot>(defaultTimeSlot());
   const [undo,       setUndo]       = useState<UndoAction | null>(null);
+  const [viewDate,   setViewDate]   = useState<'today' | 'tomorrow'>('today');
   const undoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -51,7 +52,9 @@ export default function Home() {
     setCategories(loadCategories());
   }, []);
 
-  const todayTasks   = getTodayTasks(tasks, completed);
+  const todayTasks   = viewDate === 'today'
+    ? getTodayTasks(tasks, completed)
+    : getTomorrowTasks(tasks, completed);
   const filteredTasks = filterCat === '__other__'
     ? todayTasks.filter(t => !t.category)
     : filterCat
@@ -143,10 +146,21 @@ export default function Home() {
       <header className="bg-white border-b border-gray-100 sticky top-0 z-10">
         <div className="max-w-lg mx-auto px-4 py-3 flex items-center justify-between">
           <div>
-            <h1 className="text-base font-bold text-gray-800">今日のタスク</h1>
-            <p className="text-xs text-gray-400">{todayLabel()}</p>
+            <h1 className="text-base font-bold text-gray-800">
+              {viewDate === 'today' ? '今日のタスク' : '明日のタスク'}
+            </h1>
+            <p className="text-xs text-gray-400">{dateLabel(viewDate === 'today' ? 0 : 1)}</p>
           </div>
-          <span className="text-xs text-gray-400">{slotTasks.length}件</span>
+          <div className="flex items-center gap-1">
+            <button onClick={() => setViewDate('today')}
+              className={`text-xs px-2.5 py-1 rounded-full transition-colors ${viewDate === 'today' ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-500'}`}>
+              今日
+            </button>
+            <button onClick={() => setViewDate('tomorrow')}
+              className={`text-xs px-2.5 py-1 rounded-full transition-colors ${viewDate === 'tomorrow' ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-500'}`}>
+              明日
+            </button>
+          </div>
         </div>
 
         {/* カテゴリフィルター */}
@@ -198,8 +212,13 @@ export default function Home() {
           </div>
         ) : (
           <div className="space-y-2">
+            {viewDate === 'tomorrow' && (
+              <p className="text-xs text-gray-400 text-center pb-1">明日の予定（読み取り専用）</p>
+            )}
             {slotTasks.map(task => (
-              <TaskItem key={task.id} task={task} onComplete={handleComplete} onReschedule={handleReschedule} />
+              <TaskItem key={task.id} task={task}
+                onComplete={viewDate === 'today' ? handleComplete : undefined}
+                onReschedule={viewDate === 'today' ? handleReschedule : undefined} />
             ))}
           </div>
         )}

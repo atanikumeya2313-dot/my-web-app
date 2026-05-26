@@ -102,6 +102,15 @@ export function getTodayTasks(tasks: Task[], completed: CompletedMap): Task[] {
   });
 }
 
+export function getTomorrowTasks(tasks: Task[], completed: CompletedMap): Task[] {
+  const today    = toYMD(new Date());
+  const tomorrow = toYMD(new Date(Date.now() + 86_400_000));
+  return tasks.filter(task => {
+    if ((completed[task.id] ?? []).includes(tomorrow)) return false;
+    return shouldShow(task, tomorrow, today, completed);
+  });
+}
+
 // カレンダー用：dailyは今日のみ
 export function getTasksForDate(tasks: Task[], completed: CompletedMap, ymd: string): Task[] {
   const today = toYMD(new Date());

@@ -10,7 +10,7 @@ const DOW = ['日','月','火','水','木','金','土'];
 
 interface Props {
   task: Task;
-  onComplete: (id: string) => void;
+  onComplete?: (id: string) => void;
   onReschedule?: (id: string, newDate?: string) => void;
 }
 
@@ -24,6 +24,7 @@ export default function TaskItem({ task, onComplete, onReschedule }: Props) {
   const [newDate, setNewDate] = useState(tomorrow);
 
   function handleTap() {
+    if (!onComplete) return;
     setFading(true);
     setTimeout(() => onComplete(task.id), 350);
   }
