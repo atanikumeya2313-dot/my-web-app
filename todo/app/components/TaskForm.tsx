@@ -1,6 +1,13 @@
 'use client';
 import { useState } from 'react';
-import { Task, RepeatType, TimeSlot } from '../types';
+import { Task, RepeatType, TimeSlot, Priority } from '../types';
+
+const PRIORITIES: { value: Priority | ''; label: string; cls: string }[] = [
+  { value: '',       label: 'なし', cls: 'bg-gray-100 text-gray-500' },
+  { value: 'high',   label: '高',   cls: 'bg-red-100 text-red-600' },
+  { value: 'medium', label: '中',   cls: 'bg-orange-100 text-orange-600' },
+  { value: 'low',    label: '低',   cls: 'bg-blue-100 text-blue-500' },
+];
 import { toYMD } from '../lib/storage';
 
 const DOW_LABELS = ['日','月','火','水','木','金','土'];
@@ -36,6 +43,8 @@ export default function TaskForm({ onSave, onClose, editing, categories, default
   const [title,               setTitle]               = useState(editing?.title               ?? '');
   const [repeat,              setRepeat]              = useState<RepeatType>(editing?.repeat   ?? 'none');
   const [timeSlot,            setTimeSlot]            = useState<TimeSlot>(editing?.timeSlot   ?? 'anytime');
+  const [priority,            setPriority]            = useState<Priority | ''>(editing?.priority ?? '');
+  const [memo,                setMemo]                = useState(editing?.memo                 ?? '');
   const [date,                setDate]                = useState(editing?.date                 ?? defaultDate ?? '');
   const [category,            setCategory]            = useState(editing?.category             ?? '');
   const [weekdays,            setWeekdays]            = useState<number[]>(editing?.weekdays   ?? []);
@@ -58,6 +67,8 @@ export default function TaskForm({ onSave, onClose, editing, categories, default
       title:    t,
       repeat,
       timeSlot,
+      ...(priority ? { priority } : {}),
+      ...(memo.trim() ? { memo: memo.trim() } : {}),
       ...(category ? { category } : {}),
       ...(repeat === 'none'            && date    ? { date }                                                    : {}),
       ...(repeat === 'weekly'                     ? { weekdays }                                                : {}),
@@ -86,6 +97,23 @@ export default function TaskForm({ onSave, onClose, editing, categories, default
           placeholder="タスク名"
           className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
         />
+
+        {/* 優先度 */}
+        <div>
+          <p className="text-xs text-gray-500 mb-2">優先度</p>
+          <div className="flex gap-1.5">
+            {PRIORITIES.map(p => (
+              <button key={p.value} onClick={() => setPriority(p.value)}
+                className={`flex-1 py-2 rounded-lg text-xs font-medium transition-colors border ${
+                  priority === p.value
+                    ? `${p.cls} border-transparent`
+                    : 'bg-gray-50 text-gray-500 border-gray-200'
+                }`}>
+                {p.label}
+              </button>
+            ))}
+          </div>
+        </div>
 
         {/* カテゴリ */}
         {categories.length > 0 && (
@@ -247,6 +275,15 @@ export default function TaskForm({ onSave, onClose, editing, categories, default
             </div>
           </div>
         )}
+
+        {/* メモ */}
+        <div>
+          <p className="text-xs text-gray-500 mb-2">メモ（任意）</p>
+          <textarea value={memo} onChange={e => setMemo(e.target.value)}
+            placeholder="補足・詳細など"
+            rows={2}
+            className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300 resize-none" />
+        </div>
 
         {/* ボタン */}
         <div className="flex gap-2 pt-1">

@@ -1,6 +1,6 @@
 'use client';
 import { useState } from 'react';
-import { Task } from '../types';
+import { Task, Priority } from '../types';
 import { toYMD } from '../lib/storage';
 
 const REPEAT_LABEL: Record<string, string> = {
@@ -8,13 +8,20 @@ const REPEAT_LABEL: Record<string, string> = {
 };
 const DOW = ['日','月','火','水','木','金','土'];
 
+const PRIORITY_STYLE: Record<Priority, { label: string; cls: string }> = {
+  high:   { label: '高', cls: 'bg-red-100 text-red-600' },
+  medium: { label: '中', cls: 'bg-orange-100 text-orange-600' },
+  low:    { label: '低', cls: 'bg-blue-100 text-blue-500' },
+};
+
 interface Props {
   task: Task;
   onComplete?: (id: string) => void;
   onReschedule?: (id: string, newDate?: string) => void;
+  onEdit?: (task: Task) => void;
 }
 
-export default function TaskItem({ task, onComplete, onReschedule }: Props) {
+export default function TaskItem({ task, onComplete, onReschedule, onEdit }: Props) {
   const [fading, setFading] = useState(false);
   const [showPanel, setShowPanel] = useState(false);
 
@@ -50,6 +57,7 @@ export default function TaskItem({ task, onComplete, onReschedule }: Props) {
 
   const detail = repeatDetail();
   const isRepeat = task.repeat !== 'none';
+  const priorityStyle = task.priority ? PRIORITY_STYLE[task.priority] : null;
 
   return (
     <div className={`transition-all duration-300 ${fading ? 'opacity-0 scale-95' : 'opacity-100 scale-100'}`}>
@@ -69,6 +77,11 @@ export default function TaskItem({ task, onComplete, onReschedule }: Props) {
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-gray-800 truncate">{task.title}</p>
               <div className="flex items-center flex-wrap gap-1.5 mt-1">
+                {priorityStyle && (
+                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${priorityStyle.cls}`}>
+                    {priorityStyle.label}
+                  </span>
+                )}
                 {task.category && (
                   <span className="text-[10px] bg-blue-50 text-blue-500 px-2 py-0.5 rounded-full font-medium">
                     {task.category}
@@ -79,21 +92,40 @@ export default function TaskItem({ task, onComplete, onReschedule }: Props) {
                   <span className="text-[10px] text-gray-400">{task.date}</span>
                 )}
               </div>
+              {task.memo && (
+                <p className="text-xs text-gray-400 mt-1.5 leading-relaxed border-l-2 border-gray-200 pl-2 line-clamp-2">
+                  {task.memo}
+                </p>
+              )}
             </div>
           </button>
 
-          {onReschedule && (
-            <button
-              onClick={e => { e.stopPropagation(); setShowPanel(v => !v); }}
-              className={`px-3 py-3.5 transition-colors ${showPanel ? 'text-blue-500' : 'text-gray-300 hover:text-blue-400'}`}
-              aria-label="日付変更"
-            >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round"
-                  d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-              </svg>
-            </button>
-          )}
+          <div className="flex items-center pr-1">
+            {onEdit && (
+              <button
+                onClick={e => { e.stopPropagation(); onEdit(task); }}
+                className="p-2.5 text-gray-300 hover:text-blue-400 transition-colors"
+                aria-label="編集"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round"
+                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+              </button>
+            )}
+            {onReschedule && (
+              <button
+                onClick={e => { e.stopPropagation(); setShowPanel(v => !v); }}
+                className={`p-2.5 transition-colors ${showPanel ? 'text-blue-500' : 'text-gray-300 hover:text-blue-400'}`}
+                aria-label="日付変更"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round"
+                    d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+              </button>
+            )}
+          </div>
         </div>
 
         {showPanel && onReschedule && (

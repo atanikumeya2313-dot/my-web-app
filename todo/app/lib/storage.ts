@@ -1,4 +1,4 @@
-import { Task, CompletedMap } from '../types';
+import { Task, CompletedMap, CompletedLogEntry } from '../types';
 
 const TASKS_KEY      = 'todo_tasks';
 const COMPLETED_KEY  = 'todo_completed';
@@ -160,6 +160,28 @@ export function nextOccurrenceAfter(task: Task, doneYmd: string): string | null 
   }
   return null;
 }
+
+// ── Completed log ──────────────────────────────────────
+
+const COMPLETED_LOG_KEY = 'todo_completed_log';
+
+export function loadCompletedLog(): CompletedLogEntry[] {
+  try { return JSON.parse(localStorage.getItem(COMPLETED_LOG_KEY) ?? '[]'); }
+  catch { return []; }
+}
+
+export function addToLog(entry: CompletedLogEntry): CompletedLogEntry[] {
+  const cutoff = toYMD(new Date(Date.now() - 7 * 86_400_000));
+  const next = [...loadCompletedLog().filter(e => e.date >= cutoff), entry];
+  localStorage.setItem(COMPLETED_LOG_KEY, JSON.stringify(next));
+  return next;
+}
+
+export function saveLog(log: CompletedLogEntry[]): void {
+  localStorage.setItem(COMPLETED_LOG_KEY, JSON.stringify(log));
+}
+
+// ── Complete helpers ────────────────────────────────────
 
 export function completeOnce(tasks: Task[], id: string): Task[] {
   return tasks.filter(t => t.id !== id);

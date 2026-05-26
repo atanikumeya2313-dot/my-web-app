@@ -1,8 +1,9 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
-import { Task, CompletedMap, TimeSlot, UndoAction } from './types';
+import { Task, CompletedMap, CompletedLogEntry, TimeSlot, UndoAction } from './types';
 import {
   loadTasks, saveTasks, loadCompleted, saveCompleted, loadCategories,
+  loadCompletedLog, addToLog, saveLog,
   getTodayTasks, getTomorrowTasks, completeOnce, completeRepeat, nextOccurrenceAfter, toYMD,
 } from './lib/storage';
 import TaskItem from './components/TaskItem';
@@ -35,20 +36,30 @@ function defaultTimeSlot(): TimeSlot {
   return 'anytime';
 }
 
+const PRIORITY_STYLE = {
+  high:   { label: '高', cls: 'bg-red-100 text-red-600' },
+  medium: { label: '中', cls: 'bg-orange-100 text-orange-600' },
+  low:    { label: '低', cls: 'bg-blue-100 text-blue-500' },
+} as const;
+
 export default function Home() {
-  const [tasks,      setTasks]      = useState<Task[]>([]);
-  const [completed,  setCompleted]  = useState<CompletedMap>({});
-  const [categories, setCategories] = useState<string[]>([]);
-  const [showForm,   setShowForm]   = useState(false);
-  const [filterCat,  setFilterCat]  = useState('');
-  const [timeFilter, setTimeFilter] = useState<TimeSlot>(defaultTimeSlot());
-  const [undo,       setUndo]       = useState<UndoAction | null>(null);
-  const [viewDate,   setViewDate]   = useState<'today' | 'tomorrow'>('today');
+  const [tasks,        setTasks]        = useState<Task[]>([]);
+  const [completed,    setCompleted]    = useState<CompletedMap>({});
+  const [completedLog, setCompletedLog] = useState<CompletedLogEntry[]>([]);
+  const [categories,   setCategories]   = useState<string[]>([]);
+  const [showForm,     setShowForm]     = useState(false);
+  const [editing,      setEditing]      = useState<Task | undefined>();
+  const [filterCat,    setFilterCat]    = useState('');
+  const [timeFilter,   setTimeFilter]   = useState<TimeSlot>(defaultTimeSlot());
+  const [undo,         setUndo]         = useState<UndoAction | null>(null);
+  const [viewDate,     setViewDate]     = useState<'today' | 'tomorrow'>('today');
+  const [showDone,     setShowDone]     = useState(false);
   const undoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     setTasks(loadTasks());
     setCompleted(loadCompleted());
+    setCompletedLog(loadCompletedLog());
     setCategories(loadCategories());
   }, []);
 
@@ -61,6 +72,9 @@ export default function Home() {
     ? todayTasks.filter(t => t.category === filterCat)
     : todayTasks;
   const slotTasks = filteredTasks.filter(t => (t.timeSlot ?? 'anytime') === timeFilter);
+
+  const today = toYMD(new Date());
+  const todayCompleted: CompletedLogEntry[] = completedLog.filter(e => e.date === today);
 
   function showUndo(action: UndoAction) {
     if (undoTimer.current) clearTimeout(undoTimer.current);
@@ -79,26 +93,41 @@ export default function Home() {
       saveCompleted(undo.prevCompleted);
       setCompleted(undo.prevCompleted);
     }
+    if (undo.prevLog !== undefined) {
+      saveLog(undo.prevLog);
+      setCompletedLog(undo.prevLog);
+    }
     setUndo(null);
   }
 
   function handleComplete(id: string) {
     const task = tasks.find(t => t.id === id);
     if (!task) return;
+    const prevLog = completedLog;
+    const logEntry: CompletedLogEntry = {
+      id: task.id,
+      title: task.title,
+      priority: task.priority,
+      category: task.category,
+      completedAt: new Date().toISOString(),
+      date: today,
+    };
+    const nextLog = addToLog(logEntry);
+    setCompletedLog(nextLog);
+
     if (task.repeat === 'none') {
       const prev = tasks;
       const next = completeOnce(tasks, id);
       saveTasks(next);
       setTasks(next);
-      showUndo({ task, prevTasks: prev });
+      showUndo({ task, prevTasks: prev, prevLog });
     } else {
-      const today = toYMD(new Date());
       const prev  = completed;
       const next  = completeRepeat(completed, id);
       saveCompleted(next);
       setCompleted(next);
       const nextDate = nextOccurrenceAfter(task, today);
-      showUndo({ task, prevCompleted: prev, nextDate: nextDate ?? undefined });
+      showUndo({ task, prevCompleted: prev, nextDate: nextDate ?? undefined, prevLog });
     }
   }
 
@@ -112,7 +141,7 @@ export default function Home() {
       setTasks(nextTasks);
       showUndo({ task, message: `「${task.title}」を${newDate}に変更`, prevTasks });
     } else {
-      const prevTasks    = tasks;
+      const prevTasks     = tasks;
       const prevCompleted = completed;
       const nextCompleted = completeRepeat(completed, id);
       const oneTime: Task = {
@@ -122,6 +151,8 @@ export default function Home() {
         timeSlot: task.timeSlot,
         date: newDate,
         ...(task.category ? { category: task.category } : {}),
+        ...(task.priority ? { priority: task.priority } : {}),
+        ...(task.memo     ? { memo: task.memo }         : {}),
       };
       const nextTasks = [...tasks, oneTime];
       saveTasks(nextTasks);
@@ -132,10 +163,23 @@ export default function Home() {
     }
   }
 
-  function handleAdd(task: Task) {
-    const next = [...tasks, task];
+  function handleSave(task: Task) {
+    const next = editing
+      ? tasks.map(t => t.id === task.id ? task : t)
+      : [...tasks, task];
     saveTasks(next);
     setTasks(next);
+    setEditing(undefined);
+  }
+
+  function openEdit(task: Task) {
+    setEditing(task);
+    setShowForm(true);
+  }
+
+  function openAdd() {
+    setEditing(undefined);
+    setShowForm(true);
   }
 
   const activeCategories = [...new Set(todayTasks.map(t => t.category).filter(Boolean))] as string[];
@@ -202,7 +246,7 @@ export default function Home() {
         </div>
       </header>
 
-      <main className="max-w-lg mx-auto px-4 py-4">
+      <main className="max-w-lg mx-auto px-4 py-4 space-y-2">
         {slotTasks.length === 0 ? (
           <div className="text-center py-16">
             <p className="text-4xl mb-3">{SECTIONS.find(s => s.slot === timeFilter)?.icon}</p>
@@ -211,28 +255,65 @@ export default function Home() {
             </p>
           </div>
         ) : (
-          <div className="space-y-2">
+          <>
             {viewDate === 'tomorrow' && (
               <p className="text-xs text-gray-400 text-center pb-1">明日の予定（読み取り専用）</p>
             )}
             {slotTasks.map(task => (
               <TaskItem key={task.id} task={task}
                 onComplete={viewDate === 'today' ? handleComplete : undefined}
-                onReschedule={viewDate === 'today' ? handleReschedule : undefined} />
+                onReschedule={viewDate === 'today' ? handleReschedule : undefined}
+                onEdit={viewDate === 'today' ? openEdit : undefined} />
             ))}
+          </>
+        )}
+
+        {/* 完了済みセクション（今日のみ） */}
+        {viewDate === 'today' && todayCompleted.length > 0 && (
+          <div className="pt-2">
+            <button onClick={() => setShowDone(v => !v)}
+              className="w-full flex items-center justify-between px-1 py-1.5 text-xs text-gray-400">
+              <span>✓ 完了済み（{todayCompleted.length}件）</span>
+              <span>{showDone ? '▲' : '▼'}</span>
+            </button>
+            {showDone && (
+              <div className="space-y-1.5 mt-1">
+                {todayCompleted.map(entry => {
+                  const ps = entry.priority ? PRIORITY_STYLE[entry.priority] : null;
+                  return (
+                    <div key={entry.id + entry.completedAt}
+                      className="bg-white rounded-xl px-4 py-3 shadow-sm opacity-60 flex items-center gap-3">
+                      <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
+                        <svg className="w-3.5 h-3.5 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                        </svg>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm text-gray-600 line-through truncate">{entry.title}</p>
+                        <div className="flex gap-1.5 mt-0.5 flex-wrap">
+                          {ps && <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${ps.cls}`}>{ps.label}</span>}
+                          {entry.category && <span className="text-[10px] bg-blue-50 text-blue-400 px-1.5 py-0.5 rounded-full">{entry.category}</span>}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
       </main>
 
-      <button onClick={() => setShowForm(true)}
+      <button onClick={openAdd}
         className="fixed bottom-20 right-4 w-14 h-14 bg-blue-500 text-white rounded-full text-2xl shadow-lg hover:bg-blue-600 flex items-center justify-center z-40">
         +
       </button>
 
       {showForm && (
         <TaskForm
-          onSave={handleAdd}
-          onClose={() => setShowForm(false)}
+          editing={editing}
+          onSave={handleSave}
+          onClose={() => { setShowForm(false); setEditing(undefined); }}
           categories={categories}
         />
       )}

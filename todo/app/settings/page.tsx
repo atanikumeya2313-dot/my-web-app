@@ -2,6 +2,12 @@
 import { useEffect, useState } from 'react';
 import { Task, TimeSlot } from '../types';
 import { loadTasks, saveTasks, loadCategories, saveCategories } from '../lib/storage';
+
+const PRIORITY_STYLE = {
+  high:   { label: '高', cls: 'bg-red-100 text-red-600' },
+  medium: { label: '中', cls: 'bg-orange-100 text-orange-600' },
+  low:    { label: '低', cls: 'bg-blue-100 text-blue-500' },
+} as const;
 import TaskForm from '../components/TaskForm';
 
 const DOW = ['日','月','火','水','木','金','土'];
@@ -118,6 +124,11 @@ export default function Settings() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5 flex-wrap">
                       <p className="text-sm font-medium text-gray-800 truncate">{task.title}</p>
+                      {task.priority && (
+                        <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${PRIORITY_STYLE[task.priority].cls}`}>
+                          {PRIORITY_STYLE[task.priority].label}
+                        </span>
+                      )}
                       {task.category && (
                         <span className="text-[10px] bg-blue-50 text-blue-500 px-1.5 py-0.5 rounded-full">{task.category}</span>
                       )}
