@@ -19,5 +19,17 @@ export interface StockItem {
   minQuantity: number;
   unit: string;
   memo?: string;
+  expiryDate?: string; // YYYY-MM-DD
   addedAt: string;
 }
+
+export interface HistoryEntry {
+  id: string;
+  itemId: string;
+  itemName: string;
+  delta: number;       // 正: 補充, 負: 消費
+  quantityAfter: number;
+  date: string;        // ISO datetime
+}
+
+export type SortKey = 'name' | 'low-stock' | 'category' | 'expiry';

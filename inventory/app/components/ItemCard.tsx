@@ -7,12 +7,24 @@ interface Props {
   onQuantityChange: (delta: number) => void;
 }
 
+function expiryStatus(expiryDate?: string): { label: string; color: string } | null {
+  if (!expiryDate) return null;
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const exp   = new Date(expiryDate);
+  const days  = Math.round((exp.getTime() - today.getTime()) / 86_400_000);
+  if (days < 0)  return { label: `期限切れ(${Math.abs(days)}日前)`, color: 'bg-red-100 text-red-600' };
+  if (days <= 7)  return { label: `期限まで${days}日`,               color: 'bg-red-100 text-red-600' };
+  if (days <= 30) return { label: `期限まで${days}日`,               color: 'bg-orange-100 text-orange-600' };
+  return { label: `${exp.getMonth()+1}/${exp.getDate()}まで`,        color: 'bg-gray-100 text-gray-500' };
+}
+
 export default function ItemCard({ item, onEdit, onQuantityChange }: Props) {
   const isOut = item.quantity === 0;
   const isLow = !isOut && item.minQuantity > 0 && item.quantity <= item.minQuantity;
   const barPct = item.minQuantity > 0
     ? Math.min(100, Math.round((item.quantity / (item.minQuantity * 2)) * 100))
     : 100;
+  const expiry = expiryStatus(item.expiryDate);
 
   return (
     <div className={`bg-white rounded-xl p-3 shadow-sm border ${isOut ? 'border-red-200' : isLow ? 'border-orange-200' : 'border-transparent'}`}>
@@ -31,9 +43,14 @@ export default function ItemCard({ item, onEdit, onQuantityChange }: Props) {
               <span className="text-xs bg-orange-100 text-orange-600 px-1.5 py-0.5 rounded-full shrink-0">残りわずか</span>
             )}
           </div>
-          {item.memo && (
-            <p className="text-xs text-gray-400 mt-0.5 truncate pl-8">{item.memo}</p>
-          )}
+          <div className="pl-8 mt-0.5 flex flex-wrap gap-1">
+            {item.memo && (
+              <p className="text-xs text-gray-400 truncate">{item.memo}</p>
+            )}
+            {expiry && (
+              <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${expiry.color}`}>{expiry.label}</span>
+            )}
+          </div>
         </button>
 
         <div className="flex items-center gap-2 shrink-0">

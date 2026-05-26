@@ -10,29 +10,31 @@ interface Props {
 }
 
 export default function ItemForm({ editing, onSave, onDelete, onClose }: Props) {
-  const [name, setName] = useState(editing?.name ?? '');
-  const [category, setCategory] = useState<Category>(editing?.category ?? '食品・飲料');
-  const [quantity, setQuantity] = useState(editing?.quantity ?? 1);
+  const [name,        setName]        = useState(editing?.name ?? '');
+  const [category,    setCategory]    = useState<Category>(editing?.category ?? '食品・飲料');
+  const [quantity,    setQuantity]    = useState(editing?.quantity ?? 1);
   const [minQuantity, setMinQuantity] = useState(editing?.minQuantity ?? 1);
-  const [unit, setUnit] = useState(editing?.unit ?? '個');
-  const [memo, setMemo] = useState(editing?.memo ?? '');
+  const [unit,        setUnit]        = useState(editing?.unit ?? '個');
+  const [memo,        setMemo]        = useState(editing?.memo ?? '');
+  const [expiryDate,  setExpiryDate]  = useState(editing?.expiryDate ?? '');
 
   const handleSubmit = () => {
     if (!name.trim()) return;
     onSave({
-      id: editing?.id ?? crypto.randomUUID(),
-      name: name.trim(),
+      id:          editing?.id ?? crypto.randomUUID(),
+      name:        name.trim(),
       category,
       quantity,
       minQuantity,
-      unit: unit || '個',
-      memo: memo.trim() || undefined,
-      addedAt: editing?.addedAt ?? new Date().toISOString(),
+      unit:        unit || '個',
+      memo:        memo.trim() || undefined,
+      expiryDate:  expiryDate || undefined,
+      addedAt:     editing?.addedAt ?? new Date().toISOString(),
     });
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col justify-end">
+    <div className="fixed inset-0 z-[60] flex flex-col justify-end">
       <div className="absolute inset-0 bg-black/30" onClick={onClose} />
       <div className="relative bg-white rounded-t-2xl shadow-xl max-h-[88vh] overflow-y-auto">
         <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 sticky top-0 bg-white z-10">
@@ -40,7 +42,7 @@ export default function ItemForm({ editing, onSave, onDelete, onClose }: Props) 
           <button onClick={onClose} className="text-gray-400 text-xl w-8 h-8 flex items-center justify-center">✕</button>
         </div>
 
-        <div className="p-4 space-y-4">
+        <div className="p-4 space-y-4 pb-8">
           {/* Name */}
           <div>
             <label className="text-xs font-medium text-gray-600 mb-1 block">アイテム名 *</label>
@@ -115,6 +117,17 @@ export default function ItemForm({ editing, onSave, onDelete, onClose }: Props) 
             <p className="text-xs text-gray-400 mt-1">0 に設定すると警告なし</p>
           </div>
 
+          {/* Expiry Date */}
+          <div>
+            <label className="text-xs font-medium text-gray-600 mb-1 block">消費期限（任意）</label>
+            <input type="date" value={expiryDate} onChange={e => setExpiryDate(e.target.value)}
+              className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-300" />
+            {expiryDate && (
+              <button onClick={() => setExpiryDate('')}
+                className="mt-1 text-xs text-gray-400 underline">クリア</button>
+            )}
+          </div>
+
           {/* Memo */}
           <div>
             <label className="text-xs font-medium text-gray-600 mb-1 block">メモ（任意）</label>
@@ -125,7 +138,7 @@ export default function ItemForm({ editing, onSave, onDelete, onClose }: Props) 
           </div>
 
           {/* Buttons */}
-          <div className="flex gap-3 pt-2 pb-2">
+          <div className="flex gap-3 pt-2">
             {onDelete && (
               <button onClick={onDelete}
                 className="flex-1 py-2.5 rounded-xl border border-red-200 text-red-500 text-sm font-medium">
