@@ -1,8 +1,9 @@
 'use client';
-import { StockItem, CATEGORY_ICONS } from '../types';
+import { StockItem, getCategoryIcon } from '../types';
 
 interface Props {
   item: StockItem;
+  daysRemaining?: number | null;
   onEdit: () => void;
   onQuantityChange: (delta: number) => void;
 }
@@ -18,7 +19,7 @@ function expiryStatus(expiryDate?: string): { label: string; color: string } | n
   return { label: `${exp.getMonth()+1}/${exp.getDate()}まで`,        color: 'bg-gray-100 text-gray-500' };
 }
 
-export default function ItemCard({ item, onEdit, onQuantityChange }: Props) {
+export default function ItemCard({ item, daysRemaining, onEdit, onQuantityChange }: Props) {
   const isOut = item.quantity === 0;
   const isLow = !isOut && item.minQuantity > 0 && item.quantity <= item.minQuantity;
   const barPct = item.minQuantity > 0
@@ -31,7 +32,7 @@ export default function ItemCard({ item, onEdit, onQuantityChange }: Props) {
       <div className="flex items-center gap-3">
         <button onClick={onEdit} className="flex-1 text-left min-w-0">
           <div className="flex items-center gap-2">
-            <span className="text-xl">{CATEGORY_ICONS[item.category]}</span>
+            <span className="text-xl">{getCategoryIcon(item.category)}</span>
             <div className="min-w-0 flex-1">
               <p className="font-medium text-sm text-gray-800 truncate">{item.name}</p>
               <p className="text-xs text-gray-400">{item.category}</p>
@@ -43,12 +44,17 @@ export default function ItemCard({ item, onEdit, onQuantityChange }: Props) {
               <span className="text-xs bg-orange-100 text-orange-600 px-1.5 py-0.5 rounded-full shrink-0">残りわずか</span>
             )}
           </div>
-          <div className="pl-8 mt-0.5 flex flex-wrap gap-1">
+          <div className="pl-8 mt-0.5 flex flex-wrap gap-1 items-center">
             {item.memo && (
               <p className="text-xs text-gray-400 truncate">{item.memo}</p>
             )}
             {expiry && (
               <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${expiry.color}`}>{expiry.label}</span>
+            )}
+            {typeof daysRemaining === 'number' && (
+              <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${daysRemaining <= 7 ? 'bg-red-50 text-red-500' : daysRemaining <= 30 ? 'bg-orange-50 text-orange-500' : 'bg-gray-50 text-gray-400'}`}>
+                あと約{daysRemaining}日
+              </span>
             )}
           </div>
         </button>

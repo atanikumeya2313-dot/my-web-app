@@ -1,9 +1,11 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
-import { StockItem, HistoryEntry, Category, CATEGORIES, CATEGORY_ICONS, SortKey } from './types';
+import { StockItem, HistoryEntry, SortKey, getCategoryIcon } from './types';
 import {
   loadItems, addItem, updateItem, deleteItem,
   loadHistory, addHistoryEntry,
+  loadCategories, saveCategories,
+  calcDaysRemaining,
   exportData, importData,
 } from './lib/storage';
 import ItemCard from './components/ItemCard';
@@ -33,14 +35,22 @@ export default function Home() {
   const [editing,  setEditing]  = useState<StockItem | undefined>();
   const [query,    setQuery]    = useState('');
   const [catFilter, setCatFilter] = useState<string>(CAT_ALL);
-  const [sortKey,  setSortKey]  = useState<SortKey>('name');
-  const [showSort, setShowSort] = useState(false);
+  const [sortKey,     setSortKey]     = useState<SortKey>('low-stock');
+  const [showSort,    setShowSort]    = useState(false);
+  const [categories,  setCategories]  = useState<string[]>([]);
   const importRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     setItems(loadItems());
     setHistory(loadHistory());
+    setCategories(loadCategories());
   }, []);
+
+  const handleCategoryAdd = (cat: string) => {
+    const next = [...categories, cat];
+    setCategories(next);
+    saveCategories(next);
+  };
 
   const recordHistory = (item: StockItem, delta: number, quantityAfter: number) => {
     const next = addHistoryEntry({
@@ -135,6 +145,22 @@ export default function Home() {
       (a.quantity / Math.max(a.minQuantity, 1)) - (b.quantity / Math.max(b.minQuantity, 1))
     );
 
+  const today0 = new Date(); today0.setHours(0, 0, 0, 0);
+  const expiryWarningItems = items
+    .filter(i => {
+      if (!i.expiryDate) return false;
+      const days = Math.round((new Date(i.expiryDate).getTime() - today0.getTime()) / 86_400_000);
+      return days <= 30;
+    })
+    .sort((a, b) => (a.expiryDate ?? '').localeCompare(b.expiryDate ?? ''));
+
+  const handleCopyShoppingList = () => {
+    const text = shoppingItems
+      .map(i => `・${i.name}（残${i.quantity}${i.unit}、最低${i.minQuantity}${i.unit}）`)
+      .join('\n');
+    navigator.clipboard.writeText(text).then(() => alert('コピーしました'));
+  };
+
   const lowCount = shoppingItems.length;
 
   return (
@@ -201,14 +227,14 @@ export default function Home() {
               </div>
             </div>
             <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1">
-              {[CAT_ALL, ...CATEGORIES].map(cat => (
+              {[CAT_ALL, ...categories].map(cat => (
                 <button key={cat} onClick={() => setCatFilter(cat)}
                   className={`shrink-0 text-xs px-3 py-1.5 rounded-full border transition-colors ${
                     catFilter === cat
                       ? 'bg-blue-500 text-white border-blue-500'
                       : 'bg-white text-gray-500 border-gray-200'
                   }`}>
-                  {cat === CAT_ALL ? '全て' : `${CATEGORY_ICONS[cat as Category]} ${cat}`}
+                  {cat === CAT_ALL ? '全て' : `${getCategoryIcon(cat)} ${cat}`}
                 </button>
               ))}
             </div>
@@ -230,6 +256,7 @@ export default function Home() {
             <div className="space-y-2">
               {inventoryItems.map(item => (
                 <ItemCard key={item.id} item={item}
+                  daysRemaining={calcDaysRemaining(item, history)}
                   onEdit={() => openEdit(item)}
                   onQuantityChange={delta => handleQuantityChange(item.id, delta)} />
               ))}
@@ -239,41 +266,75 @@ export default function Home() {
 
         {/* 要補充 */}
         {tab === 'shopping' && (
-          shoppingItems.length === 0 ? (
+          shoppingItems.length === 0 && expiryWarningItems.length === 0 ? (
             <div className="text-center py-16">
               <p className="text-4xl mb-3">🎉</p>
               <p className="text-gray-400 text-sm">在庫は十分です</p>
             </div>
           ) : (
-            <div className="space-y-2">
-              {shoppingItems.map(item => (
-                <div key={item.id} className={`bg-white rounded-xl p-3 shadow-sm border ${item.quantity === 0 ? 'border-red-200' : 'border-orange-200'}`}>
-                  <div className="flex items-center gap-3">
-                    <span className="text-xl">{CATEGORY_ICONS[item.category]}</span>
-                    <button onClick={() => openEdit(item)} className="flex-1 text-left min-w-0">
-                      <p className="font-medium text-sm text-gray-800 truncate">{item.name}</p>
-                      <p className="text-xs text-gray-400">{item.category}</p>
+            <div className="space-y-4">
+              {shoppingItems.length > 0 && (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs font-semibold text-gray-500">補充が必要なアイテム</p>
+                    <button onClick={handleCopyShoppingList}
+                      className="text-xs px-2.5 py-1 rounded-full bg-gray-100 text-gray-500">
+                      コピー
                     </button>
-                    <div className="text-right shrink-0 mr-1">
-                      <p className={`text-sm font-bold ${item.quantity === 0 ? 'text-red-500' : 'text-orange-500'}`}>
-                        {item.quantity}
-                        <span className="text-xs font-normal text-gray-400 ml-0.5">{item.unit}</span>
-                      </p>
-                      <p className="text-[10px] text-gray-400">最低 {item.minQuantity}{item.unit}</p>
-                    </div>
-                    <div className="flex flex-col gap-1 shrink-0">
-                      <button onClick={() => handleQuantityChange(item.id, 1)}
-                        className="w-9 h-9 rounded-full bg-blue-500 text-white font-bold flex items-center justify-center text-lg leading-none">
-                        ＋
-                      </button>
-                      <button onClick={() => handleRestock(item.id)}
-                        className="text-[10px] px-2 py-1 rounded-lg bg-green-100 text-green-700 font-medium whitespace-nowrap">
-                        補充済
-                      </button>
-                    </div>
                   </div>
+                  {shoppingItems.map(item => (
+                    <div key={item.id} className={`bg-white rounded-xl p-3 shadow-sm border ${item.quantity === 0 ? 'border-red-200' : 'border-orange-200'}`}>
+                      <div className="flex items-center gap-3">
+                        <span className="text-xl">{getCategoryIcon(item.category)}</span>
+                        <button onClick={() => openEdit(item)} className="flex-1 text-left min-w-0">
+                          <p className="font-medium text-sm text-gray-800 truncate">{item.name}</p>
+                          <p className="text-xs text-gray-400">{item.category}</p>
+                        </button>
+                        <div className="text-right shrink-0 mr-1">
+                          <p className={`text-sm font-bold ${item.quantity === 0 ? 'text-red-500' : 'text-orange-500'}`}>
+                            {item.quantity}
+                            <span className="text-xs font-normal text-gray-400 ml-0.5">{item.unit}</span>
+                          </p>
+                          <p className="text-[10px] text-gray-400">最低 {item.minQuantity}{item.unit}</p>
+                        </div>
+                        <div className="flex flex-col gap-1 shrink-0">
+                          <button onClick={() => handleQuantityChange(item.id, 1)}
+                            className="w-9 h-9 rounded-full bg-blue-500 text-white font-bold flex items-center justify-center text-lg leading-none">
+                            ＋
+                          </button>
+                          <button onClick={() => handleRestock(item.id)}
+                            className="text-[10px] px-2 py-1 rounded-lg bg-green-100 text-green-700 font-medium whitespace-nowrap">
+                            補充済
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              ))}
+              )}
+
+              {expiryWarningItems.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-xs font-semibold text-gray-500">期限が近いアイテム（30日以内）</p>
+                  {expiryWarningItems.map(item => {
+                    const days = Math.round((new Date(item.expiryDate!).getTime() - today0.getTime()) / 86_400_000);
+                    return (
+                      <div key={item.id} className={`bg-white rounded-xl p-3 shadow-sm border ${days < 0 ? 'border-red-200' : days <= 7 ? 'border-red-100' : 'border-orange-100'}`}>
+                        <div className="flex items-center gap-3">
+                          <span className="text-xl">{getCategoryIcon(item.category)}</span>
+                          <button onClick={() => openEdit(item)} className="flex-1 text-left min-w-0">
+                            <p className="font-medium text-sm text-gray-800 truncate">{item.name}</p>
+                            <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${days < 0 ? 'bg-red-100 text-red-600' : days <= 7 ? 'bg-red-50 text-red-500' : 'bg-orange-50 text-orange-500'}`}>
+                              {days < 0 ? `期限切れ（${Math.abs(days)}日前）` : `期限まで${days}日`}
+                            </span>
+                          </button>
+                          <p className="text-xs text-gray-400 shrink-0">{item.expiryDate}</p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           )
         )}
@@ -317,8 +378,10 @@ export default function Home() {
       {showForm && (
         <ItemForm
           editing={editing}
+          categories={categories}
           onSave={handleSave}
           onDelete={editing ? () => handleDelete(editing.id) : undefined}
+          onCategoryAdd={handleCategoryAdd}
           onClose={() => { setShowForm(false); setEditing(undefined); }}
         />
       )}

@@ -1,22 +1,27 @@
 'use client';
 import { useState } from 'react';
-import { StockItem, Category, CATEGORIES, CATEGORY_ICONS, UNITS } from '../types';
+import { StockItem, DEFAULT_CATEGORIES, getCategoryIcon, UNITS } from '../types';
 
 interface Props {
   editing?: StockItem;
+  categories?: string[];
   onSave: (item: StockItem) => void;
   onDelete?: () => void;
+  onCategoryAdd?: (cat: string) => void;
   onClose: () => void;
 }
 
-export default function ItemForm({ editing, onSave, onDelete, onClose }: Props) {
+export default function ItemForm({ editing, categories, onSave, onDelete, onCategoryAdd, onClose }: Props) {
+  const cats = categories ?? DEFAULT_CATEGORIES;
   const [name,        setName]        = useState(editing?.name ?? '');
-  const [category,    setCategory]    = useState<Category>(editing?.category ?? '食品・飲料');
+  const [category,    setCategory]    = useState<string>(editing?.category ?? cats[0] ?? '食品・飲料');
   const [quantity,    setQuantity]    = useState(editing?.quantity ?? 1);
   const [minQuantity, setMinQuantity] = useState(editing?.minQuantity ?? 1);
   const [unit,        setUnit]        = useState(editing?.unit ?? '個');
   const [memo,        setMemo]        = useState(editing?.memo ?? '');
   const [expiryDate,  setExpiryDate]  = useState(editing?.expiryDate ?? '');
+  const [newCat,      setNewCat]      = useState('');
+  const [showNewCat,  setShowNewCat]  = useState(false);
 
   const handleSubmit = () => {
     if (!name.trim()) return;
@@ -55,17 +60,34 @@ export default function ItemForm({ editing, onSave, onDelete, onClose }: Props) 
           <div>
             <label className="text-xs font-medium text-gray-600 mb-1 block">カテゴリ</label>
             <div className="grid grid-cols-2 gap-2">
-              {CATEGORIES.map(cat => (
+              {cats.map(cat => (
                 <button key={cat} onClick={() => setCategory(cat)}
                   className={`py-2 px-3 rounded-xl text-sm border transition-colors text-left ${
                     category === cat
                       ? 'bg-blue-50 border-blue-400 text-blue-700'
                       : 'bg-gray-50 border-gray-200 text-gray-600'
                   }`}>
-                  {CATEGORY_ICONS[cat]} {cat}
+                  {getCategoryIcon(cat)} {cat}
                 </button>
               ))}
             </div>
+            {showNewCat ? (
+              <div className="flex gap-2 mt-2">
+                <input value={newCat} onChange={e => setNewCat(e.target.value)}
+                  placeholder="新しいカテゴリ名"
+                  className="flex-1 px-3 py-1.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-300" />
+                <button onClick={() => {
+                  const t = newCat.trim();
+                  if (t) { onCategoryAdd?.(t); setCategory(t); }
+                  setNewCat(''); setShowNewCat(false);
+                }} className="px-3 py-1.5 text-xs bg-blue-500 text-white rounded-xl font-medium">追加</button>
+                <button onClick={() => { setNewCat(''); setShowNewCat(false); }}
+                  className="px-3 py-1.5 text-xs border border-gray-200 text-gray-500 rounded-xl">✕</button>
+              </div>
+            ) : (
+              <button onClick={() => setShowNewCat(true)}
+                className="mt-2 text-xs text-blue-500 underline">＋ 新規カテゴリ</button>
+            )}
           </div>
 
           {/* Unit */}
