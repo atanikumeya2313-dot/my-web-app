@@ -8,6 +8,7 @@ import {
 import TrendChart from './components/TrendChart';
 import ScenarioChart from './components/ScenarioChart';
 import WithdrawalChart from './components/WithdrawalChart';
+import CombinedChart from './components/CombinedChart';
 
 const NISA_LABELS: Record<NisaType, string> = {
   none:      '使わない',
@@ -40,44 +41,90 @@ function Slider({ label, value, min, max, step, unit, onChange }: {
   );
 }
 
+function ToggleSection({ label, badge, active, onToggle, children }: {
+  label: string; badge?: string; active: boolean; onToggle: () => void; children: React.ReactNode;
+}) {
+  return (
+    <div className="bg-white rounded-xl shadow-sm p-4">
+      <button onClick={onToggle} className="w-full flex items-center justify-between text-sm font-semibold text-gray-600">
+        <span>{label}</span>
+        <span className={`text-xs px-2 py-0.5 rounded-full ${active ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-400'}`}>
+          {badge ?? (active ? 'ON' : 'OFF')}
+        </span>
+      </button>
+      {active && <div className="mt-4 space-y-3">{children}</div>}
+    </div>
+  );
+}
+
 export default function Home() {
-  const [monthly,        setMonthly]        = useState(30_000);
-  const [rate,           setRate]           = useState(5.0);
-  const [years,          setYears]          = useState(20);
-  const [initial,        setInitial]        = useState(0);
-  const [nisaType,       setNisaType]       = useState<NisaType>('tsumitate');
-  const [inflationRate,  setInflationRate]  = useState(2.0);
-  const [showInflation,  setShowInflation]  = useState(false);
-  const [goalAmount,     setGoalAmount]     = useState(0);
-  const [showGoal,       setShowGoal]       = useState(false);
-  const [showTable,      setShowTable]      = useState(false);
-  const [activeTab,      setActiveTab]      = useState<Tab>('accumulate');
+  // 基本パラメータ
+  const [monthly,       setMonthly]       = useState(30_000);
+  const [rate,          setRate]          = useState(5.0);
+  const [years,         setYears]         = useState(20);
+  const [initial,       setInitial]       = useState(0);
+  const [nisaType,      setNisaType]      = useState<NisaType>('tsumitate');
+  // インフレ
+  const [showInflation, setShowInflation] = useState(false);
+  const [inflationRate, setInflationRate] = useState(2.0);
+  // 目標逆算
+  const [showGoal,      setShowGoal]      = useState(false);
+  const [goalAmount,    setGoalAmount]    = useState(0);
+  // ボーナス加算
+  const [showBonus,     setShowBonus]     = useState(false);
+  const [bonusAmount,   setBonusAmount]   = useState(300_000);
+  const [bonusTimes,    setBonusTimes]    = useState<1 | 2>(2);
+  // 途中増額
+  const [showStepUp,    setShowStepUp]    = useState(false);
+  const [stepUpYear,    setStepUpYear]    = useState(10);
+  const [stepUpAmount,  setStepUpAmount]  = useState(50_000);
+  // UI
+  const [showTable,     setShowTable]     = useState(false);
+  const [activeTab,     setActiveTab]     = useState<Tab>('accumulate');
+  // 取り崩し
   const [withdrawMonthly, setWithdrawMonthly] = useState(100_000);
   const [withdrawYears,   setWithdrawYears]   = useState(30);
+  const [showCombined,    setShowCombined]    = useState(false);
 
-  const results = useMemo(() =>
-    simulate({ monthlyAmount: monthly, annualRate: rate, years, initialAmount: initial, nisaType,
-               inflationRate: showInflation ? inflationRate : 0 }),
-    [monthly, rate, years, initial, nisaType, inflationRate, showInflation]
+  const simParams = useMemo(() => ({
+    monthlyAmount: monthly,
+    annualRate: rate,
+    years,
+    initialAmount: initial,
+    nisaType,
+    inflationRate: showInflation ? inflationRate : 0,
+    bonusAmount:   showBonus ? bonusAmount : 0,
+    bonusTimes:    bonusTimes,
+    stepUpYear:    showStepUp ? stepUpYear : undefined,
+    stepUpAmount:  showStepUp ? stepUpAmount : undefined,
+  }), [monthly, rate, years, initial, nisaType, inflationRate, showInflation,
+       bonusAmount, bonusTimes, showBonus, stepUpYear, stepUpAmount, showStepUp]);
+
+  const results = useMemo(() => simulate(simParams), [simParams]);
+
+  // ボーナス・増額なしの結果（増加額表示用）
+  const baseResults = useMemo(() =>
+    simulate({ monthlyAmount: monthly, annualRate: rate, years, initialAmount: initial, nisaType }),
+    [monthly, rate, years, initial, nisaType]
   );
 
-  const last      = results[results.length - 1];
-  const totalIn   = last.principal;
-  const gains     = last.balance - totalIn;
+  const last     = results[results.length - 1];
+  const totalIn  = last.principal;
+  const gains    = last.balance - totalIn;
   const nisaGains = Math.max(0, last.nisaBalance - last.nisaPrincipal);
   const taxSaved  = Math.max(0, nisaGains * 0.20315);
+
+  const bonusEffect = Math.round(last.afterTaxBalance - baseResults[baseResults.length - 1].afterTaxBalance);
 
   // 目標逆算
   const reqMonthly = useMemo(() =>
     showGoal && goalAmount > 0
-      ? calcRequiredMonthly(goalAmount, rate, years, initial, nisaType)
-      : null,
+      ? calcRequiredMonthly(goalAmount, rate, years, initial, nisaType) : null,
     [showGoal, goalAmount, rate, years, initial, nisaType]
   );
   const reqYears = useMemo(() =>
     showGoal && goalAmount > 0
-      ? calcRequiredYears(goalAmount, monthly, rate, initial, nisaType)
-      : null,
+      ? calcRequiredYears(goalAmount, monthly, rate, initial, nisaType) : null,
     [showGoal, goalAmount, monthly, rate, initial, nisaType]
   );
 
@@ -110,7 +157,7 @@ export default function Home() {
     [withdrawalInitial, rate, withdrawYears]
   );
   const lastW = withdrawalResults[withdrawalResults.length - 1];
-  const runsOut = lastW.balance <= 0;
+  const runsOut     = lastW.balance <= 0;
   const runsOutYear = runsOut ? lastW.year : null;
 
   const TABS: { id: Tab; label: string }[] = [
@@ -144,12 +191,11 @@ export default function Home() {
         {/* ===== 積み立てタブ ===== */}
         {activeTab === 'accumulate' && (<>
 
-          {/* 入力パネル */}
+          {/* 基本入力 */}
           <div className="bg-white rounded-xl shadow-sm p-4 space-y-5">
             <Slider label="毎月の積み立て額" value={monthly} min={1000} max={100_000} step={1000} unit="¥" onChange={setMonthly} />
             <Slider label="年利（想定リターン）" value={rate} min={0.1} max={15} step={0.1} unit="%" onChange={setRate} />
             <Slider label="積み立て期間" value={years} min={1} max={40} step={1} unit="年" onChange={setYears} />
-
             <div>
               <label className="text-sm text-gray-600 block mb-1">初期投資額</label>
               <div className="relative">
@@ -159,7 +205,6 @@ export default function Home() {
                   className="w-full pl-7 pr-3 py-2 border border-gray-200 rounded-lg text-sm" />
               </div>
             </div>
-
             <div>
               <p className="text-sm text-gray-600 mb-2">NISA</p>
               <div className="space-y-1.5">
@@ -176,65 +221,99 @@ export default function Home() {
             </div>
           </div>
 
-          {/* インフレ調整 */}
-          <div className="bg-white rounded-xl shadow-sm p-4">
-            <button onClick={() => setShowInflation(v => !v)}
-              className="w-full flex items-center justify-between text-sm font-semibold text-gray-600">
-              <span>インフレ調整</span>
-              <span className={`text-xs px-2 py-0.5 rounded-full ${showInflation ? 'bg-orange-100 text-orange-600' : 'bg-gray-100 text-gray-400'}`}>
-                {showInflation ? `${inflationRate}%` : 'OFF'}
-              </span>
-            </button>
-            {showInflation && (
-              <div className="mt-4 space-y-3">
-                <Slider label="想定インフレ率" value={inflationRate} min={0.1} max={5} step={0.1} unit="%" onChange={setInflationRate} />
-                <p className="text-[11px] text-gray-400">
-                  インフレを考慮した「実質価値（今のお金換算）」を合わせて表示します。
-                </p>
+          {/* ボーナス加算 */}
+          <ToggleSection
+            label="ボーナス加算"
+            badge={showBonus ? `年${bonusTimes}回 ¥${fmt(bonusAmount)}` : 'OFF'}
+            active={showBonus}
+            onToggle={() => setShowBonus(v => !v)}
+          >
+            <Slider label="1回あたりのボーナス投資額" value={bonusAmount} min={10_000} max={1_000_000} step={10_000} unit="¥" onChange={setBonusAmount} />
+            <div>
+              <p className="text-sm text-gray-600 mb-2">年何回</p>
+              <div className="flex gap-2">
+                {([1, 2] as const).map(n => (
+                  <button key={n} onClick={() => setBonusTimes(n)}
+                    className={`flex-1 py-2 rounded-lg text-sm border font-medium transition-colors
+                      ${bonusTimes === n ? 'bg-blue-50 border-blue-300 text-blue-700' : 'border-gray-200 text-gray-500'}`}>
+                    {n === 1 ? '年1回（12月）' : '年2回（6・12月）'}
+                  </button>
+                ))}
               </div>
+            </div>
+            {(showBonus || showStepUp) && bonusEffect !== 0 && (
+              <p className="text-xs text-green-600 bg-green-50 rounded-lg px-3 py-2">
+                基本設定との差: +¥{fmt(Math.round(last.afterTaxBalance - baseResults[baseResults.length-1].afterTaxBalance))}
+              </p>
             )}
-          </div>
+          </ToggleSection>
+
+          {/* 途中増額 */}
+          <ToggleSection
+            label="途中増額"
+            badge={showStepUp ? `${stepUpYear}年後 ¥${fmt(stepUpAmount)}/月` : 'OFF'}
+            active={showStepUp}
+            onToggle={() => setShowStepUp(v => !v)}
+          >
+            <Slider label="増額開始タイミング" value={stepUpYear} min={1} max={years - 1 > 0 ? years - 1 : 1} step={1} unit="年後" onChange={setStepUpYear} />
+            <Slider label="増額後の月額" value={stepUpAmount} min={1000} max={200_000} step={1000} unit="¥" onChange={setStepUpAmount} />
+            <div className="grid grid-cols-2 gap-2 text-xs text-center">
+              <div className="bg-gray-50 rounded-lg py-2">
+                <p className="text-gray-400">〜{stepUpYear}年目</p>
+                <p className="font-semibold text-gray-700">月¥{fmt(monthly)}</p>
+              </div>
+              <div className="bg-blue-50 rounded-lg py-2">
+                <p className="text-blue-400">{stepUpYear + 1}年目〜</p>
+                <p className="font-semibold text-blue-700">月¥{fmt(stepUpAmount)}</p>
+              </div>
+            </div>
+            <p className="text-xs text-green-600 bg-green-50 rounded-lg px-3 py-2">
+              基本設定との差: {last.afterTaxBalance >= baseResults[baseResults.length-1].afterTaxBalance ? '+' : ''}¥{fmt(Math.round(last.afterTaxBalance - baseResults[baseResults.length-1].afterTaxBalance))}
+            </p>
+          </ToggleSection>
+
+          {/* インフレ調整 */}
+          <ToggleSection
+            label="インフレ調整"
+            badge={showInflation ? `${inflationRate}%` : 'OFF'}
+            active={showInflation}
+            onToggle={() => setShowInflation(v => !v)}
+          >
+            <Slider label="想定インフレ率" value={inflationRate} min={0.1} max={5} step={0.1} unit="%" onChange={setInflationRate} />
+            <p className="text-[11px] text-gray-400">
+              インフレを考慮した「実質価値（今のお金換算）」を合わせて表示します。
+            </p>
+          </ToggleSection>
 
           {/* 目標逆算 */}
-          <div className="bg-white rounded-xl shadow-sm p-4">
-            <button onClick={() => setShowGoal(v => !v)}
-              className="w-full flex items-center justify-between text-sm font-semibold text-gray-600">
-              <span>目標金額から逆算</span>
-              <span className={`text-xs px-2 py-0.5 rounded-full ${showGoal ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-400'}`}>
-                {showGoal ? 'ON' : 'OFF'}
-              </span>
-            </button>
-            {showGoal && (
-              <div className="mt-4 space-y-3">
-                <div>
-                  <label className="text-sm text-gray-600 block mb-1">目標金額</label>
-                  <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">¥</span>
-                    <input type="number" value={goalAmount || ''} min={0} step={100000}
-                      placeholder="例: 10000000"
-                      onChange={e => setGoalAmount(Math.max(0, Number(e.target.value)))}
-                      className="w-full pl-7 pr-3 py-2 border border-gray-200 rounded-lg text-sm" />
-                  </div>
+          <ToggleSection label="目標金額から逆算" active={showGoal} onToggle={() => setShowGoal(v => !v)}>
+            <div>
+              <label className="text-sm text-gray-600 block mb-1">目標金額</label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">¥</span>
+                <input type="number" value={goalAmount || ''} min={0} step={100000}
+                  placeholder="例: 10000000"
+                  onChange={e => setGoalAmount(Math.max(0, Number(e.target.value)))}
+                  className="w-full pl-7 pr-3 py-2 border border-gray-200 rounded-lg text-sm" />
+              </div>
+            </div>
+            {goalAmount > 0 && (
+              <div className="grid grid-cols-2 gap-2">
+                <div className="bg-blue-50 rounded-lg p-3">
+                  <p className="text-[10px] text-blue-500 mb-1">{years}年間で達成するには</p>
+                  <p className="text-base font-bold text-blue-700">
+                    {reqMonthly !== null ? `月¥${fmt(reqMonthly)}` : '50年以上'}
+                  </p>
                 </div>
-                {goalAmount > 0 && (
-                  <div className="grid grid-cols-2 gap-2">
-                    <div className="bg-blue-50 rounded-lg p-3">
-                      <p className="text-[10px] text-blue-500 mb-1">現在の期間（{years}年）で達成するには</p>
-                      <p className="text-base font-bold text-blue-700">
-                        {reqMonthly !== null ? `月¥${fmt(reqMonthly)}` : '50年以上'}
-                      </p>
-                    </div>
-                    <div className="bg-green-50 rounded-lg p-3">
-                      <p className="text-[10px] text-green-500 mb-1">現在の月額（¥{fmt(monthly)}）で達成するには</p>
-                      <p className="text-base font-bold text-green-700">
-                        {reqYears !== null ? `${reqYears}年` : '50年以上'}
-                      </p>
-                    </div>
-                  </div>
-                )}
+                <div className="bg-green-50 rounded-lg p-3">
+                  <p className="text-[10px] text-green-500 mb-1">現在の月額で達成するには</p>
+                  <p className="text-base font-bold text-green-700">
+                    {reqYears !== null ? `${reqYears}年` : '50年以上'}
+                  </p>
+                </div>
               </div>
             )}
-          </div>
+          </ToggleSection>
 
           {/* サマリーカード */}
           <div className="grid grid-cols-2 gap-2">
@@ -331,24 +410,19 @@ export default function Home() {
         {activeTab === 'scenario' && (<>
           <div className="grid grid-cols-3 gap-2">
             {[
-              { label: '悲観', rate: bearRate, r: bearResults, color: 'red' },
-              { label: '標準', rate,           r: results,     color: 'blue' },
-              { label: '楽観', rate: bullRate, r: bullResults,  color: 'green' },
-            ].map(({ label, rate: r, r: res, color }) => {
+              { label: '悲観', r: bearRate, res: bearResults, col: 'red' },
+              { label: '標準', r: rate,     res: results,     col: 'blue' },
+              { label: '楽観', r: bullRate, res: bullResults,  col: 'green' },
+            ].map(({ label, r, res, col }) => {
               const l = res[res.length - 1];
-              const colors: Record<string, string> = {
-                red:   'bg-red-50 text-red-600 border-red-100',
-                blue:  'bg-blue-50 text-blue-600 border-blue-100',
-                green: 'bg-green-50 text-green-600 border-green-100',
-              };
-              const valColors: Record<string, string> = {
-                red: 'text-red-700', blue: 'text-blue-700', green: 'text-green-700',
-              };
+              const bg:  Record<string,string> = { red: 'bg-red-50 border-red-100',   blue: 'bg-blue-50 border-blue-100',   green: 'bg-green-50 border-green-100' };
+              const txt: Record<string,string> = { red: 'text-red-600',               blue: 'text-blue-600',               green: 'text-green-600' };
+              const val: Record<string,string> = { red: 'text-red-700',               blue: 'text-blue-700',               green: 'text-green-700' };
               return (
-                <div key={label} className={`rounded-xl p-3 border ${colors[color]}`}>
-                  <p className="text-[10px] font-medium mb-0.5">{label} {r}%</p>
-                  <p className={`text-sm font-bold ${valColors[color]}`}>¥{fmt(Math.round(l.afterTaxBalance))}</p>
-                  <p className="text-[10px] mt-0.5 opacity-70">元本¥{fmt(l.principal)}</p>
+                <div key={label} className={`rounded-xl p-3 border ${bg[col]}`}>
+                  <p className={`text-[10px] font-medium mb-0.5 ${txt[col]}`}>{label} {r}%</p>
+                  <p className={`text-sm font-bold ${val[col]}`}>¥{fmt(Math.round(l.afterTaxBalance))}</p>
+                  <p className="text-[10px] mt-0.5 text-gray-400">元本¥{fmt(l.principal)}</p>
                 </div>
               );
             })}
@@ -383,7 +457,8 @@ export default function Home() {
           <div className="bg-gray-50 rounded-xl p-4 text-xs text-gray-500 space-y-1">
             <p className="font-medium text-gray-600">前提条件</p>
             <p>毎月 ¥{fmt(monthly)} · 期間 {years}年 · NISA: {NISA_LABELS[nisaType]}</p>
-            <p>初期投資 ¥{fmt(initial)} · 標準年利 {rate}%</p>
+            {showBonus && <p>ボーナス ¥{fmt(bonusAmount)} × 年{bonusTimes}回</p>}
+            {showStepUp && <p>途中増額: {stepUpYear}年後〜 月¥{fmt(stepUpAmount)}</p>}
           </div>
         </>)}
 
@@ -439,7 +514,7 @@ export default function Home() {
             </div>
           )}
 
-          {/* グラフ */}
+          {/* 取り崩しグラフ */}
           <div className="bg-white rounded-xl shadow-sm p-4">
             <h2 className="text-sm font-semibold text-gray-600 mb-3">残高推移グラフ</h2>
             <WithdrawalChart results={withdrawalResults} showReal={showInflation} />
@@ -448,7 +523,28 @@ export default function Home() {
             )}
           </div>
 
-          {/* テーブル */}
+          {/* 積み立て+取り崩し 一体グラフ */}
+          <div className="bg-white rounded-xl shadow-sm p-4">
+            <button onClick={() => setShowCombined(v => !v)}
+              className="w-full flex items-center justify-between text-sm font-semibold text-gray-600">
+              <span>積み立て〜取り崩し 一体グラフ</span>
+              <span className="text-gray-400 text-xs">{showCombined ? '▲ 閉じる' : '▼ 開く'}</span>
+            </button>
+            {showCombined && (
+              <div className="mt-3">
+                <CombinedChart
+                  accumResults={results}
+                  withdrawResults={withdrawalResults}
+                  accumYears={years}
+                />
+                <p className="text-[10px] text-gray-400 mt-2">
+                  青: 積み立て期間（{years}年） · 橙: 取り崩し期間（{withdrawYears}年）
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* 年次テーブル */}
           <div className="bg-white rounded-xl shadow-sm overflow-hidden">
             <button onClick={() => setShowTable(v => !v)}
               className="w-full flex items-center justify-between px-4 py-3 text-sm font-semibold text-gray-600">

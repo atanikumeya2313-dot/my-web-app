@@ -7,6 +7,10 @@ export interface SimParams {
   initialAmount: number;
   nisaType: NisaType;
   inflationRate?: number;
+  bonusAmount?: number;
+  bonusTimes?: 1 | 2;
+  stepUpYear?: number;
+  stepUpAmount?: number;
 }
 
 export interface YearResult {
@@ -28,8 +32,8 @@ export interface WithdrawalYearResult {
   realBalance: number;
 }
 
-const TAX_RATE        = 0.20315;
-const NISA_LIFETIME   = 18_000_000;
+const TAX_RATE      = 0.20315;
+const NISA_LIFETIME = 18_000_000;
 
 const NISA_ANNUAL: Record<NisaType, number> = {
   none:      0,
@@ -38,13 +42,17 @@ const NISA_ANNUAL: Record<NisaType, number> = {
 };
 
 export function simulate(params: SimParams): YearResult[] {
-  const { monthlyAmount, annualRate, years, initialAmount, nisaType, inflationRate = 0 } = params;
-  const monthlyRate    = Math.pow(1 + annualRate / 100, 1 / 12) - 1;
-  const nisaAnnualLim  = NISA_ANNUAL[nisaType];
+  const {
+    monthlyAmount, annualRate, years, initialAmount, nisaType,
+    inflationRate = 0,
+    bonusAmount = 0, bonusTimes = 2,
+    stepUpYear, stepUpAmount,
+  } = params;
+  const monthlyRate   = Math.pow(1 + annualRate / 100, 1 / 12) - 1;
+  const nisaAnnualLim = NISA_ANNUAL[nisaType];
 
   const initNisa    = nisaType !== 'none'
-    ? Math.min(initialAmount, nisaAnnualLim, NISA_LIFETIME)
-    : 0;
+    ? Math.min(initialAmount, nisaAnnualLim, NISA_LIFETIME) : 0;
   const initNonNisa = initialAmount - initNisa;
 
   let nisaBalance      = initNisa;
@@ -53,7 +61,8 @@ export function simulate(params: SimParams): YearResult[] {
   let nonNisaPrincipal = initNonNisa;
   let nisaUsedTotal    = initNisa;
 
-  const afterTax = (nb: number, _np: number, nnb: number, nnp: number) => {
+  const afterTax = (_nb: number, _np: number, nnb: number, nnp: number) => {
+    const nb = _nb;
     const nonNisaGains = Math.max(0, nnb - nnp);
     return nb + nnp + nonNisaGains * (1 - TAX_RATE);
   };
@@ -74,19 +83,24 @@ export function simulate(params: SimParams): YearResult[] {
     nisaUsedTotal,
   }];
 
+  const isBonusMonth = (month: number) =>
+    bonusTimes === 2 ? (month === 6 || month === 12) : month === 12;
+
   for (let y = 1; y <= years; y++) {
     let nisaUsedThisYear = 0;
+    const currentMonthly = (stepUpYear && y > stepUpYear && stepUpAmount)
+      ? stepUpAmount : monthlyAmount;
 
-    for (let m = 0; m < 12; m++) {
+    for (let m = 1; m <= 12; m++) {
       nisaBalance    *= (1 + monthlyRate);
       nonNisaBalance *= (1 + monthlyRate);
 
+      // 毎月積み立て
       const remainAnnual   = nisaAnnualLim - nisaUsedThisYear;
       const remainLifetime = NISA_LIFETIME  - nisaUsedTotal;
       const nisaContrib    = nisaType !== 'none'
-        ? Math.min(monthlyAmount, remainAnnual, Math.max(0, remainLifetime))
-        : 0;
-      const nonNisaContrib = monthlyAmount - nisaContrib;
+        ? Math.min(currentMonthly, remainAnnual, Math.max(0, remainLifetime)) : 0;
+      const nonNisaContrib = currentMonthly - nisaContrib;
 
       nisaBalance      += nisaContrib;
       nonNisaBalance   += nonNisaContrib;
@@ -94,6 +108,22 @@ export function simulate(params: SimParams): YearResult[] {
       nonNisaPrincipal += nonNisaContrib;
       nisaUsedThisYear += nisaContrib;
       nisaUsedTotal    += nisaContrib;
+
+      // ボーナス積み立て
+      if (bonusAmount > 0 && isBonusMonth(m)) {
+        const bonusRemainAnnual   = nisaAnnualLim - nisaUsedThisYear;
+        const bonusRemainLifetime = NISA_LIFETIME  - nisaUsedTotal;
+        const bonusNisa    = nisaType !== 'none'
+          ? Math.min(bonusAmount, bonusRemainAnnual, Math.max(0, bonusRemainLifetime)) : 0;
+        const bonusNonNisa = bonusAmount - bonusNisa;
+
+        nisaBalance      += bonusNisa;
+        nonNisaBalance   += bonusNonNisa;
+        nisaPrincipal    += bonusNisa;
+        nonNisaPrincipal += bonusNonNisa;
+        nisaUsedThisYear += bonusNisa;
+        nisaUsedTotal    += bonusNisa;
+      }
     }
 
     const balance = nisaBalance + nonNisaBalance;
