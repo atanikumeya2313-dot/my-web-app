@@ -155,7 +155,7 @@ export default function Home() {
       </main>
 
       <button onClick={openAdd}
-        className="fixed bottom-6 right-4 w-14 h-14 bg-blue-500 text-white rounded-full text-2xl shadow-lg hover:bg-blue-600 flex items-center justify-center z-40">
+        className="fixed bottom-20 right-4 w-14 h-14 bg-blue-500 text-white rounded-full text-2xl shadow-lg hover:bg-blue-600 flex items-center justify-center z-40">
         +
       </button>
 
