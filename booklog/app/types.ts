@@ -14,3 +14,10 @@ export interface Book {
   endDate?: string;   // YYYY-MM-DD
   addedAt: string;    // ISO string
 }
+
+export interface ReadingGoal {
+  year: number;
+  target: number;
+}
+
+export type SortKey = 'addedAt' | 'title' | 'rating' | 'endDate';
