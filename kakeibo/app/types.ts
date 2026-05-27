@@ -56,6 +56,7 @@ export const DEFAULT_CATEGORIES: Category[] = [
   { id: 'exp_housing',       name: '住居費', type: 'expense', isDefault: true },
   { id: 'exp_daily',         name: '日用品', type: 'expense', isDefault: true },
   { id: 'exp_entertainment', name: '娯楽費', type: 'expense', isDefault: true },
+  { id: 'exp_telecom',       name: '通信費', type: 'expense', isDefault: true },
   { id: 'exp_other',         name: 'その他', type: 'expense', isDefault: true },
   { id: 'inc_salary',        name: '給与',   type: 'income',  isDefault: true },
   { id: 'inc_extra',         name: '臨時収入', type: 'income', isDefault: true },
