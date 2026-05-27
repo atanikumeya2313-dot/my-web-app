@@ -35,15 +35,73 @@ function toAmount(s: string): number {
   return parseInt(s.replace(/[^0-9]/g, '') || '0');
 }
 
-// マネーフォワードの大項目 → 家計簿カテゴリ名
+// マネーフォワードの大項目・中項目 → 家計簿カテゴリ名
 const MF_CATEGORY_MAP: Record<string, string> = {
-  '食費':       '食費',
-  '交通費':     '交通費',
+  // ── 食費 ──
+  '食費': '食費',
+
+  // ── 交通費 ──
+  '交通費': '交通費',
+  '自動車': '交通費',
+
+  // ── 光熱費 ──
   '光熱費':     '光熱費',
-  '住宅':       '住居費',
+  '水道・光熱費': '光熱費',
+
+  // ── 住居費 ──
+  '住宅': '住居費',
+
+  // ── 日用品 ──
   '日用品':     '日用品',
+  '衣服・美容': '日用品',
+
+  // ── 娯楽費 ──
   '趣味・娯楽': '娯楽費',
+  '教養・教育': '娯楽費',
+  '教育':       '娯楽費',
+
+  // ── その他（支出） ──
+  '通信費':       'その他',
+  '健康・医療':   'その他',
+  '交際費':       'その他',
+  '税・社会保障': 'その他',
+  '保険':         'その他',
+  '特別な支出':   'その他',
+  'その他':       'その他',
+
+  // ── 収入 ──
   '収入':       '給与',
+  '給与・賞与': '給与',
+  '事業・副業': '臨時収入',
+  '年金・保険': '臨時収入',
+  '投資収益':   '臨時収入',
+  'その他収入': '臨時収入',
+};
+
+// マネーフォワードの中項目 → 家計簿カテゴリ名（大項目でマッチしなかった場合の補完）
+const MF_SUB_CATEGORY_MAP: Record<string, string> = {
+  // 通信費系
+  '携帯電話':   'その他',
+  'スマートフォン': 'その他',
+  'インターネット': 'その他',
+  '固定電話':   'その他',
+  // 医療系
+  '医療費':     'その他',
+  '薬':         'その他',
+  'ドラッグストア': 'その他',
+  // 衣服
+  '衣類':       '日用品',
+  '美容':       '日用品',
+  '理髪':       '日用品',
+  // 交通
+  'ガソリン':   '交通費',
+  '電車':       '交通費',
+  'バス':       '交通費',
+  'タクシー':   '交通費',
+  // 保険
+  '生命保険':   'その他',
+  '医療保険':   'その他',
+  '損害保険':   'その他',
 };
 
 function parseCSV(text: string): ParsedRow[] | { error: string } {
@@ -121,19 +179,22 @@ function parseCSV(text: string): ParsedRow[] | { error: string } {
   // マネーフォワードME: 計算対象, 日付, 内容, 金額（円）, 保有金融機関, 大項目, 中項目, メモ, 振替, ID
   if (idx('計算対象') >= 0 && idx('金額（円）', '金額') >= 0 && idx('内容') >= 0) {
     const targetIdx = idx('計算対象');
-    const di  = idx('日付');
-    const ai  = idx('金額（円）', '金額');
-    const mi  = idx('内容');
-    const cati = idx('大項目');
-    const trIdx = idx('振替');
+    const di     = idx('日付');
+    const ai     = idx('金額（円）', '金額');
+    const mi     = idx('内容');
+    const cati   = idx('大項目');
+    const subCati = idx('中項目');
+    const trIdx  = idx('振替');
     return rows
       .filter(r => r.length > Math.max(di, ai))
       .filter(r => r[trIdx] !== '1')       // 振替（口座間移動）を除外
       .filter(r => r[targetIdx] === '1')   // 計算対象外を除外
       .map(r => {
-        const signed = parseInt(r[ai].replace(/[^0-9\-]/g, '') || '0');
-        const mfCat  = cati >= 0 ? r[cati] : '';
-        const mappedCat = MF_CATEGORY_MAP[mfCat] ?? '';
+        const signed  = parseInt(r[ai].replace(/[^0-9\-]/g, '') || '0');
+        const mfCat   = cati    >= 0 ? r[cati]    : '';
+        const mfSub   = subCati >= 0 ? r[subCati] : '';
+        // 大項目 → 中項目 の順でマッチング
+        const mappedCat = MF_CATEGORY_MAP[mfCat] ?? MF_SUB_CATEGORY_MAP[mfSub] ?? '';
         return {
           date:     toDate(r[di]),
           type:     (signed >= 0 ? 'income' : 'expense') as TxType,
