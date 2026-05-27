@@ -48,6 +48,10 @@ export default function Home() {
   const [label,     setLabel]     = useState('');
   const [principal, setPrincipal] = useState('');
   const [rate,      setRate]      = useState('');
+  const [editId,    setEditId]    = useState<string | null>(null);
+  const [editLabel, setEditLabel] = useState('');
+  const [editPrincipal, setEditPrincipal] = useState('');
+  const [editRate,  setEditRate]  = useState('');
 
   useEffect(() => {
     const d = loadData();
@@ -74,6 +78,26 @@ export default function Home() {
     const next = items.filter(i => i.id !== id);
     setItems(next);
     saveData(next, years);
+  }
+
+  function openEdit(item: Item) {
+    setEditId(item.id);
+    setEditLabel(item.label);
+    setEditPrincipal(String(item.principal));
+    setEditRate(String(item.rate));
+  }
+
+  function saveEdit(id: string) {
+    const p = parseFloat(editPrincipal.replace(/,/g, ''));
+    const r = parseFloat(editRate);
+    if (!p || isNaN(p) || p <= 0 || !r || isNaN(r)) return;
+    const next = items.map(i => i.id === id
+      ? { ...i, label: editLabel.trim() || i.label, principal: p, rate: r }
+      : i
+    );
+    setItems(next);
+    saveData(next, years);
+    setEditId(null);
   }
 
   function changeYears(y: number) {
@@ -136,46 +160,104 @@ export default function Home() {
 
         {/* 項目リスト */}
         {items.map((item, idx) => {
+          const isEditing = editId === item.id;
           const future = fv(item.principal, item.rate, years);
           const gain   = future - item.principal;
           const pct    = (future / item.principal - 1) * 100;
+          const canSave = editPrincipal.trim() !== '' && editRate.trim() !== ''
+            && !isNaN(parseFloat(editPrincipal)) && !isNaN(parseFloat(editRate));
           return (
             <div key={item.id} className="bg-white rounded-xl shadow-sm p-4">
+              {/* ヘッダー行 */}
               <div className="flex items-center justify-between gap-2 mb-3">
                 <div className="flex items-center gap-2 min-w-0">
-                  <div
-                    className="w-3 h-3 rounded-full shrink-0"
-                    style={{ backgroundColor: COLORS[idx % COLORS.length] }}
-                  />
-                  <span className="text-sm font-semibold text-gray-800 truncate">{item.label}</span>
+                  <div className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: COLORS[idx % COLORS.length] }} />
+                  {isEditing ? (
+                    <input
+                      value={editLabel}
+                      onChange={e => setEditLabel(e.target.value)}
+                      placeholder={item.label}
+                      className="border border-gray-200 rounded-lg px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300 w-full"
+                    />
+                  ) : (
+                    <span className="text-sm font-semibold text-gray-800 truncate">{item.label}</span>
+                  )}
                 </div>
-                <button onClick={() => deleteItem(item.id)}
-                  className="text-gray-300 hover:text-red-400 transition-colors text-base shrink-0 px-1">
-                  ✕
-                </button>
+                <div className="flex items-center gap-1 shrink-0">
+                  {!isEditing && (
+                    <button onClick={() => openEdit(item)}
+                      className="p-1.5 text-gray-300 hover:text-blue-400 transition-colors">
+                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round"
+                          d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                      </svg>
+                    </button>
+                  )}
+                  <button onClick={() => deleteItem(item.id)}
+                    className="p-1.5 text-gray-300 hover:text-red-400 transition-colors text-sm">
+                    ✕
+                  </button>
+                </div>
               </div>
 
-              <div className="grid grid-cols-3 gap-2 text-center">
-                <div className="bg-gray-50 rounded-lg py-2">
-                  <p className="text-[10px] text-gray-400 mb-0.5">元本</p>
-                  <p className="text-sm font-semibold text-gray-700">{fmt(item.principal)}</p>
+              {/* 数値行 */}
+              {isEditing ? (
+                <div className="space-y-2">
+                  <div className="flex gap-2">
+                    <div className="flex-1">
+                      <p className="text-[10px] text-gray-400 mb-1">元本（円）</p>
+                      <input
+                        type="number" min={0}
+                        value={editPrincipal}
+                        onChange={e => setEditPrincipal(e.target.value)}
+                        className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
+                      />
+                    </div>
+                    <div className="w-28">
+                      <p className="text-[10px] text-gray-400 mb-1">年利（%）</p>
+                      <input
+                        type="number" min={0} step="0.1"
+                        value={editRate}
+                        onChange={e => setEditRate(e.target.value)}
+                        className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
+                      />
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <button onClick={() => setEditId(null)}
+                      className="flex-1 py-2 bg-gray-100 text-gray-600 rounded-lg text-sm font-medium hover:bg-gray-200">
+                      キャンセル
+                    </button>
+                    <button onClick={() => saveEdit(item.id)} disabled={!canSave}
+                      className="flex-1 py-2 bg-blue-500 text-white rounded-lg text-sm font-medium hover:bg-blue-600 disabled:opacity-40">
+                      保存
+                    </button>
+                  </div>
                 </div>
-                <div className="bg-gray-50 rounded-lg py-2">
-                  <p className="text-[10px] text-gray-400 mb-0.5">年利</p>
-                  <p className="text-sm font-semibold text-gray-700">{item.rate}%</p>
-                </div>
-                <div className="bg-blue-50 rounded-lg py-2">
-                  <p className="text-[10px] text-blue-400 mb-0.5">{years}年後</p>
-                  <p className="text-sm font-bold text-blue-600">{fmt(future)}</p>
-                </div>
-              </div>
-
-              <div className="mt-2.5 pt-2.5 border-t border-gray-50 flex justify-between items-center">
-                <span className="text-xs text-gray-400">増加額</span>
-                <span className="text-xs font-semibold text-green-500">
-                  +{fmt(gain)}（+{pct.toFixed(1)}%）
-                </span>
-              </div>
+              ) : (
+                <>
+                  <div className="grid grid-cols-3 gap-2 text-center">
+                    <div className="bg-gray-50 rounded-lg py-2">
+                      <p className="text-[10px] text-gray-400 mb-0.5">元本</p>
+                      <p className="text-sm font-semibold text-gray-700">{fmt(item.principal)}</p>
+                    </div>
+                    <div className="bg-gray-50 rounded-lg py-2">
+                      <p className="text-[10px] text-gray-400 mb-0.5">年利</p>
+                      <p className="text-sm font-semibold text-gray-700">{item.rate}%</p>
+                    </div>
+                    <div className="bg-blue-50 rounded-lg py-2">
+                      <p className="text-[10px] text-blue-400 mb-0.5">{years}年後</p>
+                      <p className="text-sm font-bold text-blue-600">{fmt(future)}</p>
+                    </div>
+                  </div>
+                  <div className="mt-2.5 pt-2.5 border-t border-gray-50 flex justify-between items-center">
+                    <span className="text-xs text-gray-400">増加額</span>
+                    <span className="text-xs font-semibold text-green-500">
+                      +{fmt(gain)}（+{pct.toFixed(1)}%）
+                    </span>
+                  </div>
+                </>
+              )}
             </div>
           );
         })}
