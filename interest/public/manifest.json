@@ -1,11 +1,11 @@
 ﻿{
-  "name": "家計簿",
-  "short_name": "家計簿",
-  "description": "個人用家計簿アプリ",
+  "name": "複利計算機",
+  "short_name": "複利計算",
+  "description": "元本と年利から将来の金額を計算",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#f9fafb",
-  "theme_color": "#10b981",
+  "theme_color": "#3b82f6",
   "lang": "ja",
   "icons": [
     { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
