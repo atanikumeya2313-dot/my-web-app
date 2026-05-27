@@ -18,6 +18,8 @@ const SECTIONS: { slot: TimeSlot; label: string; icon: string }[] = [
   { slot: 'anytime',   label: 'その日', icon: '📋' },
 ];
 
+type TabSlot = TimeSlot | 'done';
+
 function dateLabel(offset: number) {
   const d = new Date(Date.now() + offset * 86_400_000);
   return `${d.getMonth()+1}月${d.getDate()}日（${DOW[d.getDay()]}）`;
@@ -50,10 +52,9 @@ export default function Home() {
   const [showForm,     setShowForm]     = useState(false);
   const [editing,      setEditing]      = useState<Task | undefined>();
   const [filterCat,    setFilterCat]    = useState('');
-  const [timeFilter,   setTimeFilter]   = useState<TimeSlot>(defaultTimeSlot());
+  const [timeFilter,   setTimeFilter]   = useState<TabSlot>(defaultTimeSlot());
   const [undo,         setUndo]         = useState<UndoAction | null>(null);
   const [viewDate,     setViewDate]     = useState<'today' | 'tomorrow'>('today');
-  const [showDone,     setShowDone]     = useState(false);
   const undoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -236,18 +237,62 @@ export default function Home() {
                   ${active ? 'text-blue-500' : 'text-gray-400'}`}>
                 <span className="text-base leading-none">{icon}</span>
                 <span className="text-[11px] font-medium">{label}</span>
-                <span className={`text-[10px] ${active ? 'text-blue-400' : 'text-gray-300'}`}>
-                  {count}
-                </span>
+                <span className={`text-[10px] ${active ? 'text-blue-400' : 'text-gray-300'}`}>{count}</span>
                 {active && <span className="absolute bottom-0 inset-x-3 h-0.5 bg-blue-500 rounded-full" />}
               </button>
             );
           })}
+          {/* 完了タブ（今日のみ） */}
+          {viewDate === 'today' && (
+            <button onClick={() => setTimeFilter('done')}
+              className={`relative flex-1 flex flex-col items-center py-2 gap-0.5 transition-colors
+                ${timeFilter === 'done' ? 'text-green-500' : 'text-gray-400'}`}>
+              <span className="text-base leading-none">✓</span>
+              <span className="text-[11px] font-medium">完了</span>
+              <span className={`text-[10px] ${timeFilter === 'done' ? 'text-green-400' : 'text-gray-300'}`}>
+                {todayCompleted.length}
+              </span>
+              {timeFilter === 'done' && <span className="absolute bottom-0 inset-x-3 h-0.5 bg-green-500 rounded-full" />}
+            </button>
+          )}
         </div>
       </header>
 
       <main className="max-w-lg mx-auto px-4 py-4 space-y-2">
-        {slotTasks.length === 0 ? (
+        {/* 完了タブ */}
+        {timeFilter === 'done' ? (
+          todayCompleted.length === 0 ? (
+            <div className="text-center py-16">
+              <p className="text-4xl mb-3">✓</p>
+              <p className="text-gray-400 text-sm">今日の完了タスクはありません</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {todayCompleted.map(entry => {
+                const ps = entry.priority ? PRIORITY_STYLE[entry.priority] : null;
+                return (
+                  <div key={entry.id + entry.completedAt}
+                    className="bg-white rounded-xl px-4 py-3 shadow-sm flex items-center gap-3">
+                    <div className="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center shrink-0">
+                      <svg className="w-3.5 h-3.5 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                      </svg>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm text-gray-500 line-through truncate">{entry.title}</p>
+                      <div className="flex gap-1.5 mt-0.5 flex-wrap">
+                        {ps && <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${ps.cls}`}>{ps.label}</span>}
+                        {entry.category && <span className="text-[10px] bg-blue-50 text-blue-400 px-1.5 py-0.5 rounded-full">{entry.category}</span>}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )
+
+        /* 通常タブ */
+        ) : slotTasks.length === 0 ? (
           <div className="text-center py-16">
             <p className="text-4xl mb-3">{SECTIONS.find(s => s.slot === timeFilter)?.icon}</p>
             <p className="text-gray-400 text-sm">
@@ -266,41 +311,6 @@ export default function Home() {
                 onEdit={viewDate === 'today' ? openEdit : undefined} />
             ))}
           </>
-        )}
-
-        {/* 完了済みセクション（今日のみ） */}
-        {viewDate === 'today' && todayCompleted.length > 0 && (
-          <div className="pt-2">
-            <button onClick={() => setShowDone(v => !v)}
-              className="w-full flex items-center justify-between px-1 py-1.5 text-xs text-gray-400">
-              <span>✓ 完了済み（{todayCompleted.length}件）</span>
-              <span>{showDone ? '▲' : '▼'}</span>
-            </button>
-            {showDone && (
-              <div className="space-y-1.5 mt-1">
-                {todayCompleted.map(entry => {
-                  const ps = entry.priority ? PRIORITY_STYLE[entry.priority] : null;
-                  return (
-                    <div key={entry.id + entry.completedAt}
-                      className="bg-white rounded-xl px-4 py-3 shadow-sm opacity-60 flex items-center gap-3">
-                      <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
-                        <svg className="w-3.5 h-3.5 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                        </svg>
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm text-gray-600 line-through truncate">{entry.title}</p>
-                        <div className="flex gap-1.5 mt-0.5 flex-wrap">
-                          {ps && <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${ps.cls}`}>{ps.label}</span>}
-                          {entry.category && <span className="text-[10px] bg-blue-50 text-blue-400 px-1.5 py-0.5 rounded-full">{entry.category}</span>}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
         )}
       </main>
 
