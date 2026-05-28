@@ -46,6 +46,12 @@ function addMonths(ymd: string, months: number): string {
   return toYMD(d);
 }
 
+// 月の最終日を超える場合は最終日に丸める
+function clampToMonth(year: number, month: number, day: number): number {
+  const lastDay = new Date(year, month + 1, 0).getDate();
+  return Math.min(day, lastDay);
+}
+
 function shouldShow(task: Task, ymd: string, todayYmd: string, completed?: CompletedMap): boolean {
   const dow = new Date(ymd).getDay();
   const dom = new Date(ymd).getDate();
@@ -55,7 +61,11 @@ function shouldShow(task: Task, ymd: string, todayYmd: string, completed?: Compl
   }
   if (task.repeat === 'daily')   return true;
   if (task.repeat === 'weekly')  return (task.weekdays ?? []).includes(dow);
-  if (task.repeat === 'monthly') return task.monthDay === dom;
+  if (task.repeat === 'monthly') {
+    const d = new Date(ymd);
+    const effective = clampToMonth(d.getFullYear(), d.getMonth(), task.monthDay ?? 1);
+    return effective === dom;
+  }
   if (task.repeat === 'interval') {
     const pastDates  = (completed?.[task.id] ?? []).filter(d => d !== ymd);
     const lastDone   = pastDates.length > 0 ? [...pastDates].sort().at(-1)! : null;
@@ -137,9 +147,12 @@ export function nextOccurrenceAfter(task: Task, doneYmd: string): string | null 
   if (task.repeat === 'monthly') {
     const day  = task.monthDay ?? 1;
     const done = new Date(doneYmd);
-    const same = new Date(done.getFullYear(), done.getMonth(), day);
+    const effSame = clampToMonth(done.getFullYear(), done.getMonth(), day);
+    const same = new Date(done.getFullYear(), done.getMonth(), effSame);
     if (same > done) return toYMD(same);
-    return toYMD(new Date(done.getFullYear(), done.getMonth() + 1, day));
+    const ny = done.getMonth() === 11 ? done.getFullYear() + 1 : done.getFullYear();
+    const nm = (done.getMonth() + 1) % 12;
+    return toYMD(new Date(ny, nm, clampToMonth(ny, nm, day)));
   }
   if (task.repeat === 'interval') {
     const d = new Date(doneYmd); d.setDate(d.getDate() + (task.intervalDays ?? 1)); return toYMD(d);
