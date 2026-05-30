@@ -1,8 +1,7 @@
 'use client';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { Transaction } from '../types';
-
-const fmt = (v: number) => v >= 10000 ? `${Math.round(v / 10000)}万` : v.toLocaleString('ja-JP');
+import { fmtAxis, fmtFull } from '../lib/format';
 
 export default function AnnualGraph({ transactions }: { transactions: Transaction[] }) {
   const now = new Date();
@@ -24,8 +23,8 @@ export default function AnnualGraph({ transactions }: { transactions: Transactio
     <ResponsiveContainer width="100%" height={260}>
       <BarChart data={months} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
         <XAxis dataKey="label" tick={{ fontSize: 10 }} />
-        <YAxis tickFormatter={fmt} tick={{ fontSize: 10 }} width={36} />
-        <Tooltip formatter={(v) => typeof v === 'number' ? `¥${v.toLocaleString()}` : v} />
+        <YAxis tickFormatter={fmtAxis} tick={{ fontSize: 10 }} width={44} domain={['auto', 'auto']} />
+        <Tooltip formatter={(v) => typeof v === 'number' ? fmtFull(v) : v} />
         <Legend iconSize={10} iconType="circle" />
         <Bar dataKey="income"  name="収入" fill="#10b981" radius={[3,3,0,0]} />
         <Bar dataKey="expense" name="支出" fill="#ef4444" radius={[3,3,0,0]} />

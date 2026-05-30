@@ -52,6 +52,12 @@ export default function Home() {
     saveCategories(next);
   };
 
+  const handleCategoryDelete = (cat: string) => {
+    const next = categories.filter(c => c !== cat);
+    setCategories(next);
+    saveCategories(next);
+  };
+
   const recordHistory = (item: StockItem, delta: number, quantityAfter: number) => {
     const next = addHistoryEntry({
       itemId: item.id,
@@ -79,9 +85,10 @@ export default function Home() {
     const item = items.find(i => i.id === id);
     if (!item) return;
     const newQty = Math.max(0, item.quantity + delta);
-    const updated = { ...item, quantity: newQty };
-    setItems(updateItem(updated));
-    recordHistory(item, delta, newQty);
+    const actualDelta = newQty - item.quantity;
+    if (actualDelta === 0) return;
+    setItems(updateItem({ ...item, quantity: newQty }));
+    recordHistory(item, actualDelta, newQty);
   };
 
   const handleRestock = (id: string) => {
@@ -96,19 +103,21 @@ export default function Home() {
   const handleImport = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    e.target.value = '';
+    if (!confirm(`現在のデータを「${file.name}」の内容で上書きします。よろしいですか？`)) return;
     const reader = new FileReader();
     reader.onload = ev => {
       const result = importData(ev.target?.result as string);
       if (result) {
         setItems(result.items);
         setHistory(result.history);
+        setCategories(result.categories);
         alert('インポート完了しました');
       } else {
         alert('インポートに失敗しました。ファイル形式を確認してください。');
       }
     };
     reader.readAsText(file);
-    e.target.value = '';
   };
 
   const openEdit = (item: StockItem) => { setEditing(item); setShowForm(true); };
@@ -382,6 +391,7 @@ export default function Home() {
           onSave={handleSave}
           onDelete={editing ? () => handleDelete(editing.id) : undefined}
           onCategoryAdd={handleCategoryAdd}
+          onCategoryDelete={handleCategoryDelete}
           onClose={() => { setShowForm(false); setEditing(undefined); }}
         />
       )}

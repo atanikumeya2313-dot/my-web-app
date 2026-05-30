@@ -2,15 +2,13 @@
 import { useState } from 'react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { Transaction, Category, TxType } from '../types';
+import { fmtAxis, fmtFull } from '../lib/format';
 
 const COLORS = [
   '#3b82f6', '#ef4444', '#10b981', '#f59e0b',
   '#8b5cf6', '#ec4899', '#06b6d4', '#f97316',
   '#84cc16', '#6366f1',
 ];
-
-const fmt     = (v: number) => v >= 10000 ? `${Math.round(v / 10000)}万` : v.toLocaleString('ja-JP');
-const fmtFull = (v: number) => `¥${v.toLocaleString('ja-JP')}`;
 
 interface Props {
   transactions: Transaction[];
@@ -85,7 +83,7 @@ export default function CategoryTrendGraph({ transactions, categories }: Props) 
         <ResponsiveContainer width="100%" height={240}>
           <LineChart data={months} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
             <XAxis dataKey="label" tick={{ fontSize: 10 }} />
-            <YAxis tickFormatter={fmt} tick={{ fontSize: 10 }} width={40} />
+            <YAxis tickFormatter={fmtAxis} tick={{ fontSize: 10 }} width={44} domain={['auto', 'auto']} />
             <Tooltip
               formatter={(v, name) => {
                 const cat = filteredCats.find(c => c.id === name);

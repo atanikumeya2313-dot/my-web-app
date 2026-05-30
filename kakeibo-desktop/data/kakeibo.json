@@ -1,0 +1,108 @@
+{
+  "transactions": [],
+  "categories": [
+    {
+      "id": "food",
+      "name": "食費",
+      "type": "expense",
+      "is_default": true
+    },
+    {
+      "id": "dining",
+      "name": "外食",
+      "type": "expense",
+      "is_default": true
+    },
+    {
+      "id": "transport",
+      "name": "交通費",
+      "type": "expense",
+      "is_default": true
+    },
+    {
+      "id": "utilities",
+      "name": "光熱費",
+      "type": "expense",
+      "is_default": true
+    },
+    {
+      "id": "rent",
+      "name": "住居費",
+      "type": "expense",
+      "is_default": true
+    },
+    {
+      "id": "medical",
+      "name": "医療費",
+      "type": "expense",
+      "is_default": true
+    },
+    {
+      "id": "entertainment",
+      "name": "娯楽",
+      "type": "expense",
+      "is_default": true
+    },
+    {
+      "id": "clothing",
+      "name": "衣類",
+      "type": "expense",
+      "is_default": true
+    },
+    {
+      "id": "education",
+      "name": "教育",
+      "type": "expense",
+      "is_default": true
+    },
+    {
+      "id": "insurance",
+      "name": "保険",
+      "type": "expense",
+      "is_default": true
+    },
+    {
+      "id": "communication",
+      "name": "通信費",
+      "type": "expense",
+      "is_default": true
+    },
+    {
+      "id": "other_expense",
+      "name": "その他支出",
+      "type": "expense",
+      "is_default": true
+    },
+    {
+      "id": "salary",
+      "name": "給与",
+      "type": "income",
+      "is_default": true
+    },
+    {
+      "id": "bonus",
+      "name": "ボーナス",
+      "type": "income",
+      "is_default": true
+    },
+    {
+      "id": "invest_income",
+      "name": "投資収入",
+      "type": "income",
+      "is_default": true
+    },
+    {
+      "id": "other_income",
+      "name": "その他収入",
+      "type": "income",
+      "is_default": true
+    }
+  ],
+  "budgets": [],
+  "fixed_items": [],
+  "assets": [],
+  "templates": [],
+  "applied_months": [
+    "2026-05"
+  ]
+}

@@ -9,26 +9,52 @@ interface Props {
 }
 
 export default function FixedManager({ items, categories, onChange }: Props) {
-  const [type, setType]     = useState<TxType>('expense');
-  const [name, setName]     = useState('');
-  const [amount, setAmount] = useState('');
-  const [category, setCat]  = useState('');
-  const [day, setDay]       = useState('1');
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [type,     setType]   = useState<TxType>('expense');
+  const [name,     setName]   = useState('');
+  const [amount,   setAmount] = useState('');
+  const [category, setCat]    = useState('');
+  const [day,      setDay]    = useState('1');
 
   const filteredCats = categories.filter(c => c.type === type);
 
-  function add() {
+  function startEdit(item: FixedItem) {
+    setEditingId(item.id);
+    setType(item.type);
+    setName(item.name);
+    setAmount(String(item.amount));
+    setCat(item.category);
+    setDay(String(item.day));
+  }
+
+  function cancelEdit() {
+    setEditingId(null);
+    setName(''); setAmount(''); setCat(''); setDay('1');
+  }
+
+  function save() {
     if (!name.trim() || !amount || !category) return;
-    const item: FixedItem = {
-      id: `fixed_${Date.now()}`,
-      name: name.trim(),
-      amount: Number(amount),
-      type,
-      category,
-      day: Math.min(Math.max(Number(day), 1), 31),
-    };
-    onChange([...items, item]);
-    setName(''); setAmount(''); setDay('1');
+    const dayNum = Math.min(Math.max(Number(day), 1), 31);
+
+    if (editingId) {
+      onChange(items.map(i =>
+        i.id === editingId
+          ? { ...i, name: name.trim(), amount: Number(amount), type, category, day: dayNum }
+          : i
+      ));
+      setEditingId(null);
+    } else {
+      const item: FixedItem = {
+        id: `fixed_${Date.now()}`,
+        name: name.trim(),
+        amount: Number(amount),
+        type,
+        category,
+        day: dayNum,
+      };
+      onChange([...items, item]);
+    }
+    setName(''); setAmount(''); setCat(''); setDay('1');
   }
 
   return (
@@ -40,16 +66,24 @@ export default function FixedManager({ items, categories, onChange }: Props) {
         <ul className="space-y-2 mb-4">
           {items.map(item => {
             const cat = categories.find(c => c.id === item.category);
+            const isEditing = editingId === item.id;
             return (
-              <li key={item.id} className="flex items-center justify-between py-1 border-b border-gray-50">
+              <li key={item.id}
+                className={`flex items-center justify-between py-1.5 border-b border-gray-50 ${isEditing ? 'bg-blue-50 -mx-1 px-1 rounded' : ''}`}>
                 <div>
                   <span className="text-sm text-gray-700">{item.name}</span>
                   <span className="text-xs text-gray-400 ml-2">
                     {cat?.name} / 毎月{item.day}日 / ¥{item.amount.toLocaleString()}
                   </span>
                 </div>
-                <button onClick={() => onChange(items.filter(i => i.id !== item.id))}
-                  className="text-xs text-red-400 hover:text-red-600 shrink-0">削除</button>
+                <div className="flex gap-3 shrink-0">
+                  <button onClick={() => isEditing ? cancelEdit() : startEdit(item)}
+                    className="text-xs text-blue-400 hover:text-blue-600">
+                    {isEditing ? 'キャンセル' : '編集'}
+                  </button>
+                  <button onClick={() => { onChange(items.filter(i => i.id !== item.id)); if (isEditing) cancelEdit(); }}
+                    className="text-xs text-red-400 hover:text-red-600">削除</button>
+                </div>
               </li>
             );
           })}
@@ -57,6 +91,7 @@ export default function FixedManager({ items, categories, onChange }: Props) {
       )}
 
       <div className="space-y-2 border-t border-gray-100 pt-3">
+        <p className="text-xs font-medium text-gray-500">{editingId ? '✏️ 編集中' : '新規追加'}</p>
         <div className="flex rounded-lg overflow-hidden border border-gray-200">
           {(['expense', 'income'] as TxType[]).map(t => (
             <button key={t} type="button" onClick={() => { setType(t); setCat(''); }}
@@ -88,8 +123,18 @@ export default function FixedManager({ items, categories, onChange }: Props) {
           <option value="">カテゴリを選択</option>
           {filteredCats.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
         </select>
-        <button onClick={add}
-          className="w-full py-2 bg-blue-500 text-white rounded-lg text-sm font-medium">追加</button>
+        <div className="flex gap-2">
+          <button onClick={save}
+            className="flex-1 py-2 bg-blue-500 text-white rounded-lg text-sm font-medium">
+            {editingId ? '更新' : '追加'}
+          </button>
+          {editingId && (
+            <button onClick={cancelEdit}
+              className="px-4 py-2 border border-gray-200 text-gray-500 rounded-lg text-sm">
+              キャンセル
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );

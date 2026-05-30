@@ -8,10 +8,11 @@ interface Props {
   onSave: (item: StockItem) => void;
   onDelete?: () => void;
   onCategoryAdd?: (cat: string) => void;
+  onCategoryDelete?: (cat: string) => void;
   onClose: () => void;
 }
 
-export default function ItemForm({ editing, categories, onSave, onDelete, onCategoryAdd, onClose }: Props) {
+export default function ItemForm({ editing, categories, onSave, onDelete, onCategoryAdd, onCategoryDelete, onClose }: Props) {
   const cats = categories ?? DEFAULT_CATEGORIES;
   const [name,        setName]        = useState(editing?.name ?? '');
   const [category,    setCategory]    = useState<string>(editing?.category ?? cats[0] ?? '食品・飲料');
@@ -60,16 +61,31 @@ export default function ItemForm({ editing, categories, onSave, onDelete, onCate
           <div>
             <label className="text-xs font-medium text-gray-600 mb-1 block">カテゴリ</label>
             <div className="grid grid-cols-2 gap-2">
-              {cats.map(cat => (
-                <button key={cat} onClick={() => setCategory(cat)}
-                  className={`py-2 px-3 rounded-xl text-sm border transition-colors text-left ${
-                    category === cat
-                      ? 'bg-blue-50 border-blue-400 text-blue-700'
-                      : 'bg-gray-50 border-gray-200 text-gray-600'
-                  }`}>
-                  {getCategoryIcon(cat)} {cat}
-                </button>
-              ))}
+              {cats.map(cat => {
+                const isCustom = !DEFAULT_CATEGORIES.includes(cat);
+                return (
+                  <div key={cat} className="relative">
+                    <button onClick={() => setCategory(cat)}
+                      className={`w-full py-2 pl-3 pr-7 rounded-xl text-sm border transition-colors text-left ${
+                        category === cat
+                          ? 'bg-blue-50 border-blue-400 text-blue-700'
+                          : 'bg-gray-50 border-gray-200 text-gray-600'
+                      }`}>
+                      {getCategoryIcon(cat)} {cat}
+                    </button>
+                    {isCustom && (
+                      <button
+                        onClick={() => {
+                          onCategoryDelete?.(cat);
+                          if (category === cat) setCategory(cats[0] ?? DEFAULT_CATEGORIES[0]);
+                        }}
+                        className="absolute right-1.5 top-1/2 -translate-y-1/2 w-5 h-5 flex items-center justify-center text-gray-300 hover:text-red-400 text-xs rounded-full">
+                        ✕
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
             </div>
             {showNewCat ? (
               <div className="flex gap-2 mt-2">

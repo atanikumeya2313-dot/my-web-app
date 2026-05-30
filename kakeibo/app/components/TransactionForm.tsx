@@ -1,6 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { Transaction, Category, TxType, Template } from '../types';
+import { loadTemplates } from '../lib/storage';
 
 interface Prefill {
   type?: TxType;
@@ -26,6 +27,7 @@ export default function TransactionForm({ categories, onSave, onClose, defaultDa
   const [category, setCat]    = useState(editing?.category ?? prefill?.category ?? '');
   const [memo,     setMemo]   = useState(editing?.memo ?? prefill?.memo ?? '');
   const [savedMsg, setSavedMsg] = useState(false);
+  const [dupMsg,   setDupMsg]   = useState(false);
 
   const filteredCats = categories.filter(c => c.type === type);
 
@@ -46,14 +48,13 @@ export default function TransactionForm({ categories, onSave, onClose, defaultDa
   function handleSaveTemplate() {
     if (!amount || !category || !onSaveTemplate) return;
     const name = memo.trim() || filteredCats.find(c => c.id === category)?.name || 'テンプレート';
-    onSaveTemplate({
-      id: crypto.randomUUID(),
-      name,
-      amount: Number(amount),
-      type,
-      category,
-      memo,
-    });
+    const existing = loadTemplates();
+    if (existing.some(t => t.name === name)) {
+      setDupMsg(true);
+      setTimeout(() => setDupMsg(false), 2000);
+      return;
+    }
+    onSaveTemplate({ id: crypto.randomUUID(), name, amount: Number(amount), type, category, memo });
     setSavedMsg(true);
     setTimeout(() => setSavedMsg(false), 2000);
   }
@@ -95,8 +96,8 @@ export default function TransactionForm({ categories, onSave, onClose, defaultDa
 
           {onSaveTemplate && !editing && (
             <button type="button" onClick={handleSaveTemplate}
-              className="w-full py-2 text-xs text-gray-400 hover:text-blue-500 transition-colors">
-              {savedMsg ? '✓ テンプレートに保存しました' : 'テンプレートに保存'}
+              className={`w-full py-2 text-xs transition-colors ${dupMsg ? 'text-red-400' : savedMsg ? 'text-green-500' : 'text-gray-400 hover:text-blue-500'}`}>
+              {dupMsg ? '⚠ 同名のテンプレートが既に存在します' : savedMsg ? '✓ テンプレートに保存しました' : 'テンプレートに保存'}
             </button>
           )}
         </form>

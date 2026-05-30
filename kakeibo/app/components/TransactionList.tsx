@@ -15,15 +15,27 @@ export default function TransactionList({ transactions, categories, onDelete, on
   const [query,      setQuery]      = useState('');
   const [typeFilter, setTypeFilter] = useState<'all' | TxType>('all');
   const [catFilter,  setCatFilter]  = useState('');
+  const [showAdv,    setShowAdv]    = useState(false);
+  const [dateFrom,   setDateFrom]   = useState('');
+  const [dateTo,     setDateTo]     = useState('');
+  const [amountMin,  setAmountMin]  = useState('');
+  const [amountMax,  setAmountMax]  = useState('');
 
   const catName = (id: string) => categories.find(c => c.id === id)?.name ?? id;
-
   const activeCats = [...new Set(transactions.map(t => t.category))];
+
+  const advActiveCount = [dateFrom, dateTo, amountMin, amountMax].filter(Boolean).length;
+
+  const clearAdv = () => { setDateFrom(''); setDateTo(''); setAmountMin(''); setAmountMax(''); };
 
   const filtered = [...transactions]
     .filter(t => typeFilter === 'all' || t.type === typeFilter)
     .filter(t => catFilter === '' || t.category === catFilter)
     .filter(t => query === '' || catName(t.category).includes(query) || t.memo.includes(query))
+    .filter(t => !dateFrom   || t.date >= dateFrom)
+    .filter(t => !dateTo     || t.date <= dateTo)
+    .filter(t => !amountMin  || t.amount >= Number(amountMin))
+    .filter(t => !amountMax  || t.amount <= Number(amountMax))
     .sort((a, b) => b.date.localeCompare(a.date));
 
   return (
@@ -37,7 +49,7 @@ export default function TransactionList({ transactions, categories, onDelete, on
       </div>
 
       {/* 収支タイプフィルター */}
-      <div className="flex gap-1.5 mb-2">
+      <div className="flex items-center gap-1.5 mb-2">
         {(['all', 'expense', 'income'] as const).map(v => (
           <button key={v} onClick={() => setTypeFilter(v)}
             className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
@@ -46,7 +58,65 @@ export default function TransactionList({ transactions, categories, onDelete, on
             {v === 'all' ? '全て' : v === 'expense' ? '支出' : '収入'}
           </button>
         ))}
+
+        {/* 詳細フィルタートグル */}
+        <button
+          onClick={() => setShowAdv(v => !v)}
+          className={`ml-auto flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+            advActiveCount > 0 ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-500'
+          }`}>
+          🔧 詳細
+          {advActiveCount > 0 && (
+            <span className="bg-blue-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-[10px]">
+              {advActiveCount}
+            </span>
+          )}
+        </button>
       </div>
+
+      {/* 詳細フィルター（展開時） */}
+      {showAdv && (
+        <div className="bg-gray-50 rounded-xl p-3 mb-2 space-y-2 border border-gray-100">
+          {/* 日付範囲 */}
+          <div>
+            <p className="text-xs text-gray-400 mb-1">期間</p>
+            <div className="flex items-center gap-2">
+              <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)}
+                className="flex-1 text-xs border border-gray-200 rounded-lg px-2 py-1.5 bg-white" />
+              <span className="text-xs text-gray-400">〜</span>
+              <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)}
+                className="flex-1 text-xs border border-gray-200 rounded-lg px-2 py-1.5 bg-white" />
+            </div>
+          </div>
+
+          {/* 金額範囲 */}
+          <div>
+            <p className="text-xs text-gray-400 mb-1">金額</p>
+            <div className="flex items-center gap-2">
+              <div className="relative flex-1">
+                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400 text-xs">¥</span>
+                <input type="number" value={amountMin} onChange={e => setAmountMin(e.target.value)}
+                  placeholder="下限" min="0"
+                  className="w-full pl-5 pr-2 py-1.5 text-xs border border-gray-200 rounded-lg bg-white" />
+              </div>
+              <span className="text-xs text-gray-400">〜</span>
+              <div className="relative flex-1">
+                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400 text-xs">¥</span>
+                <input type="number" value={amountMax} onChange={e => setAmountMax(e.target.value)}
+                  placeholder="上限" min="0"
+                  className="w-full pl-5 pr-2 py-1.5 text-xs border border-gray-200 rounded-lg bg-white" />
+              </div>
+            </div>
+          </div>
+
+          {advActiveCount > 0 && (
+            <button onClick={clearAdv}
+              className="w-full py-1 text-xs text-gray-400 hover:text-red-400 transition-colors">
+              フィルターをクリア
+            </button>
+          )}
+        </div>
+      )}
 
       {/* カテゴリフィルター */}
       {activeCats.length > 1 && (
@@ -66,6 +136,11 @@ export default function TransactionList({ transactions, categories, onDelete, on
             </button>
           ))}
         </div>
+      )}
+
+      {/* 件数表示 */}
+      {(query || catFilter || typeFilter !== 'all' || advActiveCount > 0) && (
+        <p className="text-xs text-gray-400 mb-1">{filtered.length} 件</p>
       )}
 
       {filtered.length === 0 ? (

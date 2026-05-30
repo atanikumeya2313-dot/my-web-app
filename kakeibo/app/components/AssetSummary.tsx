@@ -11,8 +11,10 @@ const fmt = (n: number) => n.toLocaleString('ja-JP');
 
 function calcBalance(asset: Asset, transactions: Transaction[]): number {
   if (asset.type === 'investment') return asset.initialBalance;
-  // 銀行口座: 初期残高 + 基準日以降の収入 - 支出
-  const afterInit = transactions.filter(t => t.date >= asset.initialDate);
+  const today = new Date().toISOString().slice(0, 10);
+  // 基準日が未来の場合は今日を起点にする
+  const since = asset.initialDate <= today ? asset.initialDate : today;
+  const afterInit = transactions.filter(t => t.date >= since && t.date <= today);
   const income  = afterInit.filter(t => t.type === 'income').reduce((s, t)  => s + t.amount, 0);
   const expense = afterInit.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
   return asset.initialBalance + income - expense;

@@ -1,8 +1,7 @@
 'use client';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
 import { Transaction } from '../types';
-
-const fmt = (v: number) => v >= 10000 ? `${Math.round(v / 10000)}万` : v.toLocaleString('ja-JP');
+import { fmtAxis, fmtFull } from '../lib/format';
 
 export default function BalanceTrendGraph({ transactions }: { transactions: Transaction[] }) {
   const now = new Date();
@@ -31,9 +30,9 @@ export default function BalanceTrendGraph({ transactions }: { transactions: Tran
             </linearGradient>
           </defs>
           <XAxis dataKey="label" tick={{ fontSize: 10 }} />
-          <YAxis tickFormatter={fmt} tick={{ fontSize: 10 }} width={38} />
+          <YAxis tickFormatter={fmtAxis} tick={{ fontSize: 10 }} width={44} domain={['auto', 'auto']} />
           <Tooltip
-            formatter={(v) => typeof v === 'number' ? [`¥${v.toLocaleString()}`, '収支'] : v}
+            formatter={(v) => typeof v === 'number' ? [fmtFull(v), '収支'] : v}
           />
           <ReferenceLine y={0} stroke="#e5e7eb" strokeDasharray="3 3" />
           <Area
