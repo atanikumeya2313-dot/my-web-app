@@ -95,10 +95,10 @@ function shouldShow(task: Task, ymd: string, todayYmd: string, completed?: Compl
     }
   }
   if (task.repeat === 'monthly-weekday') {
-    const nth = task.monthlyWeekdayNth ?? 1;
-    const dow = task.monthlyWeekdayDow ?? 0;
-    const d   = new Date(ymd);
-    if (d.getDay() !== dow) return false;
+    const nth        = task.monthlyWeekdayNth ?? 1;
+    const targetDow  = task.monthlyWeekdayDow ?? 0;
+    const d          = new Date(ymd);
+    if (d.getDay() !== targetDow) return false;
     return Math.ceil(d.getDate() / 7) === nth;
   }
   return false;

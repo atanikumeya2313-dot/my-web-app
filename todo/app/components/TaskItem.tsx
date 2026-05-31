@@ -52,6 +52,14 @@ export default function TaskItem({ task, onComplete, onReschedule, onEdit }: Pro
     if (task.repeat === 'interval' && task.intervalDays) {
       return `${task.intervalDays}日ごと`;
     }
+    if (task.repeat === 'monthly-interval' && task.monthIntervalMonths) {
+      return `${task.monthIntervalMonths}か月ごと`;
+    }
+    if (task.repeat === 'monthly-weekday') {
+      const nth = task.monthlyWeekdayNth ?? 1;
+      const dow = task.monthlyWeekdayDow ?? 0;
+      return `毎月第${nth}${DOW[dow]}曜`;
+    }
     return REPEAT_LABEL[task.repeat] || '';
   }
 
