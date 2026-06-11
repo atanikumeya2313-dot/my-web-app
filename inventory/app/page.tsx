@@ -1,10 +1,11 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
-import { StockItem, HistoryEntry, SortKey, getCategoryIcon } from './types';
+import { StockItem, HistoryEntry, SortKey, getCategoryIcon, DEFAULT_CATEGORIES } from './types';
 import {
-  loadItems, addItem, updateItem, deleteItem,
-  loadHistory, addHistoryEntry,
+  loadItems, addItem, updateItem, deleteItem, replaceItems,
+  loadHistory, addHistoryEntry, clearHistory,
   loadCategories, saveCategories,
+  loadCustomIcons, saveCustomIcons,
   calcDaysRemaining,
   exportData, importData,
 } from './lib/storage';
@@ -37,25 +38,43 @@ export default function Home() {
   const [catFilter, setCatFilter] = useState<string>(CAT_ALL);
   const [sortKey,     setSortKey]     = useState<SortKey>('low-stock');
   const [showSort,    setShowSort]    = useState(false);
-  const [categories,  setCategories]  = useState<string[]>([]);
+  const [categories,   setCategories]   = useState<string[]>([]);
+  const [customIcons,  setCustomIcons]  = useState<Record<string, string>>({});
+  const [historyQuery, setHistoryQuery] = useState('');
   const importRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     setItems(loadItems());
     setHistory(loadHistory());
     setCategories(loadCategories());
+    setCustomIcons(loadCustomIcons());
   }, []);
 
-  const handleCategoryAdd = (cat: string) => {
+  const handleCategoryAdd = (cat: string, icon?: string) => {
     const next = [...categories, cat];
     setCategories(next);
     saveCategories(next);
+    if (icon) {
+      const nextIcons = { ...customIcons, [cat]: icon };
+      setCustomIcons(nextIcons);
+      saveCustomIcons(nextIcons);
+    }
   };
 
   const handleCategoryDelete = (cat: string) => {
     const next = categories.filter(c => c !== cat);
     setCategories(next);
     saveCategories(next);
+    // アイコンも削除
+    if (customIcons[cat]) {
+      const { [cat]: _removed, ...rest } = customIcons;
+      setCustomIcons(rest);
+      saveCustomIcons(rest);
+    }
+    // 削除したカテゴリを使っているアイテムをフォールバック先に更新
+    const fallback = next[0] ?? DEFAULT_CATEGORIES[0];
+    const updated = items.map(i => i.category === cat ? { ...i, category: fallback } : i);
+    if (updated.some((i, idx) => i !== items[idx])) setItems(replaceItems(updated));
   };
 
   const recordHistory = (item: StockItem, delta: number, quantityAfter: number) => {
@@ -76,6 +95,8 @@ export default function Home() {
   };
 
   const handleDelete = (id: string) => {
+    const item = items.find(i => i.id === id);
+    if (!confirm(`「${item?.name}」を削除しますか？この操作は取り消せません。`)) return;
     setItems(deleteItem(id));
     setEditing(undefined);
     setShowForm(false);
@@ -91,10 +112,29 @@ export default function Home() {
     recordHistory(item, actualDelta, newQty);
   };
 
+  const handleDuplicate = (item: StockItem) => {
+    const copy: StockItem = {
+      ...item,
+      id:      crypto.randomUUID(),
+      name:    `${item.name}（コピー）`,
+      addedAt: new Date().toISOString(),
+    };
+    setItems(addItem(copy));
+    setEditing(undefined);
+    setShowForm(false);
+  };
+
+  const handleClearHistory = () => {
+    if (!confirm('履歴をすべて削除しますか？')) return;
+    clearHistory();
+    setHistory([]);
+  };
+
   const handleRestock = (id: string) => {
     const item = items.find(i => i.id === id);
     if (!item) return;
-    const newQty = item.minQuantity + 1;
+    // targetQuantity が設定されていればそれを使用、なければ minQuantity * 2
+    const newQty = item.targetQuantity ?? Math.max(item.minQuantity * 2, item.minQuantity + 1);
     const delta  = newQty - item.quantity;
     setItems(updateItem({ ...item, quantity: newQty }));
     recordHistory(item, delta, newQty);
@@ -243,7 +283,7 @@ export default function Home() {
                       ? 'bg-blue-500 text-white border-blue-500'
                       : 'bg-white text-gray-500 border-gray-200'
                   }`}>
-                  {cat === CAT_ALL ? '全て' : `${getCategoryIcon(cat)} ${cat}`}
+                  {cat === CAT_ALL ? '全て' : `${getCategoryIcon(cat, customIcons)} ${cat}`}
                 </button>
               ))}
             </div>
@@ -267,7 +307,8 @@ export default function Home() {
                 <ItemCard key={item.id} item={item}
                   daysRemaining={calcDaysRemaining(item, history)}
                   onEdit={() => openEdit(item)}
-                  onQuantityChange={delta => handleQuantityChange(item.id, delta)} />
+                  onQuantityChange={delta => handleQuantityChange(item.id, delta)}
+                  customIcons={customIcons} />
               ))}
             </div>
           )
@@ -294,7 +335,7 @@ export default function Home() {
                   {shoppingItems.map(item => (
                     <div key={item.id} className={`bg-white rounded-xl p-3 shadow-sm border ${item.quantity === 0 ? 'border-red-200' : 'border-orange-200'}`}>
                       <div className="flex items-center gap-3">
-                        <span className="text-xl">{getCategoryIcon(item.category)}</span>
+                        <span className="text-xl">{getCategoryIcon(item.category, customIcons)}</span>
                         <button onClick={() => openEdit(item)} className="flex-1 text-left min-w-0">
                           <p className="font-medium text-sm text-gray-800 truncate">{item.name}</p>
                           <p className="text-xs text-gray-400">{item.category}</p>
@@ -330,7 +371,7 @@ export default function Home() {
                     return (
                       <div key={item.id} className={`bg-white rounded-xl p-3 shadow-sm border ${days < 0 ? 'border-red-200' : days <= 7 ? 'border-red-100' : 'border-orange-100'}`}>
                         <div className="flex items-center gap-3">
-                          <span className="text-xl">{getCategoryIcon(item.category)}</span>
+                          <span className="text-xl">{getCategoryIcon(item.category, customIcons)}</span>
                           <button onClick={() => openEdit(item)} className="flex-1 text-left min-w-0">
                             <p className="font-medium text-sm text-gray-800 truncate">{item.name}</p>
                             <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${days < 0 ? 'bg-red-100 text-red-600' : days <= 7 ? 'bg-red-50 text-red-500' : 'bg-orange-50 text-orange-500'}`}>
@@ -350,14 +391,26 @@ export default function Home() {
 
         {/* 履歴 */}
         {tab === 'history' && (
-          history.length === 0 ? (
+          <div className="space-y-3">
+            {history.length > 0 && (
+              <div className="flex items-center gap-2">
+                <input value={historyQuery} onChange={e => setHistoryQuery(e.target.value)}
+                  placeholder="アイテム名で絞り込み"
+                  className="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-blue-300" />
+                <button onClick={handleClearHistory}
+                  className="text-xs px-2.5 py-2 rounded-xl bg-gray-100 text-gray-500 hover:bg-red-50 hover:text-red-500 whitespace-nowrap transition-colors">
+                  履歴クリア
+                </button>
+              </div>
+            )}
+          {history.length === 0 ? (
             <div className="text-center py-16">
               <p className="text-4xl mb-3">📋</p>
               <p className="text-gray-400 text-sm">履歴はまだありません</p>
             </div>
           ) : (
             <div className="space-y-1">
-              {history.map(h => (
+              {history.filter(h => !historyQuery || h.itemName.includes(historyQuery)).map(h => (
                 <div key={h.id} className="bg-white rounded-xl px-4 py-3 shadow-sm flex items-center gap-3">
                   <span className={`text-lg font-bold shrink-0 w-8 text-center ${h.delta > 0 ? 'text-green-500' : 'text-red-400'}`}>
                     {h.delta > 0 ? '＋' : '－'}
@@ -375,7 +428,8 @@ export default function Home() {
                 </div>
               ))}
             </div>
-          )
+          )}
+          </div>
         )}
       </main>
 
@@ -388,8 +442,10 @@ export default function Home() {
         <ItemForm
           editing={editing}
           categories={categories}
+          customIcons={customIcons}
           onSave={handleSave}
           onDelete={editing ? () => handleDelete(editing.id) : undefined}
+          onDuplicate={editing ? () => handleDuplicate(editing) : undefined}
           onCategoryAdd={handleCategoryAdd}
           onCategoryDelete={handleCategoryDelete}
           onClose={() => { setShowForm(false); setEditing(undefined); }}

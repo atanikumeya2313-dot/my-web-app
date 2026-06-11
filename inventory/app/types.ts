@@ -9,8 +9,8 @@ export const CATEGORY_ICONS: Record<string, string> = {
   'その他': '📦',
 };
 
-export function getCategoryIcon(category: string): string {
-  return CATEGORY_ICONS[category] ?? '📦';
+export function getCategoryIcon(category: string, customIcons?: Record<string, string>): string {
+  return customIcons?.[category] ?? CATEGORY_ICONS[category] ?? '📦';
 }
 
 export const UNITS = ['個', '本', '袋', '缶', '箱', '枚', 'g', 'ml', 'L', 'kg'];
@@ -21,6 +21,7 @@ export interface StockItem {
   category: Category;
   quantity: number;
   minQuantity: number;
+  targetQuantity?: number; // 目標在庫数（補充済の設定先・プログレスバー基準）
   unit: string;
   memo?: string;
   expiryDate?: string; // YYYY-MM-DD

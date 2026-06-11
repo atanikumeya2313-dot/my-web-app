@@ -55,10 +55,20 @@ export default function Home() {
   const [timeFilter,   setTimeFilter]   = useState<TabSlot>(defaultTimeSlot());
   const [undo,         setUndo]         = useState<UndoAction | null>(null);
   const [viewDate,     setViewDate]     = useState<'today' | 'tomorrow'>('today');
+  const [sortMode,     setSortMode]     = useState(false);
   const undoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    setTasks(loadTasks());
+    const today = toYMD(new Date());
+    const loaded = loadTasks();
+    // 繰り返しなし・日付あり・日付が過去 → 今日に繰り越す
+    const rolled = loaded.map(task =>
+      task.repeat === 'none' && task.date && task.date < today
+        ? { ...task, date: today }
+        : task
+    );
+    if (rolled.some((t, i) => t !== loaded[i])) saveTasks(rolled);
+    setTasks(rolled);
     setCompleted(loadCompleted());
     setCompletedLog(loadCompletedLog());
     setCategories(loadCategories());
@@ -183,6 +193,19 @@ export default function Home() {
     setShowForm(true);
   }
 
+  function moveTask(id: string, dir: -1 | 1) {
+    const idx = slotTasks.findIndex(t => t.id === id);
+    const targetIdx = idx + dir;
+    if (targetIdx < 0 || targetIdx >= slotTasks.length) return;
+    const posA = tasks.findIndex(t => t.id === slotTasks[idx].id);
+    const posB = tasks.findIndex(t => t.id === slotTasks[targetIdx].id);
+    if (posA < 0 || posB < 0) return;
+    const next = [...tasks];
+    [next[posA], next[posB]] = [next[posB], next[posA]];
+    saveTasks(next);
+    setTasks(next);
+  }
+
   const activeCategories = [...new Set(todayTasks.map(t => t.category).filter(Boolean))] as string[];
   const hasOther = todayTasks.some(t => !t.category);
 
@@ -304,11 +327,23 @@ export default function Home() {
             {viewDate === 'tomorrow' && (
               <p className="text-xs text-gray-400 text-center pb-1">明日の予定（読み取り専用）</p>
             )}
-            {slotTasks.map(task => (
+            {viewDate === 'today' && slotTasks.length > 1 && (
+              <div className="flex justify-end">
+                <button onClick={() => setSortMode(v => !v)}
+                  className={`text-xs px-2.5 py-1 rounded-full transition-colors ${sortMode ? 'bg-blue-100 text-blue-600 font-medium' : 'text-gray-400 hover:text-gray-600'}`}>
+                  {sortMode ? '完了' : '並び替え'}
+                </button>
+              </div>
+            )}
+            {slotTasks.map((task, idx) => (
               <TaskItem key={task.id} task={task}
-                onComplete={viewDate === 'today' ? handleComplete : undefined}
-                onReschedule={viewDate === 'today' ? handleReschedule : undefined}
-                onEdit={viewDate === 'today' ? openEdit : undefined} />
+                onComplete={!sortMode && viewDate === 'today' ? handleComplete : undefined}
+                onReschedule={!sortMode && viewDate === 'today' ? handleReschedule : undefined}
+                onEdit={!sortMode && viewDate === 'today' ? openEdit : undefined}
+                onMoveUp={sortMode ? () => moveTask(task.id, -1) : undefined}
+                onMoveDown={sortMode ? () => moveTask(task.id, 1) : undefined}
+                isFirst={idx === 0}
+                isLast={idx === slotTasks.length - 1} />
             ))}
           </>
         )}

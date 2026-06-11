@@ -162,6 +162,7 @@ export default function Home() {
       {showForm && (
         <TransactionForm
           categories={cats}
+          assets={assets}
           onSave={handleSave}
           editing={editing}
           prefill={prefill}

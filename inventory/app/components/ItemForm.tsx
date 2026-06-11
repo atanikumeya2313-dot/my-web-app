@@ -5,37 +5,48 @@ import { StockItem, DEFAULT_CATEGORIES, getCategoryIcon, UNITS } from '../types'
 interface Props {
   editing?: StockItem;
   categories?: string[];
+  customIcons?: Record<string, string>;
   onSave: (item: StockItem) => void;
   onDelete?: () => void;
-  onCategoryAdd?: (cat: string) => void;
+  onDuplicate?: () => void;
+  onCategoryAdd?: (cat: string, icon?: string) => void;
   onCategoryDelete?: (cat: string) => void;
   onClose: () => void;
 }
 
-export default function ItemForm({ editing, categories, onSave, onDelete, onCategoryAdd, onCategoryDelete, onClose }: Props) {
+export default function ItemForm({
+  editing, categories, customIcons, onSave, onDelete, onDuplicate,
+  onCategoryAdd, onCategoryDelete, onClose,
+}: Props) {
   const cats = categories ?? DEFAULT_CATEGORIES;
-  const [name,        setName]        = useState(editing?.name ?? '');
-  const [category,    setCategory]    = useState<string>(editing?.category ?? cats[0] ?? '食品・飲料');
-  const [quantity,    setQuantity]    = useState(editing?.quantity ?? 1);
-  const [minQuantity, setMinQuantity] = useState(editing?.minQuantity ?? 1);
-  const [unit,        setUnit]        = useState(editing?.unit ?? '個');
-  const [memo,        setMemo]        = useState(editing?.memo ?? '');
-  const [expiryDate,  setExpiryDate]  = useState(editing?.expiryDate ?? '');
-  const [newCat,      setNewCat]      = useState('');
-  const [showNewCat,  setShowNewCat]  = useState(false);
+  const [name,             setName]             = useState(editing?.name ?? '');
+  const [category,         setCategory]         = useState<string>(editing?.category ?? cats[0] ?? '食品・飲料');
+  const [quantity,         setQuantity]         = useState(editing?.quantity ?? 1);
+  const [minQuantity,      setMinQuantity]      = useState(editing?.minQuantity ?? 1);
+  const [targetQtyStr,     setTargetQtyStr]     = useState(
+    editing?.targetQuantity !== undefined ? String(editing.targetQuantity) : ''
+  );
+  const [unit,             setUnit]             = useState(editing?.unit ?? '個');
+  const [memo,             setMemo]             = useState(editing?.memo ?? '');
+  const [expiryDate,       setExpiryDate]       = useState(editing?.expiryDate ?? '');
+  const [newCat,           setNewCat]           = useState('');
+  const [newCatIcon,       setNewCatIcon]       = useState('');
+  const [showNewCat,       setShowNewCat]       = useState(false);
 
   const handleSubmit = () => {
     if (!name.trim()) return;
+    const targetQuantity = targetQtyStr !== '' ? (parseInt(targetQtyStr) || undefined) : undefined;
     onSave({
-      id:          editing?.id ?? crypto.randomUUID(),
-      name:        name.trim(),
+      id:             editing?.id ?? crypto.randomUUID(),
+      name:           name.trim(),
       category,
       quantity,
       minQuantity,
-      unit:        unit || '個',
-      memo:        memo.trim() || undefined,
-      expiryDate:  expiryDate || undefined,
-      addedAt:     editing?.addedAt ?? new Date().toISOString(),
+      targetQuantity,
+      unit:           unit || '個',
+      memo:           memo.trim() || undefined,
+      expiryDate:     expiryDate || undefined,
+      addedAt:        editing?.addedAt ?? new Date().toISOString(),
     });
   };
 
@@ -71,7 +82,7 @@ export default function ItemForm({ editing, categories, onSave, onDelete, onCate
                           ? 'bg-blue-50 border-blue-400 text-blue-700'
                           : 'bg-gray-50 border-gray-200 text-gray-600'
                       }`}>
-                      {getCategoryIcon(cat)} {cat}
+                      {getCategoryIcon(cat, customIcons)} {cat}
                     </button>
                     {isCustom && (
                       <button
@@ -88,17 +99,24 @@ export default function ItemForm({ editing, categories, onSave, onDelete, onCate
               })}
             </div>
             {showNewCat ? (
-              <div className="flex gap-2 mt-2">
-                <input value={newCat} onChange={e => setNewCat(e.target.value)}
-                  placeholder="新しいカテゴリ名"
-                  className="flex-1 px-3 py-1.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-300" />
-                <button onClick={() => {
-                  const t = newCat.trim();
-                  if (t) { onCategoryAdd?.(t); setCategory(t); }
-                  setNewCat(''); setShowNewCat(false);
-                }} className="px-3 py-1.5 text-xs bg-blue-500 text-white rounded-xl font-medium">追加</button>
-                <button onClick={() => { setNewCat(''); setShowNewCat(false); }}
-                  className="px-3 py-1.5 text-xs border border-gray-200 text-gray-500 rounded-xl">✕</button>
+              <div className="mt-2 space-y-1.5">
+                <div className="flex gap-2">
+                  <input value={newCatIcon} onChange={e => setNewCatIcon(e.target.value)}
+                    placeholder="🏷️" maxLength={2}
+                    className="w-14 text-center px-2 py-1.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-300" />
+                  <input value={newCat} onChange={e => setNewCat(e.target.value)}
+                    placeholder="新しいカテゴリ名"
+                    className="flex-1 px-3 py-1.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-300" />
+                </div>
+                <div className="flex gap-2">
+                  <button onClick={() => {
+                    const t = newCat.trim();
+                    if (t) { onCategoryAdd?.(t, newCatIcon.trim() || undefined); setCategory(t); }
+                    setNewCat(''); setNewCatIcon(''); setShowNewCat(false);
+                  }} className="flex-1 px-3 py-1.5 text-xs bg-blue-500 text-white rounded-xl font-medium">追加</button>
+                  <button onClick={() => { setNewCat(''); setNewCatIcon(''); setShowNewCat(false); }}
+                    className="px-3 py-1.5 text-xs border border-gray-200 text-gray-500 rounded-xl">✕</button>
+                </div>
               </div>
             ) : (
               <button onClick={() => setShowNewCat(true)}
@@ -155,6 +173,23 @@ export default function ItemForm({ editing, categories, onSave, onDelete, onCate
             <p className="text-xs text-gray-400 mt-1">0 に設定すると警告なし</p>
           </div>
 
+          {/* Target Quantity */}
+          <div>
+            <label className="text-xs font-medium text-gray-600 mb-1 block">目標在庫数（省略可）</label>
+            <div className="flex items-center gap-3">
+              <button onClick={() => setTargetQtyStr(String(Math.max(0, (parseInt(targetQtyStr) || 0) - 1)))}
+                className="w-9 h-9 rounded-full bg-gray-100 text-gray-600 font-bold text-lg flex items-center justify-center">−</button>
+              <input type="number" value={targetQtyStr} min={0}
+                placeholder={String(minQuantity * 2)}
+                onChange={e => setTargetQtyStr(e.target.value)}
+                className="flex-1 text-center text-lg font-bold border border-gray-200 rounded-xl py-2 focus:outline-none focus:ring-2 focus:ring-blue-300" />
+              <button onClick={() => setTargetQtyStr(String((parseInt(targetQtyStr) || minQuantity * 2) + 1))}
+                className="w-9 h-9 rounded-full bg-blue-100 text-blue-600 font-bold text-lg flex items-center justify-center">＋</button>
+              <span className="text-sm text-gray-400 w-8">{unit}</span>
+            </div>
+            <p className="text-xs text-gray-400 mt-1">補充済ボタンの設定先・在庫バーの基準になります</p>
+          </div>
+
           {/* Expiry Date */}
           <div>
             <label className="text-xs font-medium text-gray-600 mb-1 block">消費期限（任意）</label>
@@ -176,11 +211,17 @@ export default function ItemForm({ editing, categories, onSave, onDelete, onCate
           </div>
 
           {/* Buttons */}
-          <div className="flex gap-3 pt-2">
+          <div className="flex gap-2 pt-2">
             {onDelete && (
               <button onClick={onDelete}
                 className="flex-1 py-2.5 rounded-xl border border-red-200 text-red-500 text-sm font-medium">
                 削除
+              </button>
+            )}
+            {onDuplicate && (
+              <button onClick={onDuplicate}
+                className="flex-1 py-2.5 rounded-xl border border-gray-200 text-gray-600 text-sm font-medium">
+                複製
               </button>
             )}
             <button onClick={handleSubmit} disabled={!name.trim()}

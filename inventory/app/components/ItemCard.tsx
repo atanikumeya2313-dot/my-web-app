@@ -6,6 +6,7 @@ interface Props {
   daysRemaining?: number | null;
   onEdit: () => void;
   onQuantityChange: (delta: number) => void;
+  customIcons?: Record<string, string>;
 }
 
 function expiryStatus(expiryDate?: string): { label: string; color: string } | null {
@@ -19,11 +20,13 @@ function expiryStatus(expiryDate?: string): { label: string; color: string } | n
   return { label: `${exp.getMonth()+1}/${exp.getDate()}まで`,        color: 'bg-gray-100 text-gray-500' };
 }
 
-export default function ItemCard({ item, daysRemaining, onEdit, onQuantityChange }: Props) {
+export default function ItemCard({ item, daysRemaining, onEdit, onQuantityChange, customIcons }: Props) {
   const isOut = item.quantity === 0;
   const isLow = !isOut && item.minQuantity > 0 && item.quantity <= item.minQuantity;
-  const barPct = item.minQuantity > 0
-    ? Math.min(100, Math.round((item.quantity / (item.minQuantity * 2)) * 100))
+  // targetQuantity が設定されていればそれを基準、なければ minQuantity * 2
+  const fullQty = item.targetQuantity ?? (item.minQuantity > 0 ? item.minQuantity * 2 : 0);
+  const barPct  = fullQty > 0
+    ? Math.min(100, Math.round((item.quantity / fullQty) * 100))
     : 100;
   const expiry = expiryStatus(item.expiryDate);
 
@@ -32,7 +35,7 @@ export default function ItemCard({ item, daysRemaining, onEdit, onQuantityChange
       <div className="flex items-center gap-3">
         <button onClick={onEdit} className="flex-1 text-left min-w-0">
           <div className="flex items-center gap-2">
-            <span className="text-xl">{getCategoryIcon(item.category)}</span>
+            <span className="text-xl">{getCategoryIcon(item.category, customIcons)}</span>
             <div className="min-w-0 flex-1">
               <p className="font-medium text-sm text-gray-800 truncate">{item.name}</p>
               <p className="text-xs text-gray-400">{item.category}</p>
@@ -84,7 +87,10 @@ export default function ItemCard({ item, daysRemaining, onEdit, onQuantityChange
               style={{ width: `${barPct}%` }}
             />
           </div>
-          <span className="text-[10px] text-gray-300 shrink-0">最低{item.minQuantity}{item.unit}</span>
+          <span className="text-[10px] text-gray-300 shrink-0">
+            最低{item.minQuantity}{item.unit}
+            {item.targetQuantity ? `／目標${item.targetQuantity}${item.unit}` : ''}
+          </span>
         </div>
       )}
     </div>

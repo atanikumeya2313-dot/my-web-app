@@ -50,12 +50,12 @@ export default function TransactionList({ transactions, categories, onDelete, on
 
       {/* 収支タイプフィルター */}
       <div className="flex items-center gap-1.5 mb-2">
-        {(['all', 'expense', 'income'] as const).map(v => (
+        {(['all', 'expense', 'income', 'transfer'] as const).map(v => (
           <button key={v} onClick={() => setTypeFilter(v)}
             className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
               typeFilter === v ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-500'
             }`}>
-            {v === 'all' ? '全て' : v === 'expense' ? '支出' : '収入'}
+            {v === 'all' ? '全て' : v === 'expense' ? '支出' : v === 'income' ? '収入' : '振替'}
           </button>
         ))}
 
@@ -151,13 +151,18 @@ export default function TransactionList({ transactions, categories, onDelete, on
             <li key={t.id} className="flex items-center gap-2 py-2 border-b border-gray-50">
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-1.5 flex-wrap">
-                  <span className="text-xs bg-gray-100 text-gray-600 rounded px-1.5 py-0.5 shrink-0">{catName(t.category)}</span>
+                  {t.type === 'transfer'
+                    ? <span className="text-xs bg-purple-50 text-purple-600 rounded px-1.5 py-0.5 shrink-0">振替</span>
+                    : <span className="text-xs bg-gray-100 text-gray-600 rounded px-1.5 py-0.5 shrink-0">{catName(t.category)}</span>
+                  }
                   {t.memo && <span className="text-xs text-gray-500 truncate">{t.memo}</span>}
                 </div>
                 <p className="text-xs text-gray-400 mt-0.5">{t.date}</p>
               </div>
-              <span className={`font-semibold text-sm shrink-0 ${t.type === 'income' ? 'text-green-600' : 'text-red-500'}`}>
-                {t.type === 'income' ? '+' : '-'}¥{fmt(t.amount)}
+              <span className={`font-semibold text-sm shrink-0 ${
+                t.type === 'income' ? 'text-green-600' : t.type === 'transfer' ? 'text-purple-500' : 'text-red-500'
+              }`}>
+                {t.type === 'income' ? '+' : t.type === 'transfer' ? '↔' : '-'}¥{fmt(t.amount)}
               </span>
               <button onClick={() => onEdit(t)} className="text-blue-400 text-xs shrink-0 px-1">編集</button>
               <button onClick={() => onDelete(t.id)} className="text-gray-300 text-xs shrink-0 px-1">✕</button>

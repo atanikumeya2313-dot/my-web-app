@@ -1,4 +1,4 @@
-﻿export type TxType = 'income' | 'expense';
+﻿export type TxType = 'income' | 'expense' | 'transfer';
 
 export interface Transaction {
   id: string;
@@ -7,6 +7,8 @@ export interface Transaction {
   type: TxType;
   category: string;
   memo: string;
+  fromAssetId?: string;
+  toAssetId?: string;
 }
 
 export interface Category {

@@ -6,9 +6,10 @@ interface Props {
   items: FixedItem[];
   categories: Category[];
   onChange: (items: FixedItem[]) => void;
+  onDelete?: (id: string) => void;
 }
 
-export default function FixedManager({ items, categories, onChange }: Props) {
+export default function FixedManager({ items, categories, onChange, onDelete }: Props) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [type,     setType]   = useState<TxType>('expense');
   const [name,     setName]   = useState('');
@@ -81,7 +82,16 @@ export default function FixedManager({ items, categories, onChange }: Props) {
                     className="text-xs text-blue-400 hover:text-blue-600">
                     {isEditing ? 'キャンセル' : '編集'}
                   </button>
-                  <button onClick={() => { onChange(items.filter(i => i.id !== item.id)); if (isEditing) cancelEdit(); }}
+                  <button onClick={() => {
+                    if (onDelete) {
+                      onDelete(item.id);
+                    } else {
+                      if (confirm(`「${item.name}」を削除しますか？`)) {
+                        onChange(items.filter(i => i.id !== item.id));
+                        if (isEditing) cancelEdit();
+                      }
+                    }
+                  }}
                     className="text-xs text-red-400 hover:text-red-600">削除</button>
                 </div>
               </li>
@@ -118,6 +128,7 @@ export default function FixedManager({ items, categories, onChange }: Props) {
             <span className="text-xs text-gray-500">日</span>
           </div>
         </div>
+        <p className="text-[10px] text-gray-400">29〜31日を指定した場合、その月の末日に丸められます</p>
         <select value={category} onChange={e => setCat(e.target.value)}
           className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm">
           <option value="">カテゴリを選択</option>

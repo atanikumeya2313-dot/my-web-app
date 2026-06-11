@@ -1,9 +1,10 @@
 import { StockItem, HistoryEntry, DEFAULT_CATEGORIES } from '../types';
 
-const ITEMS_KEY      = 'inventory_items';
-const HISTORY_KEY    = 'inventory_history';
-const CATEGORIES_KEY = 'inventory_categories';
-const MAX_HISTORY    = 200;
+const ITEMS_KEY       = 'inventory_items';
+const HISTORY_KEY     = 'inventory_history';
+const CATEGORIES_KEY  = 'inventory_categories';
+const CUSTOM_ICONS_KEY = 'inventory_custom_icons';
+const MAX_HISTORY     = 200;
 
 // ── Items ──────────────────────────────────────────────
 
@@ -30,6 +31,10 @@ export function deleteItem(id: string): StockItem[] {
   return saveItems(loadItems().filter(i => i.id !== id));
 }
 
+export function replaceItems(items: StockItem[]): StockItem[] {
+  return saveItems(items);
+}
+
 // ── Categories ─────────────────────────────────────────
 
 export function loadCategories(): string[] {
@@ -42,6 +47,16 @@ export function loadCategories(): string[] {
 
 export function saveCategories(cats: string[]): void {
   localStorage.setItem(CATEGORIES_KEY, JSON.stringify(cats));
+}
+
+export function loadCustomIcons(): Record<string, string> {
+  if (typeof window === 'undefined') return {};
+  try { return JSON.parse(localStorage.getItem(CUSTOM_ICONS_KEY) ?? '{}'); }
+  catch { return {}; }
+}
+
+export function saveCustomIcons(icons: Record<string, string>): void {
+  localStorage.setItem(CUSTOM_ICONS_KEY, JSON.stringify(icons));
 }
 
 // ── History ────────────────────────────────────────────

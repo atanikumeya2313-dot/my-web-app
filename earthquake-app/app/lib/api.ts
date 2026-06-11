@@ -84,10 +84,11 @@ export function scaleLabel(scale: Scale): string {
 }
 
 export function scaleColor(scale: Scale): string {
-  if (scale >= 60) return 'bg-purple-700 text-white';
-  if (scale >= 55) return 'bg-red-600 text-white';
-  if (scale >= 50) return 'bg-red-500 text-white';
-  if (scale >= 45) return 'bg-orange-400 text-white';
+  if (scale >= 70) return 'bg-purple-700 text-white'; // 震度7
+  if (scale >= 60) return 'bg-red-600 text-white';    // 震度6強
+  if (scale >= 55) return 'bg-red-500 text-white';    // 震度6弱
+  if (scale >= 50) return 'bg-orange-400 text-white'; // 震度5強
+  if (scale >= 45) return 'bg-orange-300 text-white'; // 震度5弱
   if (scale >= 40) return 'bg-yellow-400 text-gray-900';
   if (scale >= 30) return 'bg-yellow-200 text-gray-900';
   if (scale >= 20) return 'bg-blue-100 text-gray-900';
@@ -96,10 +97,11 @@ export function scaleColor(scale: Scale): string {
 }
 
 export function scaleBorder(scale: Scale): string {
-  if (scale >= 60) return 'border-purple-700';
-  if (scale >= 55) return 'border-red-600';
-  if (scale >= 50) return 'border-red-400';
-  if (scale >= 45) return 'border-orange-400';
+  if (scale >= 70) return 'border-purple-700';
+  if (scale >= 60) return 'border-red-600';
+  if (scale >= 55) return 'border-red-500';
+  if (scale >= 50) return 'border-orange-400';
+  if (scale >= 45) return 'border-orange-300';
   if (scale >= 40) return 'border-yellow-400';
   if (scale >= 30) return 'border-yellow-200';
   if (scale >= 20) return 'border-blue-100';
@@ -131,7 +133,14 @@ export function extractPrefecture(name: string): string | null {
 }
 
 export function fmtTime(iso: string): { date: string; time: string } {
-  const d = new Date(iso);
+  // P2PQuake API は "YYYY/MM/DD HH:mm:ss.s" 形式の JST 文字列を返す
+  // タイムゾーン指定なしだとブラウザ依存になるため +09:00 を付与して正規化する
+  const normalized = iso
+    .replace(/\//g, '-')
+    .replace(' ', 'T')
+    .replace(/\.\d+$/, '')
+    + '+09:00';
+  const d = new Date(normalized);
   const date = `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}`;
   const time = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
   return { date, time };

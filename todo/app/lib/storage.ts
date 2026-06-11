@@ -104,12 +104,54 @@ function shouldShow(task: Task, ymd: string, todayYmd: string, completed?: Compl
   return false;
 }
 
+// 最後の完了日より後に存在する、最も直近のスケジュール済み未完了日を返す
+function findMostRecentMissedOccurrence(task: Task, today: string, completed: CompletedMap): string | null {
+  const completedDates = completed[task.id] ?? [];
+  const lastCompleted  = completedDates.length > 0
+    ? [...completedDates].sort().at(-1)!
+    : null;
+
+  for (let i = 1; i <= 366; i++) {
+    const d = new Date(today);
+    d.setDate(d.getDate() - i);
+    const ymd = toYMD(d);
+    // 最後の完了日以前は遡らない（その後に完了済みなら繰り越し不要）
+    if (lastCompleted && ymd <= lastCompleted) return null;
+    if (shouldShow(task, ymd, today, completed)) return ymd;
+  }
+  return null;
+}
+
 export function getTodayTasks(tasks: Task[], completed: CompletedMap): Task[] {
-  const today = toYMD(new Date());
-  return tasks.filter(task => {
-    if ((completed[task.id] ?? []).includes(today)) return false;
-    return shouldShow(task, today, today, completed);
-  });
+  const today    = toYMD(new Date());
+  const shownIds = new Set<string>();
+  const result: Task[] = [];
+
+  // 通常スケジュール
+  for (const task of tasks) {
+    if ((completed[task.id] ?? []).includes(today)) continue;
+    if (!shouldShow(task, today, today, completed)) continue;
+    shownIds.add(task.id);
+    result.push(task);
+  }
+
+  // 繰り返しタスクの繰り越し
+  for (const task of tasks) {
+    if (task.repeat === 'none') continue;          // 一回限りは date フィールドで管理
+    if (shownIds.has(task.id)) continue;           // 今日が自然な予定日なら不要
+    if ((completed[task.id] ?? []).includes(today)) continue;
+
+    const missedDate = findMostRecentMissedOccurrence(task, today, completed);
+    if (!missedDate) continue;
+
+    // 次の予定日が今日以前に来ていれば繰り越しは終了（次の予定が引き継ぐ）
+    const nextAfterMissed = nextOccurrenceAfter(task, missedDate);
+    if (nextAfterMissed && nextAfterMissed <= today) continue;
+
+    result.push(task);
+  }
+
+  return result;
 }
 
 export function getTomorrowTasks(tasks: Task[], completed: CompletedMap): Task[] {

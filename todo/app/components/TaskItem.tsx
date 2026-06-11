@@ -19,9 +19,13 @@ interface Props {
   onComplete?: (id: string) => void;
   onReschedule?: (id: string, newDate?: string) => void;
   onEdit?: (task: Task) => void;
+  onMoveUp?: () => void;
+  onMoveDown?: () => void;
+  isFirst?: boolean;
+  isLast?: boolean;
 }
 
-export default function TaskItem({ task, onComplete, onReschedule, onEdit }: Props) {
+export default function TaskItem({ task, onComplete, onReschedule, onEdit, onMoveUp, onMoveDown, isFirst, isLast }: Props) {
   const [fading, setFading] = useState(false);
   const [showPanel, setShowPanel] = useState(false);
 
@@ -109,29 +113,42 @@ export default function TaskItem({ task, onComplete, onReschedule, onEdit }: Pro
           </button>
 
           <div className="flex items-center pr-1">
-            {onEdit && (
-              <button
-                onClick={e => { e.stopPropagation(); onEdit(task); }}
-                className="p-2.5 text-gray-300 hover:text-blue-400 transition-colors"
-                aria-label="編集"
-              >
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round"
-                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                </svg>
-              </button>
-            )}
-            {onReschedule && (
-              <button
-                onClick={e => { e.stopPropagation(); setShowPanel(v => !v); }}
-                className={`p-2.5 transition-colors ${showPanel ? 'text-blue-500' : 'text-gray-300 hover:text-blue-400'}`}
-                aria-label="日付変更"
-              >
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round"
-                    d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
-              </button>
+            {onMoveUp !== undefined ? (
+              // 並び替えモード
+              <div className="flex flex-col pr-1">
+                <button onClick={e => { e.stopPropagation(); onMoveUp(); }} disabled={isFirst}
+                  className="p-1.5 text-gray-300 hover:text-gray-500 disabled:opacity-20 transition-colors text-xs leading-none">▲</button>
+                <button onClick={e => { e.stopPropagation(); onMoveDown?.(); }} disabled={isLast}
+                  className="p-1.5 text-gray-300 hover:text-gray-500 disabled:opacity-20 transition-colors text-xs leading-none">▼</button>
+              </div>
+            ) : (
+              // 通常モード
+              <>
+                {onEdit && (
+                  <button
+                    onClick={e => { e.stopPropagation(); onEdit(task); }}
+                    className="p-2.5 text-gray-300 hover:text-blue-400 transition-colors"
+                    aria-label="編集"
+                  >
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round"
+                        d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                    </svg>
+                  </button>
+                )}
+                {onReschedule && (
+                  <button
+                    onClick={e => { e.stopPropagation(); setShowPanel(v => !v); }}
+                    className={`p-2.5 transition-colors ${showPanel ? 'text-blue-500' : 'text-gray-300 hover:text-blue-400'}`}
+                    aria-label="日付変更"
+                  >
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round"
+                        d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                  </button>
+                )}
+              </>
             )}
           </div>
         </div>

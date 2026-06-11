@@ -35,6 +35,7 @@ export default function Home() {
       setCountdown(INTERVAL / 1000);
     } catch {
       setError('データの取得に失敗しました。しばらくお待ちください。');
+      setCountdown(INTERVAL / 1000);
     } finally {
       setLoading(false);
     }
@@ -65,7 +66,9 @@ export default function Home() {
   const fmtUpdated = (d: Date) =>
     `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}:${String(d.getSeconds()).padStart(2,'0')}`;
 
-  const pinned = quakes.filter(isPinnedQuake);
+  const pinned     = quakes.filter(isPinnedQuake);
+  const pinnedIds  = new Set(pinned.map(q => q.id));
+  const unpinned   = quakes.filter(q => !pinnedIds.has(q.id));
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -156,8 +159,8 @@ export default function Home() {
                 )}
                 {quakes.length === 0
                   ? <div className="text-center py-12 text-gray-400 text-sm">データがありません</div>
-                  : quakes.map((q, i) => (
-                      <EarthquakeCard key={q.id} quake={q} isLatest={i === 0} onClick={() => setSelected(q)} />
+                  : unpinned.map((q, i) => (
+                      <EarthquakeCard key={q.id} quake={q} isLatest={i === 0 && pinned.length === 0} onClick={() => setSelected(q)} />
                     ))
                 }
               </>

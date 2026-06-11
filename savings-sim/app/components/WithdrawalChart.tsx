@@ -13,7 +13,7 @@ interface Props {
 export default function WithdrawalChart({ results, showReal }: Props) {
   const tickFmt = (v: number) =>
     v >= 1_0000_0000 ? `${(v / 1_0000_0000).toFixed(0)}億` :
-    v >= 10_000      ? `${Math.round(v / 10_000)}万` : String(v);
+    v >= 10_000      ? `${Math.floor(v / 10_000)}万` : String(v);
 
   const data = results.map(r => ({
     label:      `${r.year}年`,

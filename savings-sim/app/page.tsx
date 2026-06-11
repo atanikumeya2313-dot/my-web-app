@@ -79,7 +79,8 @@ export default function Home() {
   const [stepUpYear,    setStepUpYear]    = useState(10);
   const [stepUpAmount,  setStepUpAmount]  = useState(50_000);
   // UI
-  const [showTable,     setShowTable]     = useState(false);
+  const [showAccumTable,    setShowAccumTable]    = useState(false);
+  const [showWithdrawTable, setShowWithdrawTable] = useState(false);
   const [activeTab,     setActiveTab]     = useState<Tab>('accumulate');
   // 取り崩し
   const [withdrawMonthly, setWithdrawMonthly] = useState(100_000);
@@ -114,7 +115,20 @@ export default function Home() {
   const nisaGains = Math.max(0, last.nisaBalance - last.nisaPrincipal);
   const taxSaved  = Math.max(0, nisaGains * 0.20315);
 
-  const bonusEffect = Math.round(last.afterTaxBalance - baseResults[baseResults.length - 1].afterTaxBalance);
+  // ボーナス単独・増額単独の最終残高（効果を個別表示するため）
+  const bonusOnlyFinal = useMemo(() =>
+    simulate({ monthlyAmount: monthly, annualRate: rate, years, initialAmount: initial, nisaType,
+      bonusAmount: showBonus ? bonusAmount : 0, bonusTimes }).at(-1)!.afterTaxBalance,
+    [monthly, rate, years, initial, nisaType, bonusAmount, bonusTimes, showBonus]
+  );
+  const stepUpOnlyFinal = useMemo(() =>
+    simulate({ monthlyAmount: monthly, annualRate: rate, years, initialAmount: initial, nisaType,
+      stepUpYear: showStepUp ? stepUpYear : undefined, stepUpAmount: showStepUp ? stepUpAmount : undefined }).at(-1)!.afterTaxBalance,
+    [monthly, rate, years, initial, nisaType, stepUpYear, stepUpAmount, showStepUp]
+  );
+  const baseFinal    = baseResults[baseResults.length - 1].afterTaxBalance;
+  const bonusEffect  = Math.round(bonusOnlyFinal  - baseFinal);
+  const stepUpEffect = Math.round(stepUpOnlyFinal - baseFinal);
 
   // 目標逆算
   const reqMonthly = useMemo(() =>
@@ -195,7 +209,7 @@ export default function Home() {
           <div className="bg-white rounded-xl shadow-sm p-4 space-y-5">
             <Slider label="毎月の積み立て額" value={monthly} min={1000} max={100_000} step={1000} unit="¥" onChange={setMonthly} />
             <Slider label="年利（想定リターン）" value={rate} min={0.1} max={15} step={0.1} unit="%" onChange={setRate} />
-            <Slider label="積み立て期間" value={years} min={1} max={40} step={1} unit="年" onChange={setYears} />
+            <Slider label="積み立て期間" value={years} min={1} max={40} step={1} unit="年" onChange={v => { setYears(v); setStepUpYear(prev => Math.min(prev, Math.max(1, v - 1))); }} />
             <div>
               <label className="text-sm text-gray-600 block mb-1">初期投資額</label>
               <div className="relative">
@@ -241,9 +255,9 @@ export default function Home() {
                 ))}
               </div>
             </div>
-            {(showBonus || showStepUp) && bonusEffect !== 0 && (
+            {bonusEffect !== 0 && (
               <p className="text-xs text-green-600 bg-green-50 rounded-lg px-3 py-2">
-                基本設定との差: +¥{fmt(Math.round(last.afterTaxBalance - baseResults[baseResults.length-1].afterTaxBalance))}
+                基本設定との差: +¥{fmt(bonusEffect)}
               </p>
             )}
           </ToggleSection>
@@ -268,7 +282,7 @@ export default function Home() {
               </div>
             </div>
             <p className="text-xs text-green-600 bg-green-50 rounded-lg px-3 py-2">
-              基本設定との差: {last.afterTaxBalance >= baseResults[baseResults.length-1].afterTaxBalance ? '+' : ''}¥{fmt(Math.round(last.afterTaxBalance - baseResults[baseResults.length-1].afterTaxBalance))}
+              基本設定との差: {stepUpEffect >= 0 ? '+' : ''}¥{fmt(stepUpEffect)}
             </p>
           </ToggleSection>
 
@@ -367,12 +381,12 @@ export default function Home() {
 
           {/* 年次テーブル */}
           <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-            <button onClick={() => setShowTable(v => !v)}
+            <button onClick={() => setShowAccumTable(v => !v)}
               className="w-full flex items-center justify-between px-4 py-3 text-sm font-semibold text-gray-600">
               <span>年次詳細テーブル</span>
-              <span className="text-gray-400 text-xs">{showTable ? '▲ 閉じる' : '▼ 開く'}</span>
+              <span className="text-gray-400 text-xs">{showAccumTable ? '▲ 閉じる' : '▼ 開く'}</span>
             </button>
-            {showTable && (
+            {showAccumTable && (
               <div className="overflow-x-auto border-t border-gray-100">
                 <table className="w-full text-xs">
                   <thead className="bg-gray-50 text-gray-500">
@@ -546,12 +560,12 @@ export default function Home() {
 
           {/* 年次テーブル */}
           <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-            <button onClick={() => setShowTable(v => !v)}
+            <button onClick={() => setShowWithdrawTable(v => !v)}
               className="w-full flex items-center justify-between px-4 py-3 text-sm font-semibold text-gray-600">
               <span>年次詳細テーブル</span>
-              <span className="text-gray-400 text-xs">{showTable ? '▲ 閉じる' : '▼ 開く'}</span>
+              <span className="text-gray-400 text-xs">{showWithdrawTable ? '▲ 閉じる' : '▼ 開く'}</span>
             </button>
-            {showTable && (
+            {showWithdrawTable && (
               <div className="overflow-x-auto border-t border-gray-100">
                 <table className="w-full text-xs">
                   <thead className="bg-gray-50 text-gray-500">

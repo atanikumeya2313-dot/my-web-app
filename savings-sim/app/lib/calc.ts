@@ -207,5 +207,5 @@ export function calcSustainableMonthly(balance: number, annualRate: number, year
 
 export const fmt = (n: number) =>
   n >= 1_0000_0000 ? `${(n / 1_0000_0000).toFixed(1)}億` :
-  n >= 10_000      ? `${Math.round(n / 10_000)}万`       :
+  n >= 10_000      ? `${Math.floor(n / 10_000)}万`       :
   n.toLocaleString('ja-JP');

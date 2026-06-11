@@ -4,6 +4,7 @@ import { Category, Budget, FixedItem, Asset, Template } from '../types';
 import {
   loadCategories, saveCategories, loadBudgets, saveBudgets,
   loadFixed, saveFixed, loadAssets, saveAssets, loadTemplates, saveTemplates,
+  loadTransactions, saveTransactions,
 } from '../lib/storage';
 import CategoryManager from '../components/CategoryManager';
 import BudgetManager from '../components/BudgetManager';
@@ -35,6 +36,32 @@ export default function Settings() {
   const handleAssets    = (a: Asset[])     => { saveAssets(a);      setAssets(a); };
   const handleTemplates = (t: Template[])  => { saveTemplates(t);   setTemplates(t); };
 
+  function handleFixedDelete(id: string) {
+    const item = fixed.find(f => f.id === id);
+    if (!item) return;
+    if (!confirm(`「${item.name}」を固定費から削除しますか？`)) return;
+
+    handleFixed(fixed.filter(f => f.id !== id));
+
+    const today = new Date();
+    const currentMonth = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
+    const allTxs = loadTransactions();
+    const related = allTxs.filter(t =>
+      t.date.startsWith(currentMonth) &&
+      t.memo === item.name &&
+      t.amount === item.amount &&
+      t.category === item.category
+    );
+
+    if (related.length > 0) {
+      const label = `${today.getFullYear()}年${today.getMonth() + 1}月`;
+      if (confirm(`${label}に自動追加された関連取引（${related.length}件）も削除しますか？`)) {
+        const relatedIds = new Set(related.map(t => t.id));
+        saveTransactions(allTxs.filter(t => !relatedIds.has(t.id)));
+      }
+    }
+  }
+
   return (
     <div className="min-h-screen">
       <header className="bg-white border-b border-gray-100 sticky top-0 z-10">
@@ -44,7 +71,7 @@ export default function Settings() {
       </header>
       <main className="px-4 py-4 space-y-4">
         <AssetManager assets={assets} onChange={handleAssets} />
-        <FixedManager items={fixed} categories={cats} onChange={handleFixed} />
+        <FixedManager items={fixed} categories={cats} onChange={handleFixed} onDelete={handleFixedDelete} />
         <TemplateManager templates={templates} categories={cats} onChange={handleTemplates} />
         <CategoryManager categories={cats} onChange={handleCats} />
         <BudgetManager categories={cats} budgets={budgets} onChange={handleBudgets} />
