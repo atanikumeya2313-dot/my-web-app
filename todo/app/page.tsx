@@ -26,7 +26,7 @@ function dateLabel(offset: number) {
 }
 
 function fmtDate(ymd: string): string {
-  const d = new Date(ymd);
+  const d = new Date(ymd + 'T00:00:00');
   return `${d.getMonth() + 1}月${d.getDate()}日`;
 }
 

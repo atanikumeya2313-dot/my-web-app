@@ -164,7 +164,7 @@ export default function TaskForm({ onSave, onClose, editing, categories, default
         {repeat === 'none' && (
           <div>
             <p className="text-xs text-gray-500 mb-2">日付指定（省略すると今日）</p>
-            <input type="date" value={date} min={today}
+            <input type="date" value={date} min={editing ? undefined : today}
               onChange={e => setDate(e.target.value)}
               className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
             />

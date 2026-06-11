@@ -7,7 +7,7 @@ import {
 } from '../lib/storage';
 
 function fmtDate(ymd: string): string {
-  const d = new Date(ymd);
+  const d = new Date(ymd + 'T00:00:00');
   return `${d.getMonth() + 1}月${d.getDate()}日`;
 }
 import TaskItem from '../components/TaskItem';
@@ -144,7 +144,7 @@ export default function CalendarPage() {
   }
 
   const selectedLabel = (() => {
-    const d = new Date(selectedYmd);
+    const d = new Date(selectedYmd + 'T00:00:00');
     return `${d.getMonth()+1}月${d.getDate()}日（${DOW_LABELS[d.getDay()]}）`;
   })();
 

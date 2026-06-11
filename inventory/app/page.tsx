@@ -152,6 +152,7 @@ export default function Home() {
         setItems(result.items);
         setHistory(result.history);
         setCategories(result.categories);
+        setCustomIcons(result.customIcons);
         alert('インポート完了しました');
       } else {
         alert('インポートに失敗しました。ファイル形式を確認してください。');

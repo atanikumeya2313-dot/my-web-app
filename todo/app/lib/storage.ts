@@ -37,7 +37,7 @@ export function toYMD(d: Date): string {
 }
 
 function diffDays(ymd1: string, ymd2: string): number {
-  return Math.round((new Date(ymd1).getTime() - new Date(ymd2).getTime()) / 86_400_000);
+  return Math.round((new Date(ymd1 + 'T00:00:00').getTime() - new Date(ymd2 + 'T00:00:00').getTime()) / 86_400_000);
 }
 
 function addMonths(ymd: string, months: number): string {

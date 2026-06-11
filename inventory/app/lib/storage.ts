@@ -101,10 +101,11 @@ export function calcDaysRemaining(item: StockItem, history: HistoryEntry[]): num
 
 export function exportData(): void {
   const data = {
-    exportedAt: new Date().toISOString(),
-    items:      loadItems(),
-    history:    loadHistory(),
-    categories: loadCategories(),
+    exportedAt:  new Date().toISOString(),
+    items:       loadItems(),
+    history:     loadHistory(),
+    categories:  loadCategories(),
+    customIcons: loadCustomIcons(),
   };
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
   const url  = URL.createObjectURL(blob);
@@ -115,17 +116,19 @@ export function exportData(): void {
   URL.revokeObjectURL(url);
 }
 
-export function importData(json: string): { items: StockItem[]; history: HistoryEntry[]; categories: string[] } | null {
+export function importData(json: string): { items: StockItem[]; history: HistoryEntry[]; categories: string[]; customIcons: Record<string, string> } | null {
   try {
     const data = JSON.parse(json);
     if (!Array.isArray(data.items)) return null;
     const items: StockItem[]      = data.items;
     const history: HistoryEntry[] = Array.isArray(data.history)    ? data.history    : [];
     const categories: string[]    = Array.isArray(data.categories) ? data.categories : DEFAULT_CATEGORIES;
+    const customIcons: Record<string, string> = (data.customIcons && typeof data.customIcons === 'object') ? data.customIcons : {};
     saveItems(items);
     localStorage.setItem(HISTORY_KEY,    JSON.stringify(history.slice(0, MAX_HISTORY)));
     localStorage.setItem(CATEGORIES_KEY, JSON.stringify(categories));
-    return { items, history, categories };
+    saveCustomIcons(customIcons);
+    return { items, history, categories, customIcons };
   } catch {
     return null;
   }
