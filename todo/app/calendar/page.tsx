@@ -1,8 +1,9 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
-import { Task, CompletedMap, UndoAction } from '../types';
+import { Task, CompletedMap, CompletedLogEntry, UndoAction } from '../types';
 import {
   loadTasks, saveTasks, loadCompleted, saveCompleted, loadCategories,
+  loadCompletedLog, addToLog, saveLog,
   toYMD, getTasksForDate, completeOnce, completeRepeat, nextOccurrenceAfter,
 } from '../lib/storage';
 
@@ -85,25 +86,38 @@ export default function CalendarPage() {
       saveCompleted(undo.prevCompleted);
       setCompleted(undo.prevCompleted);
     }
+    if (undo.prevLog !== undefined) {
+      saveLog(undo.prevLog);
+    }
     setUndo(null);
   }
 
   function handleComplete(id: string) {
     const task = tasks.find(t => t.id === id);
     if (!task) return;
+    const prevLog = loadCompletedLog();
+    const logEntry: CompletedLogEntry = {
+      id: task.id,
+      title: task.title,
+      priority: task.priority,
+      category: task.category,
+      completedAt: new Date().toISOString(),
+      date: selectedYmd,
+    };
+    addToLog(logEntry);
     if (task.repeat === 'none') {
       const prev = tasks;
       const next = completeOnce(tasks, id);
       saveTasks(next);
       setTasks(next);
-      showUndo({ task, prevTasks: prev });
+      showUndo({ task, prevTasks: prev, prevLog });
     } else {
       const prev     = completed;
       const next     = completeRepeat(completed, id, selectedYmd);
       saveCompleted(next);
       setCompleted(next);
       const nextDate = nextOccurrenceAfter(task, selectedYmd);
-      showUndo({ task, prevCompleted: prev, nextDate: nextDate ?? undefined });
+      showUndo({ task, prevCompleted: prev, nextDate: nextDate ?? undefined, prevLog });
     }
   }
 
@@ -127,6 +141,8 @@ export default function CalendarPage() {
         timeSlot: task.timeSlot,
         date: newDate,
         ...(task.category ? { category: task.category } : {}),
+        ...(task.priority ? { priority: task.priority } : {}),
+        ...(task.memo     ? { memo: task.memo }         : {}),
       };
       const nextTasks = [...tasks, oneTime];
       saveTasks(nextTasks);
@@ -221,7 +237,7 @@ export default function CalendarPage() {
 
       {/* 追加ボタン */}
       <button onClick={() => setShowForm(true)}
-        className="fixed bottom-20 right-4 w-14 h-14 bg-blue-500 text-white rounded-full text-2xl shadow-lg hover:bg-blue-600 flex items-center justify-center z-40">
+        className="fixed bottom-20 right-4 w-14 h-14 bg-blue-500 text-white rounded-full text-2xl shadow-lg hover:bg-blue-600 active:scale-90 transition-transform flex items-center justify-center z-40">
         +
       </button>
 
@@ -235,7 +251,7 @@ export default function CalendarPage() {
       )}
 
       {undo && (
-        <div className="fixed bottom-24 left-4 right-4 max-w-lg mx-auto bg-gray-800 text-white rounded-xl px-4 py-3 flex items-center justify-between shadow-lg z-50">
+        <div className="fixed bottom-24 left-4 right-4 max-w-lg mx-auto bg-gray-800 text-white rounded-xl px-4 py-3 flex items-center justify-between shadow-lg z-50 animate-toast-in">
           <div className="min-w-0 mr-3">
             <p className="text-sm truncate">{undo.message ?? `「${undo.task.title}」を完了`}</p>
             {undo.nextDate && (

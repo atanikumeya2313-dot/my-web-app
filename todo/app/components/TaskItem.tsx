@@ -35,7 +35,7 @@ export default function TaskItem({ task, onComplete, onReschedule, onEdit, onMov
   const [newDate, setNewDate] = useState(tomorrow);
 
   function handleTap() {
-    if (!onComplete) return;
+    if (!onComplete || fading) return;
     setFading(true);
     setTimeout(() => onComplete(task.id), 350);
   }

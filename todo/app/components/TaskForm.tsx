@@ -82,8 +82,8 @@ export default function TaskForm({ onSave, onClose, editing, categories, default
   }
 
   return (
-    <div className="fixed inset-0 bg-black/40 z-50 flex items-end" onClick={onClose}>
-      <div className="bg-white w-full rounded-t-2xl p-5 space-y-4 max-h-[90vh] overflow-y-auto"
+    <div className="fixed inset-0 bg-black/40 z-50 flex items-end animate-fade-in" onClick={onClose}>
+      <div className="bg-white w-full rounded-t-2xl p-5 space-y-4 max-h-[90vh] overflow-y-auto animate-slide-up pb-[max(1.25rem,env(safe-area-inset-bottom))]"
         onClick={e => e.stopPropagation()}>
         <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto" />
         <h2 className="text-sm font-bold text-gray-700">{editing ? 'タスクを編集' : 'タスクを追加'}</h2>
@@ -93,7 +93,7 @@ export default function TaskForm({ onSave, onClose, editing, categories, default
           autoFocus
           value={title}
           onChange={e => setTitle(e.target.value)}
-          onKeyDown={e => e.key === 'Enter' && handleSave()}
+          onKeyDown={e => e.key === 'Enter' && !e.nativeEvent.isComposing && handleSave()}
           placeholder="タスク名"
           className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
         />

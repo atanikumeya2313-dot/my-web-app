@@ -11,7 +11,7 @@ const ITEMS = [
 export default function BottomNav() {
   const path = usePathname();
   return (
-    <nav className="fixed bottom-0 inset-x-0 bg-white border-t border-gray-100 z-30">
+    <nav className="fixed bottom-0 inset-x-0 bg-white border-t border-gray-100 z-30 pb-[env(safe-area-inset-bottom)]">
       <div className="max-w-lg mx-auto flex">
         {ITEMS.map(item => (
           <Link key={item.href} href={item.href}

@@ -56,6 +56,8 @@ export default function Home() {
   const [undo,         setUndo]         = useState<UndoAction | null>(null);
   const [viewDate,     setViewDate]     = useState<'today' | 'tomorrow'>('today');
   const [sortMode,     setSortMode]     = useState(false);
+  const [showSearch,   setShowSearch]   = useState(false);
+  const [searchQuery,  setSearchQuery]  = useState('');
   const undoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -83,6 +85,14 @@ export default function Home() {
     ? todayTasks.filter(t => t.category === filterCat)
     : todayTasks;
   const slotTasks = filteredTasks.filter(t => (t.timeSlot ?? 'anytime') === timeFilter);
+
+  const query = searchQuery.trim().toLowerCase();
+  const searchResults = query
+    ? todayTasks.filter(t =>
+        t.title.toLowerCase().includes(query) ||
+        (t.memo ?? '').toLowerCase().includes(query) ||
+        (t.category ?? '').toLowerCase().includes(query))
+    : [];
 
   const today = toYMD(new Date());
   const todayCompleted: CompletedLogEntry[] = completedLog.filter(e => e.date === today);
@@ -224,12 +234,48 @@ export default function Home() {
               className={`text-xs px-2.5 py-1 rounded-full transition-colors ${viewDate === 'today' ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-500'}`}>
               今日
             </button>
-            <button onClick={() => setViewDate('tomorrow')}
+            <button onClick={() => {
+                setViewDate('tomorrow');
+                if (timeFilter === 'done') setTimeFilter(defaultTimeSlot());
+              }}
               className={`text-xs px-2.5 py-1 rounded-full transition-colors ${viewDate === 'tomorrow' ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-500'}`}>
               明日
             </button>
+            <button
+              onClick={() => {
+                if (showSearch) setSearchQuery('');
+                setShowSearch(v => !v);
+              }}
+              aria-label="検索"
+              className={`w-7 h-7 flex items-center justify-center rounded-full transition-colors ${showSearch ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-500'}`}>
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M17 10.5a6.5 6.5 0 11-13 0 6.5 6.5 0 0113 0z" />
+              </svg>
+            </button>
           </div>
         </div>
+
+        {/* 検索バー */}
+        {showSearch && (
+          <div className="max-w-lg mx-auto px-4 pb-2">
+            <div className="relative">
+              <input
+                autoFocus
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                placeholder="タスク名・メモ・カテゴリで検索"
+                className="w-full border border-gray-200 rounded-lg pl-3 pr-8 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
+              />
+              {searchQuery && (
+                <button onClick={() => setSearchQuery('')}
+                  aria-label="検索をクリア"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-300 hover:text-gray-500 text-sm">
+                  ✕
+                </button>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* カテゴリフィルター */}
         {activeCategories.length > 0 && (
@@ -282,8 +328,27 @@ export default function Home() {
       </header>
 
       <main className="max-w-lg mx-auto px-4 py-4 space-y-2">
-        {/* 完了タブ */}
-        {timeFilter === 'done' ? (
+        {/* 検索結果 */}
+        {query ? (
+          searchResults.length === 0 ? (
+            <div className="text-center py-16">
+              <p className="text-4xl mb-3">🔍</p>
+              <p className="text-gray-400 text-sm">「{searchQuery.trim()}」に一致するタスクはありません</p>
+            </div>
+          ) : (
+            <>
+              <p className="text-xs text-gray-400 pb-1">{searchResults.length}件見つかりました</p>
+              {searchResults.map(task => (
+                <TaskItem key={task.id} task={task}
+                  onComplete={viewDate === 'today' ? handleComplete : undefined}
+                  onReschedule={viewDate === 'today' ? handleReschedule : undefined}
+                  onEdit={viewDate === 'today' ? openEdit : undefined} />
+              ))}
+            </>
+          )
+
+        /* 完了タブ */
+        ) : timeFilter === 'done' ? (
           todayCompleted.length === 0 ? (
             <div className="text-center py-16">
               <p className="text-4xl mb-3">✓</p>
@@ -350,7 +415,7 @@ export default function Home() {
       </main>
 
       <button onClick={openAdd}
-        className="fixed bottom-20 right-4 w-14 h-14 bg-blue-500 text-white rounded-full text-2xl shadow-lg hover:bg-blue-600 flex items-center justify-center z-40">
+        className="fixed bottom-20 right-4 w-14 h-14 bg-blue-500 text-white rounded-full text-2xl shadow-lg hover:bg-blue-600 active:scale-90 transition-transform flex items-center justify-center z-40">
         +
       </button>
 
@@ -364,7 +429,7 @@ export default function Home() {
       )}
 
       {undo && (
-        <div className="fixed bottom-24 left-4 right-4 max-w-lg mx-auto bg-gray-800 text-white rounded-xl px-4 py-3 flex items-center justify-between shadow-lg z-50">
+        <div className="fixed bottom-24 left-4 right-4 max-w-lg mx-auto bg-gray-800 text-white rounded-xl px-4 py-3 flex items-center justify-between shadow-lg z-50 animate-toast-in">
           <div className="min-w-0 mr-3">
             <p className="text-sm truncate">{undo.message ?? `「${undo.task.title}」を完了`}</p>
             {undo.nextDate && (
