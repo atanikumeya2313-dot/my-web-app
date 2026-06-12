@@ -25,7 +25,8 @@ const SORT_LABELS: Record<SortKey, string> = {
 
 function fmtDate(iso: string) {
   const d = new Date(iso);
-  return `${d.getMonth()+1}/${d.getDate()} ${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}`;
+  const year = d.getFullYear() !== new Date().getFullYear() ? `${d.getFullYear()}/` : '';
+  return `${year}${d.getMonth()+1}/${d.getDate()} ${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}`;
 }
 
 export default function Home() {
@@ -134,7 +135,9 @@ export default function Home() {
     const item = items.find(i => i.id === id);
     if (!item) return;
     // targetQuantity が設定されていればそれを使用、なければ minQuantity * 2
-    const newQty = item.targetQuantity ?? Math.max(item.minQuantity * 2, item.minQuantity + 1);
+    // 目標が警告ライン以下に設定されていても、補充で在庫が減ったり要補充に残ったりしないよう下限を保証
+    const target = item.targetQuantity ?? Math.max(item.minQuantity * 2, item.minQuantity + 1);
+    const newQty = Math.max(target, item.minQuantity + 1, item.quantity + 1);
     const delta  = newQty - item.quantity;
     setItems(updateItem({ ...item, quantity: newQty }));
     recordHistory(item, delta, newQty);
@@ -265,14 +268,17 @@ export default function Home() {
                   ↕ {SORT_LABELS[sortKey]}
                 </button>
                 {showSort && (
-                  <div className="absolute right-0 top-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg z-20 overflow-hidden min-w-[130px]">
-                    {(Object.keys(SORT_LABELS) as SortKey[]).map(k => (
-                      <button key={k} onClick={() => { setSortKey(k); setShowSort(false); }}
-                        className={`w-full text-left px-4 py-2.5 text-xs ${sortKey === k ? 'bg-blue-50 text-blue-600 font-medium' : 'text-gray-600 hover:bg-gray-50'}`}>
-                        {SORT_LABELS[k]}
-                      </button>
-                    ))}
-                  </div>
+                  <>
+                    <div className="fixed inset-0 z-10" onClick={() => setShowSort(false)} />
+                    <div className="absolute right-0 top-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg z-20 overflow-hidden min-w-[130px]">
+                      {(Object.keys(SORT_LABELS) as SortKey[]).map(k => (
+                        <button key={k} onClick={() => { setSortKey(k); setShowSort(false); }}
+                          className={`w-full text-left px-4 py-2.5 text-xs ${sortKey === k ? 'bg-blue-50 text-blue-600 font-medium' : 'text-gray-600 hover:bg-gray-50'}`}>
+                          {SORT_LABELS[k]}
+                        </button>
+                      ))}
+                    </div>
+                  </>
                 )}
               </div>
             </div>

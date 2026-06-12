@@ -116,13 +116,40 @@ export function exportData(): void {
   URL.revokeObjectURL(url);
 }
 
+function isValidItem(i: unknown): i is StockItem {
+  if (!i || typeof i !== 'object') return false;
+  const o = i as Record<string, unknown>;
+  return typeof o.id === 'string'
+    && typeof o.name === 'string'
+    && typeof o.quantity === 'number'
+    && typeof o.minQuantity === 'number';
+}
+
+function isValidHistoryEntry(h: unknown): h is HistoryEntry {
+  if (!h || typeof h !== 'object') return false;
+  const o = h as Record<string, unknown>;
+  return typeof o.id === 'string'
+    && typeof o.itemName === 'string'
+    && typeof o.delta === 'number'
+    && typeof o.date === 'string';
+}
+
 export function importData(json: string): { items: StockItem[]; history: HistoryEntry[]; categories: string[]; customIcons: Record<string, string> } | null {
   try {
     const data = JSON.parse(json);
     if (!Array.isArray(data.items)) return null;
-    const items: StockItem[]      = data.items;
-    const history: HistoryEntry[] = Array.isArray(data.history)    ? data.history    : [];
-    const categories: string[]    = Array.isArray(data.categories) ? data.categories : DEFAULT_CATEGORIES;
+    const items: StockItem[] = (data.items as unknown[])
+      .filter(isValidItem)
+      .map(i => ({
+        ...i,
+        category: typeof i.category === 'string' ? i.category : DEFAULT_CATEGORIES[DEFAULT_CATEGORIES.length - 1],
+        unit:     typeof i.unit     === 'string' ? i.unit     : '個',
+        addedAt:  typeof i.addedAt  === 'string' ? i.addedAt  : new Date().toISOString(),
+      }));
+    // 1件以上あったのに全件不正 → ファイル形式が違うとみなして失敗にする
+    if (items.length === 0 && data.items.length > 0) return null;
+    const history: HistoryEntry[] = Array.isArray(data.history)    ? (data.history as unknown[]).filter(isValidHistoryEntry) : [];
+    const categories: string[]    = Array.isArray(data.categories) ? data.categories.filter((c: unknown) => typeof c === 'string') : DEFAULT_CATEGORIES;
     const customIcons: Record<string, string> = (data.customIcons && typeof data.customIcons === 'object') ? data.customIcons : {};
     saveItems(items);
     localStorage.setItem(HISTORY_KEY,    JSON.stringify(history.slice(0, MAX_HISTORY)));
