@@ -20,6 +20,23 @@ function delta(curr: number, prev: number) {
   return { d, pct, sign: d > 0 ? '+' : d < 0 ? '−' : '' };
 }
 
+// 前年比バッジの色：支出は増＝赤、収入・収支は増＝緑
+function deltaColor(key: string, d: number) {
+  if (d === 0) return 'text-gray-400';
+  const up = d > 0;
+  if (key === 'expense') return up ? 'text-red-400' : 'text-green-500';
+  return up ? 'text-green-500' : 'text-red-400';
+}
+
+function DeltaLabel({ k, d, pct, sign }: { k: string; d: number; pct: number | null; sign: string }) {
+  return (
+    <span className={`text-xs font-medium ${deltaColor(k, d)}`}>
+      {d === 0 ? '±0' : `${sign}¥${fmt(Math.abs(d))}`}
+      {pct !== null && d !== 0 && <span className="ml-1 opacity-70">({sign}{Math.abs(pct)}%)</span>}
+    </span>
+  );
+}
+
 export default function MonthlyReport({ transactions, categories, yearMonth }: Props) {
   const prevYM = prevYearMonth(yearMonth);
   const [py, pm] = prevYM.split('-');
@@ -50,21 +67,6 @@ export default function MonthlyReport({ transactions, categories, yearMonth }: P
   if (!hasData) {
     return <p className="text-center text-gray-400 text-sm py-6">この月のデータがありません</p>;
   }
-
-  // 前年比バッジの色：支出は増＝赤、収入・収支は増＝緑
-  const deltaColor = (key: string, d: number) => {
-    if (d === 0) return 'text-gray-400';
-    const up = d > 0;
-    if (key === 'expense') return up ? 'text-red-400' : 'text-green-500';
-    return up ? 'text-green-500' : 'text-red-400';
-  };
-
-  const DeltaLabel = ({ k, d, pct, sign }: { k: string; d: number; pct: number | null; sign: string }) => (
-    <span className={`text-xs font-medium ${deltaColor(k, d)}`}>
-      {d === 0 ? '±0' : `${sign}¥${fmt(Math.abs(d))}`}
-      {pct !== null && d !== 0 && <span className="ml-1 opacity-70">({sign}{Math.abs(pct)}%)</span>}
-    </span>
-  );
 
   return (
     <div>

@@ -6,6 +6,7 @@ import {
   loadCategories, loadBudgets, loadFixed, loadAppliedMonths, markMonthApplied,
   loadAssets, loadTemplates, saveTemplates, loadGoal,
 } from './lib/storage';
+import { useStored } from './lib/useStored';
 import Summary from './components/Summary';
 import BudgetProgress from './components/BudgetProgress';
 import TransactionList from './components/TransactionList';
@@ -40,24 +41,21 @@ export default function Home() {
 
   const [month,     setMonth]     = useState(thisMonth);
   const [txs,       setTxs]       = useState<Transaction[]>([]);
-  const [cats,      setCats]      = useState<Category[]>([]);
-  const [budgets,   setBudgets]   = useState<Budget[]>([]);
-  const [assets,    setAssets]    = useState<Asset[]>([]);
-  const [templates, setTemplates] = useState<Template[]>([]);
-  const [goal,      setGoal]      = useState<Goal | null>(null);
+  const [cats]                    = useStored<Category[]>(loadCategories, []);
+  const [budgets]                 = useStored<Budget[]>(loadBudgets, []);
+  const [assets]                  = useStored<Asset[]>(loadAssets, []);
+  const [templates, setTemplates] = useStored<Template[]>(loadTemplates, []);
+  const [goal]                    = useStored<Goal | null>(loadGoal, null);
   const [showForm,  setShowForm]  = useState(false);
   const [editing,   setEditing]   = useState<Transaction | undefined>();
   const [prefill,   setPrefill]   = useState<Partial<Transaction> | undefined>();
   const [tab,       setTab]       = useState<Tab>('一覧');
 
+  // 固定費の今月分を自動適用する。localStorage への書き込みを伴うため effect で行う。
   useEffect(() => {
     const allTxs   = loadTransactions();
     const allFixed = loadFixed();
-    setCats(loadCategories());
-    setBudgets(loadBudgets());
-    setAssets(loadAssets());
-    setTemplates(loadTemplates());
-    setGoal(loadGoal());
+    let initial = allTxs;
 
     if (allFixed.length > 0 && !loadAppliedMonths().includes(thisMonth)) {
       const maxDay = daysInMonth(thisMonth);
@@ -69,13 +67,13 @@ export default function Home() {
         category: f.category,
         memo: f.name,
       }));
-      const merged = [...newTxs, ...allTxs];
-      saveTransactions(merged);
-      setTxs(merged);
+      initial = [...newTxs, ...allTxs];
+      saveTransactions(initial);
       markMonthApplied(thisMonth);
-    } else {
-      setTxs(allTxs);
     }
+
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setTxs(initial);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

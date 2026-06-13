@@ -1,11 +1,11 @@
 'use client';
-import { useEffect, useState } from 'react';
 import { Category, Budget, FixedItem, Asset, Template, Goal } from '../types';
 import {
-  loadCategories, saveCategories, loadBudgets, saveBudgets,
-  loadFixed, saveFixed, loadAssets, saveAssets, loadTemplates, saveTemplates,
+  saveCategories, saveBudgets, saveFixed, saveAssets, saveTemplates,
+  loadCategories, loadBudgets, loadFixed, loadAssets, loadTemplates,
   loadTransactions, saveTransactions, loadGoal, saveGoal,
 } from '../lib/storage';
+import { useStored } from '../lib/useStored';
 import CategoryManager from '../components/CategoryManager';
 import BudgetManager from '../components/BudgetManager';
 import FixedManager from '../components/FixedManager';
@@ -17,21 +17,12 @@ import CSVImport from '../components/CSVImport';
 import JSONBackup from '../components/JSONBackup';
 
 export default function Settings() {
-  const [cats,      setCats]      = useState<Category[]>([]);
-  const [budgets,   setBudgets]   = useState<Budget[]>([]);
-  const [fixed,     setFixed]     = useState<FixedItem[]>([]);
-  const [assets,    setAssets]    = useState<Asset[]>([]);
-  const [templates, setTemplates] = useState<Template[]>([]);
-  const [goal,      setGoal]      = useState<Goal | null>(null);
-
-  useEffect(() => {
-    setCats(loadCategories());
-    setBudgets(loadBudgets());
-    setFixed(loadFixed());
-    setAssets(loadAssets());
-    setTemplates(loadTemplates());
-    setGoal(loadGoal());
-  }, []);
+  const [cats,      setCats]      = useStored<Category[]>(loadCategories, []);
+  const [budgets,   setBudgets]   = useStored<Budget[]>(loadBudgets, []);
+  const [fixed,     setFixed]     = useStored<FixedItem[]>(loadFixed, []);
+  const [assets,    setAssets]    = useStored<Asset[]>(loadAssets, []);
+  const [templates, setTemplates] = useStored<Template[]>(loadTemplates, []);
+  const [goal,      setGoal]      = useStored<Goal | null>(loadGoal, null);
 
   const handleCats      = (c: Category[])  => { saveCategories(c);  setCats(c); };
   const handleBudgets   = (b: Budget[])    => { saveBudgets(b);     setBudgets(b); };

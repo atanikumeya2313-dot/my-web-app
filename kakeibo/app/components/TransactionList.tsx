@@ -1,7 +1,8 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Transaction, Category, TxType, SavedSearch } from '../types';
 import { loadSavedSearches, saveSavedSearches } from '../lib/storage';
+import { useStored } from '../lib/useStored';
 
 interface Props {
   transactions: Transaction[];
@@ -21,9 +22,7 @@ export default function TransactionList({ transactions, categories, onDelete, on
   const [dateTo,     setDateTo]     = useState('');
   const [amountMin,  setAmountMin]  = useState('');
   const [amountMax,  setAmountMax]  = useState('');
-  const [saved,      setSaved]      = useState<SavedSearch[]>([]);
-
-  useEffect(() => { setSaved(loadSavedSearches()); }, []);
+  const [saved,      setSaved]      = useStored<SavedSearch[]>(loadSavedSearches, []);
 
   const catName = (id: string) => categories.find(c => c.id === id)?.name ?? id;
   const activeCats = [...new Set(transactions.map(t => t.category))];

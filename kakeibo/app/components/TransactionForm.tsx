@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Transaction, Category, TxType, Template, Asset } from '../types';
 import { loadTemplates } from '../lib/storage';
 
@@ -34,12 +34,15 @@ export default function TransactionForm({ categories, assets = [], onSave, onClo
 
   const filteredCats = categories.filter(c => c.type === (type === 'transfer' ? 'expense' : type));
 
-  useEffect(() => {
+  // 種別が変わったとき、選択中カテゴリが新しい種別に存在しなければ先頭に切り替える
+  // （副作用ではなくレンダー中に調整する React 推奨パターン）
+  const [prevType, setPrevType] = useState(type);
+  if (type !== prevType) {
+    setPrevType(type);
     if (!filteredCats.find(c => c.id === category)) {
       setCat(filteredCats[0]?.id ?? '');
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [type]);
+  }
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();

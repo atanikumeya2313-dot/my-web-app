@@ -44,7 +44,7 @@ export default function CategoryTrendGraph({ transactions, categories }: Props) 
   const toggleCat = (id: string) => {
     setHiddenCats(prev => {
       const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
+      if (next.has(id)) next.delete(id); else next.add(id);
       return next;
     });
   };
