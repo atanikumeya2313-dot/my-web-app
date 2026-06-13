@@ -51,6 +51,23 @@ export interface FixedItem {
   day: number; // 引き落とし日（1〜31）
 }
 
+export interface SavedSearch {
+  id: string;
+  name: string;
+  query: string;
+  typeFilter: 'all' | TxType;
+  catFilter: string;
+  dateFrom: string;
+  dateTo: string;
+  amountMin: string;
+  amountMax: string;
+}
+
+// 月間の貯金目標（残高 = 収入 − 支出 がこの額以上を目指す）
+export interface Goal {
+  monthlyTarget: number;
+}
+
 export const DEFAULT_CATEGORIES: Category[] = [
   { id: 'exp_food',          name: '食費',   type: 'expense', isDefault: true },
   { id: 'exp_transport',     name: '交通費', type: 'expense', isDefault: true },

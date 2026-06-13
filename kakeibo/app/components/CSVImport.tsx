@@ -131,15 +131,20 @@ function parseCSV(text: string): ParsedRow[] | { error: string } {
   // 家計簿エクスポート形式: 日付, 種別, カテゴリ, 金額, メモ
   if (idx('日付') >= 0 && idx('種別') >= 0 && idx('金額') >= 0) {
     const di = idx('日付'), ti = idx('種別'), ai = idx('金額'), mi = idx('メモ'), ci = idx('カテゴリ');
+    const toType = (s: string): TxType =>
+      s === '収入' ? 'income' : s === '振替' ? 'transfer' : 'expense';
     return rows
       .filter(r => r.length > Math.max(di, ti, ai))
-      .map(r => ({
-        date: toDate(r[di]),
-        type: (r[ti] === '収入' ? 'income' : 'expense') as TxType,
-        amount: toAmount(r[ai]),
-        memo: mi >= 0 ? r[mi] : '',
-        category: ci >= 0 ? r[ci] : '',
-      }))
+      .map(r => {
+        const type = toType(r[ti]);
+        return {
+          date: toDate(r[di]),
+          type,
+          amount: toAmount(r[ai]),
+          memo: mi >= 0 ? r[mi] : '',
+          category: type === 'transfer' ? '' : (ci >= 0 ? r[ci] : ''),
+        };
+      })
       .filter(r => r.amount > 0);
   }
 
@@ -256,7 +261,7 @@ export default function CSVImport() {
       date:     r.date,
       amount:   r.amount,
       type:     r.type,
-      category: catByName[r.category] ?? (r.type === 'income' ? defInc : defExp),
+      category: r.type === 'transfer' ? '' : (catByName[r.category] ?? (r.type === 'income' ? defInc : defExp)),
       memo:     r.memo,
     }));
 
@@ -294,8 +299,8 @@ export default function CSVImport() {
             {preview.slice(0, 5).map((r, i) => (
               <div key={i} className="flex items-center px-3 py-2 text-xs border-b border-gray-50 last:border-0">
                 <span className="text-gray-400 w-24 shrink-0">{r.date}</span>
-                <span className={`w-8 shrink-0 font-medium ${r.type === 'income' ? 'text-green-500' : 'text-red-500'}`}>
-                  {r.type === 'income' ? '収入' : '支出'}
+                <span className={`w-8 shrink-0 font-medium ${r.type === 'income' ? 'text-green-500' : r.type === 'transfer' ? 'text-purple-500' : 'text-red-500'}`}>
+                  {r.type === 'income' ? '収入' : r.type === 'transfer' ? '振替' : '支出'}
                 </span>
                 <span className="flex-1 text-gray-600 truncate">{r.memo || '—'}</span>
                 <span className="text-gray-700 font-medium shrink-0">¥{r.amount.toLocaleString()}</span>

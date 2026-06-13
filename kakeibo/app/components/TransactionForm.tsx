@@ -127,7 +127,7 @@ export default function TransactionForm({ categories, assets = [], onSave, onClo
           )}
 
           <input type="text" value={memo} onChange={e => setMemo(e.target.value)}
-            placeholder={type === 'transfer' ? 'メモ（任意）' : 'メモ（任意）'}
+            placeholder="メモ（任意）"
             className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" />
 
           <button type="submit"

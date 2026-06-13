@@ -12,10 +12,13 @@ export default function CSVExport() {
     const ymKey = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
     const data = all ? txs : txs.filter(t => t.date.startsWith(ymKey));
 
+    const typeLabel = (type: string) =>
+      type === 'income' ? '収入' : type === 'transfer' ? '振替' : '支出';
+
     const rows = [
       ['日付','種別','カテゴリ','金額','メモ'],
       ...data.sort((a,b) => a.date.localeCompare(b.date)).map(t => [
-        t.date, t.type === 'income' ? '収入' : '支出', catName(t.category), String(t.amount), t.memo
+        t.date, typeLabel(t.type), t.type === 'transfer' ? '' : catName(t.category), String(t.amount), t.memo
       ])
     ];
 

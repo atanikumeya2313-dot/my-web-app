@@ -26,6 +26,7 @@ export default function Calendar({ yearMonth, transactions, categories }: Props)
 
   const daily: Record<number, { inc: number; exp: number }> = {};
   for (const t of transactions) {
+    if (t.type === 'transfer') continue; // 振替は収支に含めない
     const d = Number(t.date.split('-')[2]);
     if (!daily[d]) daily[d] = { inc: 0, exp: 0 };
     if (t.type === 'income') daily[d].inc += t.amount;
@@ -104,11 +105,11 @@ export default function Calendar({ yearMonth, transactions, categories }: Props)
             <div className="space-y-1.5">
               {dayTxs.map(t => (
                 <div key={t.id} className="flex items-center gap-2 px-2 py-1.5 bg-gray-50 rounded-lg">
-                  <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${t.type === 'income' ? 'bg-green-500' : 'bg-red-400'}`} />
-                  <span className="text-xs text-gray-400 shrink-0">{catName(t.category)}</span>
+                  <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${t.type === 'income' ? 'bg-green-500' : t.type === 'transfer' ? 'bg-purple-400' : 'bg-red-400'}`} />
+                  <span className="text-xs text-gray-400 shrink-0">{t.type === 'transfer' ? '振替' : catName(t.category)}</span>
                   <span className="text-xs text-gray-600 flex-1 truncate">{t.memo || '—'}</span>
-                  <span className={`text-xs font-semibold shrink-0 ${t.type === 'income' ? 'text-green-600' : 'text-red-500'}`}>
-                    {t.type === 'income' ? '+' : '-'}¥{t.amount.toLocaleString()}
+                  <span className={`text-xs font-semibold shrink-0 ${t.type === 'income' ? 'text-green-600' : t.type === 'transfer' ? 'text-purple-500' : 'text-red-500'}`}>
+                    {t.type === 'income' ? '+' : t.type === 'transfer' ? '↔' : '-'}¥{t.amount.toLocaleString()}
                   </span>
                 </div>
               ))}

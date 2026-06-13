@@ -1,6 +1,7 @@
 'use client';
-import { useState } from 'react';
-import { Transaction, Category, TxType } from '../types';
+import { useState, useEffect } from 'react';
+import { Transaction, Category, TxType, SavedSearch } from '../types';
+import { loadSavedSearches, saveSavedSearches } from '../lib/storage';
 
 interface Props {
   transactions: Transaction[];
@@ -20,13 +21,45 @@ export default function TransactionList({ transactions, categories, onDelete, on
   const [dateTo,     setDateTo]     = useState('');
   const [amountMin,  setAmountMin]  = useState('');
   const [amountMax,  setAmountMax]  = useState('');
+  const [saved,      setSaved]      = useState<SavedSearch[]>([]);
+
+  useEffect(() => { setSaved(loadSavedSearches()); }, []);
 
   const catName = (id: string) => categories.find(c => c.id === id)?.name ?? id;
   const activeCats = [...new Set(transactions.map(t => t.category))];
 
   const advActiveCount = [dateFrom, dateTo, amountMin, amountMax].filter(Boolean).length;
+  const anyFilterActive = !!(query || catFilter || typeFilter !== 'all' || advActiveCount > 0);
 
   const clearAdv = () => { setDateFrom(''); setDateTo(''); setAmountMin(''); setAmountMax(''); };
+
+  function applySearch(s: SavedSearch) {
+    setQuery(s.query);
+    setTypeFilter(s.typeFilter);
+    setCatFilter(s.catFilter);
+    setDateFrom(s.dateFrom);
+    setDateTo(s.dateTo);
+    setAmountMin(s.amountMin);
+    setAmountMax(s.amountMax);
+    if (s.dateFrom || s.dateTo || s.amountMin || s.amountMax) setShowAdv(true);
+  }
+
+  function saveCurrentSearch() {
+    const name = prompt('この検索条件の名前を入力してください')?.trim();
+    if (!name) return;
+    const next = [
+      ...saved.filter(s => s.name !== name),
+      { id: crypto.randomUUID(), name, query, typeFilter, catFilter, dateFrom, dateTo, amountMin, amountMax },
+    ];
+    saveSavedSearches(next);
+    setSaved(next);
+  }
+
+  function deleteSearch(id: string) {
+    const next = saved.filter(s => s.id !== id);
+    saveSavedSearches(next);
+    setSaved(next);
+  }
 
   const filtered = [...transactions]
     .filter(t => typeFilter === 'all' || t.type === typeFilter)
@@ -40,6 +73,19 @@ export default function TransactionList({ transactions, categories, onDelete, on
 
   return (
     <div>
+      {/* 保存した検索条件 */}
+      {saved.length > 0 && (
+        <div className="flex gap-1.5 overflow-x-auto scrollbar-hide pb-2 mb-2">
+          {saved.map(s => (
+            <span key={s.id}
+              className="shrink-0 flex items-center gap-1 pl-2.5 pr-1.5 py-1 rounded-full text-xs font-medium bg-amber-50 text-amber-700 border border-amber-100">
+              <button onClick={() => applySearch(s)} className="whitespace-nowrap">⭐ {s.name}</button>
+              <button onClick={() => deleteSearch(s.id)} className="text-amber-300 hover:text-red-400 leading-none">✕</button>
+            </span>
+          ))}
+        </div>
+      )}
+
       {/* キーワード検索 */}
       <div className="relative mb-2">
         <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">🔍</span>
@@ -138,9 +184,15 @@ export default function TransactionList({ transactions, categories, onDelete, on
         </div>
       )}
 
-      {/* 件数表示 */}
-      {(query || catFilter || typeFilter !== 'all' || advActiveCount > 0) && (
-        <p className="text-xs text-gray-400 mb-1">{filtered.length} 件</p>
+      {/* 件数表示・条件保存 */}
+      {anyFilterActive && (
+        <div className="flex items-center justify-between mb-1">
+          <p className="text-xs text-gray-400">{filtered.length} 件</p>
+          <button onClick={saveCurrentSearch}
+            className="text-xs text-amber-500 hover:text-amber-600 font-medium">
+            ⭐ この条件を保存
+          </button>
+        </div>
       )}
 
       {filtered.length === 0 ? (

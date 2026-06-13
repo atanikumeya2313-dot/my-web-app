@@ -10,8 +10,17 @@ interface Props {
 const fmt = (n: number) => n.toLocaleString('ja-JP');
 
 function calcBalance(asset: Asset, transactions: Transaction[]): number {
-  if (asset.type === 'investment') return asset.initialBalance;
   const today = new Date().toISOString().slice(0, 10);
+
+  // 投資口座は残高を手入力で管理するが、口座間の振替は反映する
+  // （例: 銀行→投資 の振替で総資産が目減りしないように）
+  if (asset.type === 'investment') {
+    const upToToday   = transactions.filter(t => t.type === 'transfer' && t.date <= today);
+    const transferOut = upToToday.filter(t => t.fromAssetId === asset.id).reduce((s, t) => s + t.amount, 0);
+    const transferIn  = upToToday.filter(t => t.toAssetId   === asset.id).reduce((s, t) => s + t.amount, 0);
+    return asset.initialBalance + transferIn - transferOut;
+  }
+
   const since = asset.initialDate <= today ? asset.initialDate : today;
   const afterInit = transactions.filter(t => t.date >= since && t.date <= today);
   const income      = afterInit.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);

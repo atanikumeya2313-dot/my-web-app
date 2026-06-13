@@ -1,16 +1,17 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { Category, Budget, FixedItem, Asset, Template } from '../types';
+import { Category, Budget, FixedItem, Asset, Template, Goal } from '../types';
 import {
   loadCategories, saveCategories, loadBudgets, saveBudgets,
   loadFixed, saveFixed, loadAssets, saveAssets, loadTemplates, saveTemplates,
-  loadTransactions, saveTransactions,
+  loadTransactions, saveTransactions, loadGoal, saveGoal,
 } from '../lib/storage';
 import CategoryManager from '../components/CategoryManager';
 import BudgetManager from '../components/BudgetManager';
 import FixedManager from '../components/FixedManager';
 import AssetManager from '../components/AssetManager';
 import TemplateManager from '../components/TemplateManager';
+import GoalManager from '../components/GoalManager';
 import CSVExport from '../components/CSVExport';
 import CSVImport from '../components/CSVImport';
 import JSONBackup from '../components/JSONBackup';
@@ -21,6 +22,7 @@ export default function Settings() {
   const [fixed,     setFixed]     = useState<FixedItem[]>([]);
   const [assets,    setAssets]    = useState<Asset[]>([]);
   const [templates, setTemplates] = useState<Template[]>([]);
+  const [goal,      setGoal]      = useState<Goal | null>(null);
 
   useEffect(() => {
     setCats(loadCategories());
@@ -28,6 +30,7 @@ export default function Settings() {
     setFixed(loadFixed());
     setAssets(loadAssets());
     setTemplates(loadTemplates());
+    setGoal(loadGoal());
   }, []);
 
   const handleCats      = (c: Category[])  => { saveCategories(c);  setCats(c); };
@@ -35,6 +38,7 @@ export default function Settings() {
   const handleFixed     = (f: FixedItem[]) => { saveFixed(f);       setFixed(f); };
   const handleAssets    = (a: Asset[])     => { saveAssets(a);      setAssets(a); };
   const handleTemplates = (t: Template[])  => { saveTemplates(t);   setTemplates(t); };
+  const handleGoal      = (g: Goal)        => { saveGoal(g);        setGoal(g); };
 
   function handleFixedDelete(id: string) {
     const item = fixed.find(f => f.id === id);
@@ -71,6 +75,7 @@ export default function Settings() {
       </header>
       <main className="px-4 py-4 space-y-4">
         <AssetManager assets={assets} onChange={handleAssets} />
+        <GoalManager goal={goal} onChange={handleGoal} />
         <FixedManager items={fixed} categories={cats} onChange={handleFixed} onDelete={handleFixedDelete} />
         <TemplateManager templates={templates} categories={cats} onChange={handleTemplates} />
         <CategoryManager categories={cats} onChange={handleCats} />

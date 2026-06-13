@@ -1,10 +1,10 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { Transaction, Category, Budget, FixedItem, Asset, Template } from './types';
+import { Transaction, Category, Budget, FixedItem, Asset, Template, Goal } from './types';
 import {
   loadTransactions, saveTransactions, addTransaction, updateTransaction, deleteTransaction,
   loadCategories, loadBudgets, loadFixed, loadAppliedMonths, markMonthApplied,
-  loadAssets, loadTemplates, saveTemplates,
+  loadAssets, loadTemplates, saveTemplates, loadGoal,
 } from './lib/storage';
 import Summary from './components/Summary';
 import BudgetProgress from './components/BudgetProgress';
@@ -18,8 +18,10 @@ import BalanceTrendGraph from './components/BalanceTrendGraph';
 import AssetSummary from './components/AssetSummary';
 import WeeklySummary from './components/WeeklySummary';
 import QuickTemplates from './components/QuickTemplates';
+import GoalProgress from './components/GoalProgress';
+import MonthlyReport from './components/MonthlyReport';
 
-type Tab = '一覧' | 'カレンダー' | 'グラフ' | '年間' | '推移' | '残高';
+type Tab = '一覧' | 'カレンダー' | 'グラフ' | 'レポート' | '年間' | '推移' | '残高';
 
 function toYM(d: Date) { return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`; }
 function fmtYM(ym: string) { const [y,m] = ym.split('-'); return `${y}年${parseInt(m)}月`; }
@@ -42,6 +44,7 @@ export default function Home() {
   const [budgets,   setBudgets]   = useState<Budget[]>([]);
   const [assets,    setAssets]    = useState<Asset[]>([]);
   const [templates, setTemplates] = useState<Template[]>([]);
+  const [goal,      setGoal]      = useState<Goal | null>(null);
   const [showForm,  setShowForm]  = useState(false);
   const [editing,   setEditing]   = useState<Transaction | undefined>();
   const [prefill,   setPrefill]   = useState<Partial<Transaction> | undefined>();
@@ -54,6 +57,7 @@ export default function Home() {
     setBudgets(loadBudgets());
     setAssets(loadAssets());
     setTemplates(loadTemplates());
+    setGoal(loadGoal());
 
     if (allFixed.length > 0 && !loadAppliedMonths().includes(thisMonth)) {
       const maxDay = daysInMonth(thisMonth);
@@ -130,13 +134,14 @@ export default function Home() {
       <main className="px-4 py-4 space-y-4">
         <AssetSummary assets={assets} transactions={txs} />
         <Summary transactions={monthTxs} prevTransactions={prevMonthTxs} samePeriod={isCurrMonth} />
+        {isCurrMonth && <GoalProgress goal={goal} transactions={monthTxs} />}
         <BudgetProgress transactions={monthTxs} categories={cats} budgets={budgets} />
         <WeeklySummary transactions={monthTxs} yearMonth={month} />
 
         <div className="bg-white rounded-xl shadow-sm overflow-hidden">
           {/* タブバー（スクロール対応） */}
           <div className="flex border-b border-gray-100 overflow-x-auto scrollbar-hide">
-            {(['一覧','カレンダー','グラフ','年間','推移','残高'] as Tab[]).map(t => (
+            {(['一覧','カレンダー','グラフ','レポート','年間','推移','残高'] as Tab[]).map(t => (
               <button key={t} onClick={() => setTab(t)}
                 className={`shrink-0 px-4 py-2.5 text-xs font-medium transition-colors whitespace-nowrap ${tab===t ? 'text-blue-500 border-b-2 border-blue-500' : 'text-gray-400'}`}>
                 {t}
@@ -147,6 +152,7 @@ export default function Home() {
             {tab === '一覧'      && <TransactionList transactions={monthTxs} categories={cats} onDelete={handleDelete} onEdit={handleEdit} />}
             {tab === 'カレンダー' && <Calendar yearMonth={month} transactions={monthTxs} categories={cats} />}
             {tab === 'グラフ'    && <ExpensePieChart transactions={monthTxs} categories={cats} />}
+            {tab === 'レポート'  && <MonthlyReport transactions={txs} categories={cats} yearMonth={month} />}
             {tab === '年間'      && <AnnualGraph transactions={txs} />}
             {tab === '推移'      && <CategoryTrendGraph transactions={txs} categories={cats} />}
             {tab === '残高'      && <BalanceTrendGraph transactions={txs} />}

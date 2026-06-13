@@ -1,4 +1,4 @@
-﻿import { Transaction, Category, Budget, FixedItem, Asset, Template, DEFAULT_CATEGORIES } from '../types';
+﻿import { Transaction, Category, Budget, FixedItem, Asset, Template, SavedSearch, Goal, DEFAULT_CATEGORIES } from '../types';
 
 const KEYS = {
   transactions:   'kakeibo_transactions',
@@ -8,6 +8,8 @@ const KEYS = {
   appliedMonths:  'kakeibo_applied_months',
   assets:         'kakeibo_assets',
   templates:      'kakeibo_templates',
+  savedSearches:  'kakeibo_saved_searches',
+  goal:           'kakeibo_goal',
 };
 
 // ── Transactions ──────────────────────────────────────────
@@ -79,6 +81,26 @@ export function loadTemplates(): Template[] {
 }
 export function saveTemplates(ts: Template[]) {
   localStorage.setItem(KEYS.templates, JSON.stringify(ts));
+}
+
+// ── Saved searches（保存した検索条件） ─────────────────────
+export function loadSavedSearches(): SavedSearch[] {
+  try { return JSON.parse(localStorage.getItem(KEYS.savedSearches) || '[]'); }
+  catch { return []; }
+}
+export function saveSavedSearches(items: SavedSearch[]) {
+  localStorage.setItem(KEYS.savedSearches, JSON.stringify(items));
+}
+
+// ── Goal（貯金目標） ──────────────────────────────────────
+export function loadGoal(): Goal | null {
+  try {
+    const s = localStorage.getItem(KEYS.goal);
+    return s ? JSON.parse(s) : null;
+  } catch { return null; }
+}
+export function saveGoal(goal: Goal) {
+  localStorage.setItem(KEYS.goal, JSON.stringify(goal));
 }
 
 // ── Applied months（固定費を適用済みの月） ─────────────────
