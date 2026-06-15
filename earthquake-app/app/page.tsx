@@ -1,7 +1,11 @@
 'use client';
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { Earthquake, fetchEarthquakes } from './lib/api';
 import { TyphoonData, fetchTyphoons } from './lib/typhoonApi';
+import {
+  loadSeenIds, saveSeenIds, loadNotifyEnabled, saveNotifyEnabled,
+  ensureNotifyPermission, notifyQuake, notifySupported, isSignificant,
+} from './lib/notify';
 import EarthquakeCard from './components/EarthquakeCard';
 import EarthquakeDetail from './components/EarthquakeDetail';
 import EarthquakeStats from './components/EarthquakeStats';
@@ -25,6 +29,13 @@ export default function Home() {
   const [typhoonLoading,setTyphoonLoading]= useState(true);
   const [typhoonError,  setTyphoonError]  = useState<string | null>(null);
   const [typhoonUpdated,setTyphoonUpdated]= useState<Date | null>(null);
+  const [newIds,        setNewIds]        = useState<Set<string>>(new Set());
+  const [notifyOn,      setNotifyOn]      = useState(false);
+
+  // 新着判定・通知のための「既読ID」と通知設定。再描画に依存しないよう ref で保持
+  const seenRef       = useRef<Set<string>>(new Set());
+  const initializedRef = useRef(false);
+  const notifyRef     = useRef(false);
 
   const load = useCallback(async () => {
     try {
@@ -33,6 +44,24 @@ export default function Home() {
       setQuakes(data);
       setUpdatedAt(new Date());
       setCountdown(INTERVAL / 1000);
+
+      // 新着（前回までに見ていないID）を抽出
+      const ids = data.map(q => q.id);
+      if (!initializedRef.current) {
+        // 初回：保存済み既読と突き合わせ、前回訪問以降の新着のみハイライト
+        initializedRef.current = true;
+        const hadSeen = seenRef.current.size > 0;
+        const fresh = hadSeen ? data.filter(q => !seenRef.current.has(q.id)) : [];
+        setNewIds(new Set(fresh.map(q => q.id)));
+      } else {
+        const fresh = data.filter(q => !seenRef.current.has(q.id));
+        setNewIds(new Set(fresh.map(q => q.id)));
+        if (notifyRef.current) {
+          fresh.filter(isSignificant).slice(0, 3).forEach(notifyQuake);
+        }
+      }
+      seenRef.current = new Set(ids);
+      saveSeenIds(ids);
     } catch {
       setError('データの取得に失敗しました。しばらくお待ちください。');
       setCountdown(INTERVAL / 1000);
@@ -54,14 +83,65 @@ export default function Home() {
     }
   }, []);
 
+  // 手動更新・可視化復帰からタイマーを張り直せるよう、restart を ref で公開
+  const restartRef = useRef<() => void>(() => {});
+
   useEffect(() => {
+    // 永続化していた既読IDと通知設定を復元
+    seenRef.current = new Set(loadSeenIds());
+    const savedNotify = loadNotifyEnabled() && notifySupported() && Notification.permission === 'granted';
+    notifyRef.current = savedNotify;
+    setNotifyOn(savedNotify);
+
+    let dataTimer: ReturnType<typeof setInterval>;
+    let tyTimer:   ReturnType<typeof setInterval>;
+    let counter:   ReturnType<typeof setInterval>;
+
+    const start = () => {
+      dataTimer = setInterval(load, INTERVAL);
+      tyTimer   = setInterval(loadTyphoon, INTERVAL);
+      counter   = setInterval(() => setCountdown(c => Math.max(0, c - 1)), 1000);
+    };
+    const stop = () => { clearInterval(dataTimer); clearInterval(tyTimer); clearInterval(counter); };
+    const restart = () => { stop(); setCountdown(INTERVAL / 1000); start(); };
+    restartRef.current = restart;
+
     load();
     loadTyphoon();
-    const timer   = setInterval(load, INTERVAL);
-    const tyTimer = setInterval(loadTyphoon, INTERVAL);
-    const counter = setInterval(() => setCountdown(c => Math.max(0, c - 1)), 1000);
-    return () => { clearInterval(timer); clearInterval(tyTimer); clearInterval(counter); };
+    start();
+
+    // タブが非表示の間はポーリングを止め、復帰時にまとめて更新（省電力・省通信）
+    const onVisibility = () => {
+      if (document.hidden) {
+        stop();
+      } else {
+        load();
+        loadTyphoon();
+        restart();
+      }
+    };
+    document.addEventListener('visibilitychange', onVisibility);
+
+    return () => { stop(); document.removeEventListener('visibilitychange', onVisibility); };
   }, [load, loadTyphoon]);
+
+  const handleRefresh = () => { load(); loadTyphoon(); restartRef.current(); };
+
+  const toggleNotify = async () => {
+    if (notifyOn) {
+      setNotifyOn(false);
+      notifyRef.current = false;
+      saveNotifyEnabled(false);
+      return;
+    }
+    const ok = await ensureNotifyPermission();
+    setNotifyOn(ok);
+    notifyRef.current = ok;
+    saveNotifyEnabled(ok);
+    if (!ok && notifySupported() && Notification.permission === 'denied') {
+      alert('ブラウザの設定で通知がブロックされています。サイトの通知を許可してください。');
+    }
+  };
 
   const fmtUpdated = (d: Date) =>
     `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}:${String(d.getSeconds()).padStart(2,'0')}`;
@@ -86,8 +166,18 @@ export default function Home() {
               <p className="text-[10px] text-gray-400">次回更新</p>
               <p className="text-xs font-mono font-semibold text-blue-500">{countdown}s</p>
             </div>
+            {notifySupported() && (
+              <button
+                onClick={toggleNotify}
+                className={`w-8 h-8 flex items-center justify-center rounded-full transition-colors text-sm ${
+                  notifyOn ? 'bg-amber-100 text-amber-600 hover:bg-amber-200' : 'bg-gray-100 text-gray-400 hover:bg-gray-200'
+                }`}
+                title={notifyOn ? '地震通知：ON（震度3以上 / M5.0以上）' : '地震通知：OFF'}
+                aria-pressed={notifyOn}
+              >{notifyOn ? '🔔' : '🔕'}</button>
+            )}
             <button
-              onClick={() => { load(); loadTyphoon(); }}
+              onClick={handleRefresh}
               className="w-8 h-8 flex items-center justify-center rounded-full bg-blue-50 text-blue-500 hover:bg-blue-100 transition-colors text-sm"
               title="今すぐ更新"
             >↻</button>
@@ -153,14 +243,14 @@ export default function Home() {
                       📌 注目の地震（震度5弱以上 / M6.0以上）
                     </p>
                     {pinned.map(q => (
-                      <EarthquakeCard key={q.id} quake={q} isLatest={false} isPinned onClick={() => setSelected(q)} />
+                      <EarthquakeCard key={q.id} quake={q} isLatest={false} isPinned isNew={newIds.has(q.id)} onClick={() => setSelected(q)} />
                     ))}
                   </div>
                 )}
                 {quakes.length === 0
                   ? <div className="text-center py-12 text-gray-400 text-sm">データがありません</div>
                   : unpinned.map((q, i) => (
-                      <EarthquakeCard key={q.id} quake={q} isLatest={i === 0 && pinned.length === 0} onClick={() => setSelected(q)} />
+                      <EarthquakeCard key={q.id} quake={q} isLatest={i === 0 && pinned.length === 0} isNew={newIds.has(q.id)} onClick={() => setSelected(q)} />
                     ))
                 }
               </>
@@ -172,6 +262,7 @@ export default function Home() {
         {view === 'stats' && (
           <>
             {loading && <div className="text-center py-12 text-gray-400 text-sm">読み込み中…</div>}
+            {error   && <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-red-600">{error}</div>}
             {!loading && !error && (
               <div className="bg-white rounded-xl shadow-sm p-4">
                 <EarthquakeStats quakes={quakes} />

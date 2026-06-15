@@ -40,7 +40,11 @@ export function getCategoryInfo(category: string): CategoryInfo {
 }
 
 export function formatIssueTime(iso: string): string {
-  const d = new Date(iso);
+  // タイムゾーン指定（Z や +09:00）が無い場合は JST とみなして付与する。
+  // 指定なしのまま new Date() に渡すとブラウザのタイムゾーン依存になるため。
+  const hasTz = /([+-]\d{2}:?\d{2}|Z)$/.test(iso);
+  const normalized = hasTz ? iso : iso.replace(' ', 'T') + '+09:00';
+  const d = new Date(normalized);
   const pad = (n: number) => String(n).padStart(2, '0');
   return `${d.getFullYear()}/${pad(d.getMonth() + 1)}/${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())} 現在`;
 }

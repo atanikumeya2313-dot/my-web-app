@@ -4,10 +4,11 @@ interface Props {
   quake: Earthquake;
   isLatest: boolean;
   isPinned?: boolean;
+  isNew?: boolean;
   onClick?: () => void;
 }
 
-export default function EarthquakeCard({ quake, isLatest, isPinned, onClick }: Props) {
+export default function EarthquakeCard({ quake, isLatest, isPinned, isNew, onClick }: Props) {
   const { date, time } = fmtTime(quake.time);
   const label   = scaleLabel(quake.maxScale);
   const color   = scaleColor(quake.maxScale);
@@ -17,11 +18,12 @@ export default function EarthquakeCard({ quake, isLatest, isPinned, onClick }: P
   const depth   = quake.hypocenter.depth;
   const pref    = extractPrefecture(quake.hypocenter.name);
 
-  return (
-    <div
-      onClick={onClick}
-      className={`bg-white rounded-xl border-l-4 ${border} shadow-sm p-4 flex gap-3 items-start ${onClick ? 'cursor-pointer active:opacity-80' : ''}`}
-    >
+  const cardClass = `w-full text-left bg-white rounded-xl border-l-4 ${border} shadow-sm p-4 flex gap-3 items-start ${
+    isNew ? 'ring-2 ring-emerald-400' : ''
+  } ${onClick ? 'cursor-pointer active:opacity-80' : ''}`;
+
+  const inner = (
+    <>
       {/* 震度バッジ */}
       <div className={`${color} rounded-lg w-14 h-14 flex flex-col items-center justify-center shrink-0`}>
         <span className="text-[10px] font-medium leading-none mb-0.5">震度</span>
@@ -32,6 +34,9 @@ export default function EarthquakeCard({ quake, isLatest, isPinned, onClick }: P
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 mb-1">
           <span className="text-sm font-bold text-gray-800 truncate">{quake.hypocenter.name || '震源地不明'}</span>
+          {isNew && (
+            <span className="text-[10px] bg-emerald-500 text-white px-1.5 py-0.5 rounded-full font-bold shrink-0 animate-pulse">NEW</span>
+          )}
           {isLatest && (
             <span className="text-[10px] bg-red-500 text-white px-1.5 py-0.5 rounded-full font-medium shrink-0">最新</span>
           )}
@@ -68,6 +73,13 @@ export default function EarthquakeCard({ quake, isLatest, isPinned, onClick }: P
           </div>
         )}
       </div>
-    </div>
+    </>
+  );
+
+  // クリック可能なときは button にしてキーボード操作・アクセシビリティに対応
+  return onClick ? (
+    <button type="button" onClick={onClick} className={cardClass}>{inner}</button>
+  ) : (
+    <div className={cardClass}>{inner}</div>
   );
 }
