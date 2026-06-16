@@ -21,7 +21,7 @@ type Tab = 'accumulate' | 'scenario' | 'withdrawal';
 const SAVINGS_KEY = 'interest_savings_v1';
 
 interface SavingsState {
-  monthly: number; rate: number; years: number; initial: number; nisaType: NisaType;
+  monthly: number; rate: number; initial: number; nisaType: NisaType;
   showInflation: boolean; inflationRate: number;
   showBonus: boolean; bonusAmount: number; bonusTimes: 1 | 2;
   showStepUp: boolean; stepUpYear: number; stepUpAmount: number;
@@ -41,7 +41,9 @@ function saveSavingsState(s: SavingsState) {
 
 interface Props {
   seed?: SavingsSeed;
-  onAddToCompare?: (plan: { label: string; principal: number; rate: number; monthly: number }) => void;
+  years: number;                       // 運用期間は複利モードと共有
+  onYearsChange: (y: number) => void;
+  onAddToCompare?: (plan: { label: string; principal: number; rate: number; monthly: number; taxable: boolean }) => void;
 }
 
 function Slider({ label, value, min, max, step, unit, onChange }: {
@@ -83,11 +85,10 @@ function ToggleSection({ label, badge, active, onToggle, children }: {
   );
 }
 
-export default function SavingsSimulator({ seed, onAddToCompare }: Props) {
-  // 基本パラメータ（seed があれば複利比較の項目から引き継ぐ）
+export default function SavingsSimulator({ seed, years, onYearsChange, onAddToCompare }: Props) {
+  // 基本パラメータ（seed があれば複利比較の項目から引き継ぐ。years は親と共有）
   const [monthly,       setMonthly]       = useState(seed?.monthly ?? 30_000);
   const [rate,          setRate]          = useState(seed?.rate ?? 5.0);
-  const [years,         setYears]         = useState(seed?.years ?? 20);
   const [initial,       setInitial]       = useState(seed?.initial ?? 0);
   const [nisaType,      setNisaType]      = useState<NisaType>('tsumitate');
   // インフレ
@@ -122,7 +123,6 @@ export default function SavingsSimulator({ seed, onAddToCompare }: Props) {
     if (s) {
       if (s.monthly         != null) setMonthly(s.monthly);
       if (s.rate            != null) setRate(s.rate);
-      if (s.years           != null) setYears(s.years);
       if (s.initial         != null) setInitial(s.initial);
       if (s.nisaType        != null) setNisaType(s.nisaType);
       if (s.showInflation   != null) setShowInflation(s.showInflation);
@@ -147,14 +147,14 @@ export default function SavingsSimulator({ seed, onAddToCompare }: Props) {
   useEffect(() => {
     if (!loaded) return;
     saveSavingsState({
-      monthly, rate, years, initial, nisaType,
+      monthly, rate, initial, nisaType,
       showInflation, inflationRate,
       showBonus, bonusAmount, bonusTimes,
       showStepUp, stepUpYear, stepUpAmount,
       showGoal, goalAmount,
       withdrawMonthly, withdrawYears,
     });
-  }, [loaded, monthly, rate, years, initial, nisaType, showInflation, inflationRate,
+  }, [loaded, monthly, rate, initial, nisaType, showInflation, inflationRate,
       showBonus, bonusAmount, bonusTimes, showStepUp, stepUpYear, stepUpAmount,
       showGoal, goalAmount, withdrawMonthly, withdrawYears]);
 
@@ -284,7 +284,7 @@ export default function SavingsSimulator({ seed, onAddToCompare }: Props) {
           <div className="bg-white rounded-xl shadow-sm p-4 space-y-5">
             <Slider label="毎月の積み立て額" value={monthly} min={1000} max={100_000} step={1000} unit="¥" onChange={setMonthly} />
             <Slider label="年利（想定リターン）" value={rate} min={0.1} max={15} step={0.1} unit="%" onChange={setRate} />
-            <Slider label="積み立て期間" value={years} min={1} max={40} step={1} unit="年" onChange={v => { setYears(v); setStepUpYear(prev => Math.min(prev, Math.max(1, v - 1))); }} />
+            <Slider label="積み立て期間" value={years} min={1} max={50} step={1} unit="年" onChange={v => { onYearsChange(v); setStepUpYear(prev => Math.min(prev, Math.max(1, v - 1))); }} />
             <div>
               <label className="text-sm text-gray-600 block mb-1">初期投資額</label>
               <div className="relative">
@@ -433,12 +433,12 @@ export default function SavingsSimulator({ seed, onAddToCompare }: Props) {
           {onAddToCompare && (
             <div>
               <button
-                onClick={() => onAddToCompare({ label: `積み立て ${rate}%`, principal: initial, rate, monthly })}
+                onClick={() => onAddToCompare({ label: `積み立て ${rate}%`, principal: initial, rate, monthly, taxable: nisaType === 'none' })}
                 className="w-full py-2.5 bg-purple-50 text-purple-600 rounded-xl text-sm font-medium hover:bg-purple-100 transition-colors">
                 ＋ この条件を「複利計算・比較」に追加
               </button>
               <p className="text-[10px] text-gray-400 mt-1 text-center">
-                元本{fmt(initial)}・月¥{fmt(monthly)}・年利{rate}% として比較に追加します（NISA・ボーナス等は反映されません）
+                元本{fmt(initial)}・月¥{fmt(monthly)}・年利{rate}%・{nisaType === 'none' ? '特定口座' : 'NISA'} として追加（ボーナス・増額・NISA枠上限は反映されません）
               </p>
             </div>
           )}

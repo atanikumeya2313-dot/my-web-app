@@ -1,11 +1,11 @@
 export type NisaType = 'none' | 'tsumitate' | 'growth';
 
 // モード間連携：複利比較の項目 → 積み立てシミュレーターへ引き継ぐ初期値
+// （運用期間 years は両モードで共有するため seed には含めない）
 export interface SavingsSeed {
   monthly: number;
   rate: number;
   initial: number;
-  years: number;
 }
 
 export interface SimParams {

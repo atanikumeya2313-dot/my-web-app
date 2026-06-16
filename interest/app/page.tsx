@@ -16,6 +16,7 @@ interface Item {
   rate:            number;
   monthly:         number;
   savingsEndYear?: number; // 積立終了年（未設定=全期間）
+  taxable?:        boolean; // true=特定口座(運用益に課税) / 未設定・false=NISA(非課税)
 }
 
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#84cc16'];
@@ -100,22 +101,21 @@ function saveData(items: Item[], years: number) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify({ items, years }));
 }
 
-function loadSettings(): { taxable: boolean; inflation: number; mode: Mode } {
+function loadSettings(): { inflation: number; mode: Mode } {
   try {
     const s = localStorage.getItem(SETTINGS_KEY);
     if (s) {
       const d = JSON.parse(s);
       return {
-        taxable: !!d.taxable,
         inflation: typeof d.inflation === 'number' ? d.inflation : 2,
         mode: d.mode === 'savings' ? 'savings' : 'compound',
       };
     }
   } catch {}
-  return { taxable: false, inflation: 2, mode: 'compound' };
+  return { inflation: 2, mode: 'compound' };
 }
-function saveSettings(taxable: boolean, inflation: number, mode: Mode) {
-  localStorage.setItem(SETTINGS_KEY, JSON.stringify({ taxable, inflation, mode }));
+function saveSettings(inflation: number, mode: Mode) {
+  localStorage.setItem(SETTINGS_KEY, JSON.stringify({ inflation, mode }));
 }
 
 // ── コンポーネント ───────────────────────────────────────────────
@@ -131,6 +131,7 @@ export default function Home() {
   const [rate,             setRate]             = useState('');
   const [monthly,          setMonthly]          = useState('');
   const [savingsEnd,       setSavingsEnd]       = useState('');
+  const [taxableNew,       setTaxableNew]        = useState(false); // 追加時の税区分（true=特定口座）
   // 編集
   const [editId,           setEditId]           = useState<string | null>(null);
   const [editLabel,        setEditLabel]        = useState('');
@@ -138,10 +139,10 @@ export default function Home() {
   const [editRate,         setEditRate]         = useState('');
   const [editMonthly,      setEditMonthly]      = useState('');
   const [editSavingsEnd,   setEditSavingsEnd]   = useState('');
+  const [editTaxable,      setEditTaxable]      = useState(false);
   // 表示切り替え
   const [showTable,        setShowTable]        = useState(false);
-  // 詳細分析の設定（税区分・インフレ率）
-  const [taxable,          setTaxable]          = useState(false);
+  // 詳細分析の設定（インフレ率）
   const [inflation,        setInflation]        = useState('2');
   // 逆算（モード別に入力を分離）
   const [revTarget,        setRevTarget]        = useState('');
@@ -158,15 +159,13 @@ export default function Home() {
     setItems(d.items);
     setYears(d.years);
     const s = loadSettings();
-    setTaxable(s.taxable);
     setInflation(String(s.inflation));
     setMode(s.mode);
   }, []);
   /* eslint-enable react-hooks/set-state-in-effect */
 
-  function changeTaxable(v: boolean)   { setTaxable(v);   saveSettings(v, parseFloat(inflation) || 0, mode); }
-  function changeInflation(v: string)  { setInflation(v); saveSettings(taxable, parseFloat(v) || 0, mode); }
-  function changeMode(m: Mode)         { setMode(m);      saveSettings(taxable, parseFloat(inflation) || 0, m); }
+  function changeInflation(v: string)  { setInflation(v); saveSettings(parseFloat(v) || 0, mode); }
+  function changeMode(m: Mode)         { setMode(m);      saveSettings(parseFloat(inflation) || 0, m); }
 
   // ── モード間連携 ─────────────────────────────────────────────
   // 複利比較の項目 → 積み立てシミュレーターで詳細試算
@@ -175,20 +174,20 @@ export default function Home() {
       monthly: Math.max(0, Math.round(item.monthly)),
       rate:    Math.min(15, Math.max(0.1, item.rate)),
       initial: Math.max(0, Math.round(item.principal)),
-      years:   Math.min(40, Math.max(1, years)),
     });
     setSeedKey(k => k + 1); // 種が変わるたび SavingsSimulator を作り直す
     changeMode('savings');
   }
 
-  // 積み立ての条件 → 複利比較に項目として追加
-  function addPlanToCompare(plan: { label: string; principal: number; rate: number; monthly: number }) {
+  // 積み立ての条件 → 複利比較に項目として追加（NISA可否も引き継ぐ）
+  function addPlanToCompare(plan: { label: string; principal: number; rate: number; monthly: number; taxable: boolean }) {
     const newItem: Item = {
       id:        crypto.randomUUID(),
       label:     plan.label || `積み立てプラン${items.length + 1}`,
       principal: Math.max(0, Math.round(plan.principal)),
       rate:      plan.rate,
       monthly:   Math.max(0, Math.round(plan.monthly)),
+      taxable:   plan.taxable || undefined,
     };
     const next = [...items, newItem];
     setItems(next); saveData(next, years);
@@ -211,10 +210,11 @@ export default function Home() {
       principal: pv, rate: r,
       monthly:   mv,
       savingsEndYear: (se > 0 && !isNaN(se) && se < years) ? se : undefined,
+      taxable:   taxableNew || undefined,
     };
     const next = [...items, newItem];
     setItems(next); saveData(next, years);
-    setLabel(''); setPrincipal(''); setRate(''); setMonthly(''); setSavingsEnd('');
+    setLabel(''); setPrincipal(''); setRate(''); setMonthly(''); setSavingsEnd(''); setTaxableNew(false);
   }
 
   function deleteItem(id: string) {
@@ -237,6 +237,7 @@ export default function Home() {
     setEditRate(String(item.rate));
     setEditMonthly(item.monthly > 0 ? String(item.monthly) : '');
     setEditSavingsEnd(item.savingsEndYear ? String(item.savingsEndYear) : '');
+    setEditTaxable(!!item.taxable);
   }
 
   function saveEdit(id: string) {
@@ -253,6 +254,7 @@ export default function Home() {
       principal:     pv, rate: r,
       monthly:       mv,
       savingsEndYear: (se > 0 && !isNaN(se) && se < years) ? se : undefined,
+      taxable:       editTaxable || undefined,
     });
     setItems(next); saveData(next, years); setEditId(null);
   }
@@ -299,10 +301,17 @@ export default function Home() {
 
   // ── 詳細分析（税引き後・インフレ調整・内訳） ─────────────────
   const inflNum     = Math.max(0, parseFloat(inflation) || 0);
-  const taxAmount   = totalGain > 0 ? totalGain * TAX_RATE : 0;
-  const afterTaxFv  = totalFv - (taxable ? taxAmount : 0);
+  // 項目ごとに税区分（特定口座=課税 / NISA=非課税）で運用益の税額を算出
+  const taxAmount   = items.reduce((s, i) => {
+    if (!i.taxable) return s;
+    const gain = fvCalc(i.principal, i.rate, i.monthly, years, i.savingsEndYear)
+               - calcInvested(i.principal, i.monthly, years, i.savingsEndYear);
+    return s + (gain > 0 ? gain * TAX_RATE : 0);
+  }, 0);
+  const taxableCount = items.filter(i => i.taxable).length;
+  const afterTaxFv  = totalFv - taxAmount;
   const realFv      = afterTaxFv / Math.pow(1 + inflNum / 100, years);
-  // 内訳：元本 / 積立元本 / 運用益（税引き後なら課税後）
+  // 内訳：元本 / 積立元本 / 運用益（税引き後）
   const principalPart = totalPrincipal;
   const contribPart   = totalInvested - totalPrincipal;
   const gainPart      = afterTaxFv - totalInvested;
@@ -373,7 +382,13 @@ export default function Home() {
       </header>
 
       {mode === 'savings' && (
-        <SavingsSimulator key={seedKey} seed={savingsSeed ?? undefined} onAddToCompare={addPlanToCompare} />
+        <SavingsSimulator
+          key={seedKey}
+          seed={savingsSeed ?? undefined}
+          years={years}
+          onYearsChange={changeYears}
+          onAddToCompare={addPlanToCompare}
+        />
       )}
 
       {mode === 'compound' && (
@@ -429,6 +444,11 @@ export default function Home() {
                   {!isEditing && item.savingsEndYear && item.savingsEndYear < years && item.monthly > 0 && (
                     <span className="text-[10px] bg-amber-50 text-amber-600 rounded px-1.5 py-0.5 shrink-0 whitespace-nowrap">
                       積立{item.savingsEndYear}年まで
+                    </span>
+                  )}
+                  {!isEditing && item.taxable && (
+                    <span className="text-[10px] bg-gray-100 text-gray-500 rounded px-1.5 py-0.5 shrink-0 whitespace-nowrap">
+                      特定口座
                     </span>
                   )}
                 </div>
@@ -506,6 +526,19 @@ export default function Home() {
                       )}
                     </div>
                   )}
+                  <div>
+                    <p className="text-[10px] text-gray-400 mb-1">口座区分（税引き後の計算に使用）</p>
+                    <div className="flex rounded-lg overflow-hidden border border-gray-200 text-xs">
+                      <button type="button" onClick={() => setEditTaxable(false)}
+                        className={`flex-1 py-2 font-medium transition-colors ${!editTaxable ? 'bg-blue-500 text-white' : 'bg-white text-gray-500'}`}>
+                        NISA（非課税）
+                      </button>
+                      <button type="button" onClick={() => setEditTaxable(true)}
+                        className={`flex-1 py-2 font-medium transition-colors ${editTaxable ? 'bg-blue-500 text-white' : 'bg-white text-gray-500'}`}>
+                        特定口座（課税）
+                      </button>
+                    </div>
+                  </div>
                   <div className="flex gap-2">
                     <button onClick={() => setEditId(null)}
                       className="flex-1 py-2 bg-gray-100 text-gray-600 rounded-lg text-sm font-medium hover:bg-gray-200">
@@ -594,6 +627,19 @@ export default function Home() {
                 )}
               </div>
             )}
+            <div>
+              <p className="text-[10px] text-gray-400 mb-1">口座区分（税引き後の計算に使用）</p>
+              <div className="flex rounded-lg overflow-hidden border border-gray-200 text-xs">
+                <button type="button" onClick={() => setTaxableNew(false)}
+                  className={`flex-1 py-2 font-medium transition-colors ${!taxableNew ? 'bg-blue-500 text-white' : 'bg-white text-gray-500'}`}>
+                  NISA（非課税）
+                </button>
+                <button type="button" onClick={() => setTaxableNew(true)}
+                  className={`flex-1 py-2 font-medium transition-colors ${taxableNew ? 'bg-blue-500 text-white' : 'bg-white text-gray-500'}`}>
+                  特定口座（課税）
+                </button>
+              </div>
+            </div>
             <button onClick={addItem} disabled={!canAdd}
               className="w-full py-2.5 bg-blue-500 text-white rounded-lg text-sm font-medium hover:bg-blue-600 disabled:opacity-40 transition-colors">
               追加
@@ -636,7 +682,7 @@ export default function Home() {
             {/* 内訳の積み上げ */}
             <div>
               <p className="text-xs text-gray-400 mb-2">
-                {years}年後の内訳{taxable ? '（税引き後）' : ''}
+                {years}年後の内訳{taxAmount > 0 ? '（税引き後）' : ''}
               </p>
               <div className="flex h-5 rounded-full overflow-hidden bg-gray-100">
                 <div style={{ width: `${pPct}%`, backgroundColor: '#9ca3af' }} />
@@ -658,31 +704,24 @@ export default function Home() {
                 )}
                 <span className="flex items-center gap-1.5">
                   <span className="w-2.5 h-2.5 rounded-full bg-green-400" />
-                  <span className="text-gray-500">運用益{taxable ? '(税引後)' : ''}</span>
+                  <span className="text-gray-500">運用益{taxAmount > 0 ? '(税引後)' : ''}</span>
                   <span className="font-semibold text-green-600">{fmtFull(gainPart)}</span>
                 </span>
               </div>
             </div>
 
-            {/* 税引き後リターン */}
+            {/* 税引き後リターン（項目ごとの口座区分で計算） */}
             <div className="border-t border-gray-50 pt-3">
               <div className="flex items-center justify-between mb-2">
                 <p className="text-xs font-semibold text-gray-600">税引き後リターン</p>
-                <div className="flex rounded-lg overflow-hidden border border-gray-200 text-[11px]">
-                  <button onClick={() => changeTaxable(false)}
-                    className={`px-2.5 py-1 font-medium transition-colors ${!taxable ? 'bg-blue-500 text-white' : 'bg-white text-gray-500'}`}>
-                    NISA（非課税）
-                  </button>
-                  <button onClick={() => changeTaxable(true)}
-                    className={`px-2.5 py-1 font-medium transition-colors ${taxable ? 'bg-blue-500 text-white' : 'bg-white text-gray-500'}`}>
-                    特定口座
-                  </button>
-                </div>
+                <span className="text-[11px] text-gray-400">
+                  特定口座 {taxableCount}件 / NISA {items.length - taxableCount}件
+                </span>
               </div>
-              {taxable ? (
+              {taxAmount > 0 ? (
                 <div className="space-y-1">
                   <div className="flex justify-between text-sm">
-                    <span className="text-gray-500">税額（運用益の20.315%）</span>
+                    <span className="text-gray-500">税額（特定口座の運用益 × 20.315%）</span>
                     <span className="font-semibold text-red-400">−{fmtFull(taxAmount)}</span>
                   </div>
                   <div className="flex justify-between text-sm">
@@ -692,7 +731,7 @@ export default function Home() {
                 </div>
               ) : (
                 <p className="text-xs text-gray-400">
-                  NISAなら運用益は非課税。特定口座だと税額は約 {fmtFull(taxAmount)}（手取り {fmtFull(totalFv - taxAmount)}）。
+                  全項目が NISA（非課税）として計算しています。各項目の編集で「特定口座（課税）」に切り替えられます。
                 </p>
               )}
             </div>
@@ -709,7 +748,7 @@ export default function Home() {
                 </div>
               </div>
               <div className="flex justify-between text-sm">
-                <span className="text-gray-500">{taxable ? '手取りの' : ''}実質価値（現在価値）</span>
+                <span className="text-gray-500">{taxAmount > 0 ? '手取りの' : ''}実質価値（現在価値）</span>
                 <span className="font-bold text-gray-800">{fmtFull(realFv)}</span>
               </div>
               <p className="text-[10px] text-gray-300 mt-1">
