@@ -74,7 +74,7 @@ function ToggleSection({ label, badge, active, onToggle, children }: {
 }) {
   return (
     <div className="bg-white rounded-xl shadow-sm p-4">
-      <button onClick={onToggle} className="w-full flex items-center justify-between text-sm font-semibold text-gray-600">
+      <button onClick={onToggle} className="w-full flex items-center justify-between text-sm font-semibold text-gray-700">
         <span>{label}</span>
         <span className={`text-xs px-2 py-0.5 rounded-full ${active ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-400'}`}>
           {badge ?? (active ? 'ON' : 'OFF')}
@@ -269,7 +269,7 @@ export default function SavingsSimulator({ seed, years, onYearsChange, onAddToCo
         </div>
       </div>
 
-      <main className="max-w-lg mx-auto px-4 py-4 space-y-4 pb-8">
+      <main className="max-w-lg mx-auto px-4 py-4 space-y-4">
 
         {/* ===== 積み立てタブ ===== */}
         {activeTab === 'accumulate' && (<>
@@ -445,7 +445,7 @@ export default function SavingsSimulator({ seed, years, onYearsChange, onAddToCo
 
           {/* グラフ */}
           <div className="bg-white rounded-xl shadow-sm p-4">
-            <h2 className="text-sm font-semibold text-gray-600 mb-3">年次推移グラフ</h2>
+            <h2 className="text-sm font-semibold text-gray-700 mb-3">年次推移グラフ</h2>
             <TrendChart results={results} />
           </div>
 
@@ -471,7 +471,7 @@ export default function SavingsSimulator({ seed, years, onYearsChange, onAddToCo
           {/* 年次テーブル */}
           <div className="bg-white rounded-xl shadow-sm overflow-hidden">
             <button onClick={() => setShowAccumTable(v => !v)}
-              className="w-full flex items-center justify-between px-4 py-3 text-sm font-semibold text-gray-600">
+              className="w-full flex items-center justify-between px-4 py-3 text-sm font-semibold text-gray-700">
               <span>年次詳細テーブル</span>
               <span className="text-gray-400 text-xs">{showAccumTable ? '▲ 閉じる' : '▼ 開く'}</span>
             </button>
@@ -532,7 +532,7 @@ export default function SavingsSimulator({ seed, years, onYearsChange, onAddToCo
           </div>
 
           <div className="bg-white rounded-xl shadow-sm p-4">
-            <h2 className="text-sm font-semibold text-gray-600 mb-3">シナリオ比較グラフ</h2>
+            <h2 className="text-sm font-semibold text-gray-700 mb-3">シナリオ比較グラフ</h2>
             <ScenarioChart
               bear={bearResults} base={results} bull={bullResults}
               bearRate={bearRate} baseRate={rate} bullRate={bullRate}
@@ -540,7 +540,7 @@ export default function SavingsSimulator({ seed, years, onYearsChange, onAddToCo
           </div>
 
           <div className="bg-white rounded-xl shadow-sm p-4">
-            <h2 className="text-sm font-semibold text-gray-600 mb-3">差額シミュレーション</h2>
+            <h2 className="text-sm font-semibold text-gray-700 mb-3">差額シミュレーション</h2>
             <div className="space-y-2">
               {[
                 { label: `楽観（${bullRate}%）vs 標準（${rate}%）`, diff: Math.round(bullResults[bullResults.length-1].afterTaxBalance - last.afterTaxBalance), color: 'text-green-600' },
@@ -619,7 +619,7 @@ export default function SavingsSimulator({ seed, years, onYearsChange, onAddToCo
 
           {/* 取り崩しグラフ */}
           <div className="bg-white rounded-xl shadow-sm p-4">
-            <h2 className="text-sm font-semibold text-gray-600 mb-3">残高推移グラフ</h2>
+            <h2 className="text-sm font-semibold text-gray-700 mb-3">残高推移グラフ</h2>
             <WithdrawalChart results={withdrawalResults} showReal={showInflation} />
             {showInflation && (
               <p className="text-[10px] text-gray-400 mt-1">点線: 実質残高（インフレ {inflationRate}% 調整後）</p>
@@ -629,7 +629,7 @@ export default function SavingsSimulator({ seed, years, onYearsChange, onAddToCo
           {/* 積み立て+取り崩し 一体グラフ */}
           <div className="bg-white rounded-xl shadow-sm p-4">
             <button onClick={() => setShowCombined(v => !v)}
-              className="w-full flex items-center justify-between text-sm font-semibold text-gray-600">
+              className="w-full flex items-center justify-between text-sm font-semibold text-gray-700">
               <span>積み立て〜取り崩し 一体グラフ</span>
               <span className="text-gray-400 text-xs">{showCombined ? '▲ 閉じる' : '▼ 開く'}</span>
             </button>
@@ -650,7 +650,7 @@ export default function SavingsSimulator({ seed, years, onYearsChange, onAddToCo
           {/* 年次テーブル */}
           <div className="bg-white rounded-xl shadow-sm overflow-hidden">
             <button onClick={() => setShowWithdrawTable(v => !v)}
-              className="w-full flex items-center justify-between px-4 py-3 text-sm font-semibold text-gray-600">
+              className="w-full flex items-center justify-between px-4 py-3 text-sm font-semibold text-gray-700">
               <span>年次詳細テーブル</span>
               <span className="text-gray-400 text-xs">{showWithdrawTable ? '▲ 閉じる' : '▼ 開く'}</span>
             </button>

@@ -774,7 +774,7 @@ export default function Home() {
         {/* 推移グラフ */}
         {items.length > 0 && (
           <section className="bg-white rounded-xl shadow-sm p-4">
-            <h2 className="text-sm font-semibold text-gray-700 mb-4">推移グラフ</h2>
+            <h2 className="text-sm font-semibold text-gray-700 mb-3">推移グラフ</h2>
             <ResponsiveContainer width="100%" height={220}>
               <LineChart data={chartData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
