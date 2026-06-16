@@ -23,6 +23,7 @@ const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'
 const STORAGE_KEY = 'interest_calc_v1';
 const SETTINGS_KEY = 'interest_settings_v1';
 const TAX_RATE = 0.20315; // 特定口座の譲渡益課税（所得税・復興特別所得税・住民税の合計）
+const NISA_LIFETIME = 18_000_000; // NISA生涯非課税枠（簡易反映：超過拠出分の利益は課税扱い）
 
 // ── 計算ロジック ─────────────────────────────────────────────────
 function fvCalc(
@@ -171,9 +172,10 @@ export default function Home() {
   // 複利比較の項目 → 積み立てシミュレーターで詳細試算
   function detailInSavings(item: Item) {
     setSavingsSeed({
-      monthly: Math.max(0, Math.round(item.monthly)),
-      rate:    Math.min(15, Math.max(0.1, item.rate)),
-      initial: Math.max(0, Math.round(item.principal)),
+      monthly:  Math.max(0, Math.round(item.monthly)),
+      rate:     Math.min(15, Math.max(0.1, item.rate)),
+      initial:  Math.max(0, Math.round(item.principal)),
+      nisaType: item.taxable ? 'none' : 'tsumitate', // 口座区分を引き継ぐ
     });
     setSeedKey(k => k + 1); // 種が変わるたび SavingsSimulator を作り直す
     changeMode('savings');
@@ -301,14 +303,20 @@ export default function Home() {
 
   // ── 詳細分析（税引き後・インフレ調整・内訳） ─────────────────
   const inflNum     = Math.max(0, parseFloat(inflation) || 0);
-  // 項目ごとに税区分（特定口座=課税 / NISA=非課税）で運用益の税額を算出
+  // 項目ごとに税区分（特定口座=課税 / NISA=非課税）で運用益の税額を算出。
+  // NISA項目は生涯枠1,800万円を超える拠出分の利益のみ課税（簡易：拠出額の比で按分）。
   const taxAmount   = items.reduce((s, i) => {
-    if (!i.taxable) return s;
-    const gain = fvCalc(i.principal, i.rate, i.monthly, years, i.savingsEndYear)
-               - calcInvested(i.principal, i.monthly, years, i.savingsEndYear);
-    return s + (gain > 0 ? gain * TAX_RATE : 0);
+    const invested = calcInvested(i.principal, i.monthly, years, i.savingsEndYear);
+    const gain = fvCalc(i.principal, i.rate, i.monthly, years, i.savingsEndYear) - invested;
+    if (gain <= 0) return s;
+    if (i.taxable) return s + gain * TAX_RATE;
+    const overflow = Math.max(0, invested - NISA_LIFETIME);
+    const ratio = invested > 0 ? overflow / invested : 0;
+    return s + gain * ratio * TAX_RATE;
   }, 0);
   const taxableCount = items.filter(i => i.taxable).length;
+  const nisaOverflow = items.some(i => !i.taxable &&
+    calcInvested(i.principal, i.monthly, years, i.savingsEndYear) > NISA_LIFETIME);
   const afterTaxFv  = totalFv - taxAmount;
   const realFv      = afterTaxFv / Math.pow(1 + inflNum / 100, years);
   // 内訳：元本 / 積立元本 / 運用益（税引き後）
@@ -732,6 +740,11 @@ export default function Home() {
               ) : (
                 <p className="text-xs text-gray-400">
                   全項目が NISA（非課税）として計算しています。各項目の編集で「特定口座（課税）」に切り替えられます。
+                </p>
+              )}
+              {nisaOverflow && (
+                <p className="text-[10px] text-orange-500 mt-1.5">
+                  ※ NISA生涯枠（1,800万円）を超える拠出分の利益は課税として簡易計算しています（年間枠は未考慮）。
                 </p>
               )}
             </div>

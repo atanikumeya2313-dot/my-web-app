@@ -6,6 +6,7 @@ export interface SavingsSeed {
   monthly: number;
   rate: number;
   initial: number;
+  nisaType: NisaType;
 }
 
 export interface SimParams {

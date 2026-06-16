@@ -90,7 +90,7 @@ export default function SavingsSimulator({ seed, years, onYearsChange, onAddToCo
   const [monthly,       setMonthly]       = useState(seed?.monthly ?? 30_000);
   const [rate,          setRate]          = useState(seed?.rate ?? 5.0);
   const [initial,       setInitial]       = useState(seed?.initial ?? 0);
-  const [nisaType,      setNisaType]      = useState<NisaType>('tsumitate');
+  const [nisaType,      setNisaType]      = useState<NisaType>(seed?.nisaType ?? 'tsumitate');
   // インフレ
   const [showInflation, setShowInflation] = useState(false);
   const [inflationRate, setInflationRate] = useState(2.0);
