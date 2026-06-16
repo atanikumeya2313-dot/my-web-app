@@ -4,11 +4,11 @@ import {
   simulate, fmt, NisaType,
   calcRequiredMonthly, calcRequiredYears,
   simulateWithdrawal, calcSustainableMonthly,
-} from './lib/calc';
-import TrendChart from './components/TrendChart';
-import ScenarioChart from './components/ScenarioChart';
-import WithdrawalChart from './components/WithdrawalChart';
-import CombinedChart from './components/CombinedChart';
+} from '../lib/calc';
+import TrendChart from './TrendChart';
+import ScenarioChart from './ScenarioChart';
+import WithdrawalChart from './WithdrawalChart';
+import CombinedChart from './CombinedChart';
 
 const NISA_LABELS: Record<NisaType, string> = {
   none:      '使わない',
@@ -57,7 +57,7 @@ function ToggleSection({ label, badge, active, onToggle, children }: {
   );
 }
 
-export default function Home() {
+export default function SavingsSimulator() {
   // 基本パラメータ
   const [monthly,       setMonthly]       = useState(30_000);
   const [rate,          setRate]          = useState(5.0);
@@ -181,12 +181,10 @@ export default function Home() {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white border-b border-gray-100 sticky top-0 z-10">
-        <div className="max-w-lg mx-auto px-4 py-3">
-          <h1 className="text-base font-bold text-gray-800">積み立てシミュレーター</h1>
-        </div>
-        <div className="max-w-lg mx-auto flex border-t border-gray-100">
+    <>
+      {/* サブタブ */}
+      <div className="max-w-lg mx-auto px-4 pt-3">
+        <div className="flex bg-white rounded-xl shadow-sm overflow-hidden">
           {TABS.map(t => (
             <button key={t.id} onClick={() => setActiveTab(t.id)}
               className={`flex-1 py-2.5 text-xs font-medium transition-colors relative
@@ -198,7 +196,7 @@ export default function Home() {
             </button>
           ))}
         </div>
-      </header>
+      </div>
 
       <main className="max-w-lg mx-auto px-4 py-4 space-y-4 pb-8">
 
@@ -595,6 +593,6 @@ export default function Home() {
         </>)}
 
       </main>
-    </div>
+    </>
   );
 }

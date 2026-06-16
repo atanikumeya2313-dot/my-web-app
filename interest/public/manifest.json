@@ -1,7 +1,7 @@
 ﻿{
-  "name": "複利計算機",
-  "short_name": "複利計算",
-  "description": "元本と年利から将来の金額を計算",
+  "name": "資産形成シミュレーター",
+  "short_name": "資産形成",
+  "description": "複利計算・シナリオ比較と、積み立て・NISA・取り崩しシミュレーション",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#f9fafb",

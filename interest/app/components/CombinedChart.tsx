@@ -4,7 +4,6 @@ import {
   ResponsiveContainer, CartesianGrid, ReferenceLine,
 } from 'recharts';
 import { YearResult, WithdrawalYearResult } from '../lib/calc';
-import { fmt } from '../lib/calc';
 
 interface Props {
   accumResults: YearResult[];

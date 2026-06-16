@@ -4,6 +4,9 @@ import {
   LineChart, Line, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer,
 } from 'recharts';
+import SavingsSimulator from './components/SavingsSimulator';
+
+type Mode = 'compound' | 'savings';
 
 interface Item {
   id:              string;
@@ -112,6 +115,7 @@ function saveSettings(taxable: boolean, inflation: number) {
 
 // ── コンポーネント ───────────────────────────────────────────────
 export default function Home() {
+  const [mode,             setMode]             = useState<Mode>('compound');
   const [items,            setItems]            = useState<Item[]>([]);
   const [years,            setYears]            = useState(20);
   // 追加フォーム
@@ -316,11 +320,25 @@ export default function Home() {
     <div className="min-h-screen bg-gray-50 pb-10">
       <header className="bg-white border-b border-gray-100 sticky top-0 z-10">
         <div className="max-w-lg mx-auto px-4 py-3">
-          <h1 className="text-base font-bold text-gray-800">複利計算機</h1>
-          <p className="text-xs text-gray-400">元本・月積立・年利から将来の金額を計算します</p>
+          <h1 className="text-base font-bold text-gray-800">資産形成シミュレーター</h1>
+          <p className="text-xs text-gray-400">
+            {mode === 'compound' ? '複利計算・複数シナリオの比較' : '積み立て・NISA・取り崩しシミュレーション'}
+          </p>
+        </div>
+        <div className="max-w-lg mx-auto flex border-t border-gray-100">
+          {([['compound', '複利計算・比較'], ['savings', '積み立て・NISA・取り崩し']] as [Mode, string][]).map(([m, lbl]) => (
+            <button key={m} onClick={() => setMode(m)}
+              className={`flex-1 py-2.5 text-xs font-medium transition-colors relative ${mode === m ? 'text-blue-500' : 'text-gray-400'}`}>
+              {lbl}
+              {mode === m && <span className="absolute bottom-0 inset-x-4 h-0.5 bg-blue-500 rounded-full" />}
+            </button>
+          ))}
         </div>
       </header>
 
+      {mode === 'savings' && <SavingsSimulator />}
+
+      {mode === 'compound' && (
       <main className="max-w-lg mx-auto px-4 py-4 space-y-4">
 
         {/* 運用期間 */}
@@ -899,6 +917,7 @@ export default function Home() {
           </div>
         )}
       </main>
+      )}
     </div>
   );
 }

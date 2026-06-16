@@ -4,7 +4,6 @@ import {
   ResponsiveContainer, CartesianGrid,
 } from 'recharts';
 import { YearResult } from '../lib/calc';
-import { fmt } from '../lib/calc';
 
 interface Props {
   bear: YearResult[];
