@@ -16,6 +16,8 @@ interface Item {
 
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#84cc16'];
 const STORAGE_KEY = 'interest_calc_v1';
+const SETTINGS_KEY = 'interest_settings_v1';
+const TAX_RATE = 0.20315; // 特定口座の譲渡益課税（所得税・復興特別所得税・住民税の合計）
 
 // ── 計算ロジック ─────────────────────────────────────────────────
 function fvCalc(
@@ -68,8 +70,8 @@ function fmt(n: number): string {
   const abs = Math.abs(n);
   if (abs >= 100_000_000) return `${(n / 100_000_000).toFixed(1)}億`;
   if (abs >= 10_000) {
-    // floor で万の桁を切り捨て → 1億境界での繰り上がりバグを防ぐ
-    const man = Math.floor(n / 10_000 * 10) / 10;
+    // trunc で万の桁を切り捨て → 1億境界での繰り上がりバグを防ぎつつ、負数でも対称に扱う
+    const man = Math.trunc(n / 10_000 * 10) / 10;
     return `${man.toFixed(1)}万`;
   }
   return Math.round(n).toLocaleString();
@@ -94,6 +96,20 @@ function saveData(items: Item[], years: number) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify({ items, years }));
 }
 
+function loadSettings(): { taxable: boolean; inflation: number } {
+  try {
+    const s = localStorage.getItem(SETTINGS_KEY);
+    if (s) {
+      const d = JSON.parse(s);
+      return { taxable: !!d.taxable, inflation: typeof d.inflation === 'number' ? d.inflation : 2 };
+    }
+  } catch {}
+  return { taxable: false, inflation: 2 };
+}
+function saveSettings(taxable: boolean, inflation: number) {
+  localStorage.setItem(SETTINGS_KEY, JSON.stringify({ taxable, inflation }));
+}
+
 // ── コンポーネント ───────────────────────────────────────────────
 export default function Home() {
   const [items,            setItems]            = useState<Item[]>([]);
@@ -113,6 +129,9 @@ export default function Home() {
   const [editSavingsEnd,   setEditSavingsEnd]   = useState('');
   // 表示切り替え
   const [showTable,        setShowTable]        = useState(false);
+  // 詳細分析の設定（税区分・インフレ率）
+  const [taxable,          setTaxable]          = useState(false);
+  const [inflation,        setInflation]        = useState('2');
   // 逆算（モード別に入力を分離）
   const [revTarget,        setRevTarget]        = useState('');
   const [revRate,          setRevRate]          = useState('');
@@ -120,11 +139,21 @@ export default function Home() {
   const [revInitPrincipal, setRevInitPrincipal] = useState('');       // monthly/years モード用
   const [revMode,          setRevMode]          = useState<'principal' | 'monthly' | 'years'>('principal');
 
+  // localStorage はマウント後にのみ読めるため、ここでの同期的な setState は意図的。
+  // lazy初期化に変えると SSR とハイドレーションが食い違うため effect で初期化する。
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     const d = loadData();
     setItems(d.items);
     setYears(d.years);
+    const s = loadSettings();
+    setTaxable(s.taxable);
+    setInflation(String(s.inflation));
   }, []);
+  /* eslint-enable react-hooks/set-state-in-effect */
+
+  function changeTaxable(v: boolean)   { setTaxable(v);   saveSettings(v, parseFloat(inflation) || 0); }
+  function changeInflation(v: string)  { setInflation(v); saveSettings(taxable, parseFloat(v) || 0); }
 
   // ── 項目操作 ─────────────────────────────────────────────────
   function addItem() {
@@ -132,12 +161,15 @@ export default function Home() {
     const r  = parseFloat(rate);
     const m  = parseFloat(monthly || '0');
     const se = parseInt(savingsEnd || '0');
-    if (!p || isNaN(p) || p < 1 || isNaN(r) || r < 0) return;
+    const pv = isNaN(p) ? 0 : Math.max(0, p);
+    const mv = isNaN(m) ? 0 : Math.max(0, m);
+    // 元本か月積立のどちらかが1以上あればOK（積立のみの項目も許可）
+    if ((pv < 1 && mv < 1) || isNaN(r) || r < 0) return;
     const newItem: Item = {
       id:        crypto.randomUUID(),
       label:     label.trim() || `項目${items.length + 1}`,
-      principal: p, rate: r,
-      monthly:   isNaN(m) ? 0 : Math.max(0, m),
+      principal: pv, rate: r,
+      monthly:   mv,
       savingsEndYear: (se > 0 && !isNaN(se) && se < years) ? se : undefined,
     };
     const next = [...items, newItem];
@@ -172,12 +204,14 @@ export default function Home() {
     const r  = parseFloat(editRate);
     const m  = parseFloat(editMonthly || '0');
     const se = parseInt(editSavingsEnd || '0');
-    if (!p || isNaN(p) || p < 1 || isNaN(r) || r < 0) return;
+    const pv = isNaN(p) ? 0 : Math.max(0, p);
+    const mv = isNaN(m) ? 0 : Math.max(0, m);
+    if ((pv < 1 && mv < 1) || isNaN(r) || r < 0) return;
     const next = items.map(i => i.id !== id ? i : {
       ...i,
       label:         editLabel.trim() || i.label,
-      principal:     p, rate: r,
-      monthly:       isNaN(m) ? 0 : Math.max(0, m),
+      principal:     pv, rate: r,
+      monthly:       mv,
       savingsEndYear: (se > 0 && !isNaN(se) && se < years) ? se : undefined,
     });
     setItems(next); saveData(next, years); setEditId(null);
@@ -223,6 +257,20 @@ export default function Home() {
   const totalGain      = totalFv - totalInvested;
   const totalPct       = totalInvested > 0 ? (totalFv / totalInvested - 1) * 100 : 0;
 
+  // ── 詳細分析（税引き後・インフレ調整・内訳） ─────────────────
+  const inflNum     = Math.max(0, parseFloat(inflation) || 0);
+  const taxAmount   = totalGain > 0 ? totalGain * TAX_RATE : 0;
+  const afterTaxFv  = totalFv - (taxable ? taxAmount : 0);
+  const realFv      = afterTaxFv / Math.pow(1 + inflNum / 100, years);
+  // 内訳：元本 / 積立元本 / 運用益（税引き後なら課税後）
+  const principalPart = totalPrincipal;
+  const contribPart   = totalInvested - totalPrincipal;
+  const gainPart      = afterTaxFv - totalInvested;
+  const breakdownBase = afterTaxFv > 0 ? afterTaxFv : 1;
+  const pPct = (principalPart / breakdownBase) * 100;
+  const cPct = (contribPart   / breakdownBase) * 100;
+  const gPct = Math.max(0, (gainPart / breakdownBase) * 100);
+
   // ── グラフデータ ───────────────────────────────────────────────
   const chartData = Array.from({ length: years + 1 }, (_, y) => {
     const point: Record<string, number> = { year: y };
@@ -259,9 +307,10 @@ export default function Home() {
     }
   })();
 
-  const canAdd = principal.trim() !== '' && rate.trim() !== ''
-    && !isNaN(parseFloat(principal)) && parseFloat(principal) >= 1
-    && !isNaN(parseFloat(rate))      && parseFloat(rate)      >= 0;
+  const addPNum = parseFloat(principal.replace(/,/g, ''));
+  const addMNum = parseFloat(monthly.replace(/,/g, ''));
+  const canAdd = rate.trim() !== '' && !isNaN(parseFloat(rate)) && parseFloat(rate) >= 0
+    && ((!isNaN(addPNum) && addPNum >= 1) || (!isNaN(addMNum) && addMNum >= 1));
 
   return (
     <div className="min-h-screen bg-gray-50 pb-10">
@@ -303,9 +352,10 @@ export default function Home() {
           const gain         = future - invested;
           const pct          = invested > 0 ? (future / invested - 1) * 100 : 0;
           const editMonthlyN = parseFloat(editMonthly || '0');
-          const canSave      = editPrincipal.trim() !== '' && editRate.trim() !== ''
-            && !isNaN(parseFloat(editPrincipal)) && parseFloat(editPrincipal) >= 1
-            && !isNaN(parseFloat(editRate))      && parseFloat(editRate)      >= 0;
+          const editPNum     = parseFloat(editPrincipal.replace(/,/g, ''));
+          const editMNum     = parseFloat(editMonthly.replace(/,/g, ''));
+          const canSave      = editRate.trim() !== '' && !isNaN(parseFloat(editRate)) && parseFloat(editRate) >= 0
+            && ((!isNaN(editPNum) && editPNum >= 1) || (!isNaN(editMNum) && editMNum >= 1));
 
           return (
             <div key={item.id} className="bg-white rounded-xl shadow-sm p-4">
@@ -320,7 +370,7 @@ export default function Home() {
                   ) : (
                     <span className="text-sm font-semibold text-gray-800 truncate">{item.label}</span>
                   )}
-                  {!isEditing && item.savingsEndYear && item.monthly > 0 && (
+                  {!isEditing && item.savingsEndYear && item.savingsEndYear < years && item.monthly > 0 && (
                     <span className="text-[10px] bg-amber-50 text-amber-600 rounded px-1.5 py-0.5 shrink-0 whitespace-nowrap">
                       積立{item.savingsEndYear}年まで
                     </span>
@@ -511,6 +561,97 @@ export default function Home() {
             <div className="mt-3 pt-3 border-t border-blue-400 flex justify-between text-sm">
               <span className="text-blue-200">増加額</span>
               <span className="font-bold">+{fmtFull(totalGain)}（+{totalPct.toFixed(1)}%）</span>
+            </div>
+          </section>
+        )}
+
+        {/* 詳細分析 */}
+        {items.length > 0 && (
+          <section className="bg-white rounded-xl shadow-sm p-4 space-y-4">
+            <h2 className="text-sm font-semibold text-gray-700">詳細分析</h2>
+
+            {/* 内訳の積み上げ */}
+            <div>
+              <p className="text-xs text-gray-400 mb-2">
+                {years}年後の内訳{taxable ? '（税引き後）' : ''}
+              </p>
+              <div className="flex h-5 rounded-full overflow-hidden bg-gray-100">
+                <div style={{ width: `${pPct}%`, backgroundColor: '#9ca3af' }} />
+                <div style={{ width: `${cPct}%`, backgroundColor: '#93c5fd' }} />
+                <div style={{ width: `${gPct}%`, backgroundColor: '#4ade80' }} />
+              </div>
+              <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-[11px]">
+                <span className="flex items-center gap-1.5">
+                  <span className="w-2.5 h-2.5 rounded-full bg-gray-400" />
+                  <span className="text-gray-500">元本</span>
+                  <span className="font-semibold text-gray-700">{fmtFull(principalPart)}</span>
+                </span>
+                {contribPart > 0 && (
+                  <span className="flex items-center gap-1.5">
+                    <span className="w-2.5 h-2.5 rounded-full bg-blue-300" />
+                    <span className="text-gray-500">積立</span>
+                    <span className="font-semibold text-gray-700">{fmtFull(contribPart)}</span>
+                  </span>
+                )}
+                <span className="flex items-center gap-1.5">
+                  <span className="w-2.5 h-2.5 rounded-full bg-green-400" />
+                  <span className="text-gray-500">運用益{taxable ? '(税引後)' : ''}</span>
+                  <span className="font-semibold text-green-600">{fmtFull(gainPart)}</span>
+                </span>
+              </div>
+            </div>
+
+            {/* 税引き後リターン */}
+            <div className="border-t border-gray-50 pt-3">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-xs font-semibold text-gray-600">税引き後リターン</p>
+                <div className="flex rounded-lg overflow-hidden border border-gray-200 text-[11px]">
+                  <button onClick={() => changeTaxable(false)}
+                    className={`px-2.5 py-1 font-medium transition-colors ${!taxable ? 'bg-blue-500 text-white' : 'bg-white text-gray-500'}`}>
+                    NISA（非課税）
+                  </button>
+                  <button onClick={() => changeTaxable(true)}
+                    className={`px-2.5 py-1 font-medium transition-colors ${taxable ? 'bg-blue-500 text-white' : 'bg-white text-gray-500'}`}>
+                    特定口座
+                  </button>
+                </div>
+              </div>
+              {taxable ? (
+                <div className="space-y-1">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-500">税額（運用益の20.315%）</span>
+                    <span className="font-semibold text-red-400">−{fmtFull(taxAmount)}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-500">手取り（{years}年後）</span>
+                    <span className="font-bold text-gray-800">{fmtFull(afterTaxFv)}</span>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-xs text-gray-400">
+                  NISAなら運用益は非課税。特定口座だと税額は約 {fmtFull(taxAmount)}（手取り {fmtFull(totalFv - taxAmount)}）。
+                </p>
+              )}
+            </div>
+
+            {/* インフレ調整 */}
+            <div className="border-t border-gray-50 pt-3">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-xs font-semibold text-gray-600">インフレ調整後の実質価値</p>
+                <div className="flex items-center gap-1">
+                  <input type="number" min={0} step="0.1" value={inflation}
+                    onChange={e => changeInflation(e.target.value)}
+                    className="w-14 text-center border border-gray-200 rounded-lg px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300" />
+                  <span className="text-xs text-gray-500">%/年</span>
+                </div>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-500">{taxable ? '手取りの' : ''}実質価値（現在価値）</span>
+                <span className="font-bold text-gray-800">{fmtFull(realFv)}</span>
+              </div>
+              <p className="text-[10px] text-gray-300 mt-1">
+                年{inflNum}%のインフレで{years}年後の購買力を現在価値に換算
+              </p>
             </div>
           </section>
         )}
