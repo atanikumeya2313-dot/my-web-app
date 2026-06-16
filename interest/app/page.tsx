@@ -5,6 +5,7 @@ import {
   Tooltip, ResponsiveContainer,
 } from 'recharts';
 import SavingsSimulator from './components/SavingsSimulator';
+import { SavingsSeed } from './lib/calc';
 
 type Mode = 'compound' | 'savings';
 
@@ -99,23 +100,29 @@ function saveData(items: Item[], years: number) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify({ items, years }));
 }
 
-function loadSettings(): { taxable: boolean; inflation: number } {
+function loadSettings(): { taxable: boolean; inflation: number; mode: Mode } {
   try {
     const s = localStorage.getItem(SETTINGS_KEY);
     if (s) {
       const d = JSON.parse(s);
-      return { taxable: !!d.taxable, inflation: typeof d.inflation === 'number' ? d.inflation : 2 };
+      return {
+        taxable: !!d.taxable,
+        inflation: typeof d.inflation === 'number' ? d.inflation : 2,
+        mode: d.mode === 'savings' ? 'savings' : 'compound',
+      };
     }
   } catch {}
-  return { taxable: false, inflation: 2 };
+  return { taxable: false, inflation: 2, mode: 'compound' };
 }
-function saveSettings(taxable: boolean, inflation: number) {
-  localStorage.setItem(SETTINGS_KEY, JSON.stringify({ taxable, inflation }));
+function saveSettings(taxable: boolean, inflation: number, mode: Mode) {
+  localStorage.setItem(SETTINGS_KEY, JSON.stringify({ taxable, inflation, mode }));
 }
 
 // ── コンポーネント ───────────────────────────────────────────────
 export default function Home() {
   const [mode,             setMode]             = useState<Mode>('compound');
+  const [savingsSeed,      setSavingsSeed]      = useState<SavingsSeed | null>(null);
+  const [seedKey,          setSeedKey]          = useState(0);
   const [items,            setItems]            = useState<Item[]>([]);
   const [years,            setYears]            = useState(20);
   // 追加フォーム
@@ -153,11 +160,40 @@ export default function Home() {
     const s = loadSettings();
     setTaxable(s.taxable);
     setInflation(String(s.inflation));
+    setMode(s.mode);
   }, []);
   /* eslint-enable react-hooks/set-state-in-effect */
 
-  function changeTaxable(v: boolean)   { setTaxable(v);   saveSettings(v, parseFloat(inflation) || 0); }
-  function changeInflation(v: string)  { setInflation(v); saveSettings(taxable, parseFloat(v) || 0); }
+  function changeTaxable(v: boolean)   { setTaxable(v);   saveSettings(v, parseFloat(inflation) || 0, mode); }
+  function changeInflation(v: string)  { setInflation(v); saveSettings(taxable, parseFloat(v) || 0, mode); }
+  function changeMode(m: Mode)         { setMode(m);      saveSettings(taxable, parseFloat(inflation) || 0, m); }
+
+  // ── モード間連携 ─────────────────────────────────────────────
+  // 複利比較の項目 → 積み立てシミュレーターで詳細試算
+  function detailInSavings(item: Item) {
+    setSavingsSeed({
+      monthly: Math.max(0, Math.round(item.monthly)),
+      rate:    Math.min(15, Math.max(0.1, item.rate)),
+      initial: Math.max(0, Math.round(item.principal)),
+      years:   Math.min(40, Math.max(1, years)),
+    });
+    setSeedKey(k => k + 1); // 種が変わるたび SavingsSimulator を作り直す
+    changeMode('savings');
+  }
+
+  // 積み立ての条件 → 複利比較に項目として追加
+  function addPlanToCompare(plan: { label: string; principal: number; rate: number; monthly: number }) {
+    const newItem: Item = {
+      id:        crypto.randomUUID(),
+      label:     plan.label || `積み立てプラン${items.length + 1}`,
+      principal: Math.max(0, Math.round(plan.principal)),
+      rate:      plan.rate,
+      monthly:   Math.max(0, Math.round(plan.monthly)),
+    };
+    const next = [...items, newItem];
+    setItems(next); saveData(next, years);
+    changeMode('compound');
+  }
 
   // ── 項目操作 ─────────────────────────────────────────────────
   function addItem() {
@@ -327,7 +363,7 @@ export default function Home() {
         </div>
         <div className="max-w-lg mx-auto flex border-t border-gray-100">
           {([['compound', '複利計算・比較'], ['savings', '積み立て・NISA・取り崩し']] as [Mode, string][]).map(([m, lbl]) => (
-            <button key={m} onClick={() => setMode(m)}
+            <button key={m} onClick={() => { setSavingsSeed(null); changeMode(m); }}
               className={`flex-1 py-2.5 text-xs font-medium transition-colors relative ${mode === m ? 'text-blue-500' : 'text-gray-400'}`}>
               {lbl}
               {mode === m && <span className="absolute bottom-0 inset-x-4 h-0.5 bg-blue-500 rounded-full" />}
@@ -336,7 +372,9 @@ export default function Home() {
         </div>
       </header>
 
-      {mode === 'savings' && <SavingsSimulator />}
+      {mode === 'savings' && (
+        <SavingsSimulator key={seedKey} seed={savingsSeed ?? undefined} onAddToCompare={addPlanToCompare} />
+      )}
 
       {mode === 'compound' && (
       <main className="max-w-lg mx-auto px-4 py-4 space-y-4">
@@ -414,6 +452,13 @@ export default function Home() {
                         <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                           <path strokeLinecap="round" strokeLinejoin="round"
                             d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        </svg>
+                      </button>
+                      {/* 積み立て（NISA・取り崩し）で詳細試算 */}
+                      <button onClick={() => detailInSavings(item)} title="積み立て・NISA で詳細試算"
+                        className="p-1.5 text-gray-300 hover:text-purple-500 transition-colors">
+                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M3 17l6-6 4 4 8-8m0 0h-5m5 0v5" />
                         </svg>
                       </button>
                     </>

@@ -1,7 +1,7 @@
 'use client';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import {
-  simulate, fmt, NisaType,
+  simulate, fmt, NisaType, SavingsSeed,
   calcRequiredMonthly, calcRequiredYears,
   simulateWithdrawal, calcSustainableMonthly,
 } from '../lib/calc';
@@ -17,6 +17,32 @@ const NISA_LABELS: Record<NisaType, string> = {
 };
 
 type Tab = 'accumulate' | 'scenario' | 'withdrawal';
+
+const SAVINGS_KEY = 'interest_savings_v1';
+
+interface SavingsState {
+  monthly: number; rate: number; years: number; initial: number; nisaType: NisaType;
+  showInflation: boolean; inflationRate: number;
+  showBonus: boolean; bonusAmount: number; bonusTimes: 1 | 2;
+  showStepUp: boolean; stepUpYear: number; stepUpAmount: number;
+  showGoal: boolean; goalAmount: number;
+  withdrawMonthly: number; withdrawYears: number;
+}
+
+function loadSavingsState(): Partial<SavingsState> | null {
+  try {
+    const s = localStorage.getItem(SAVINGS_KEY);
+    return s ? JSON.parse(s) : null;
+  } catch { return null; }
+}
+function saveSavingsState(s: SavingsState) {
+  localStorage.setItem(SAVINGS_KEY, JSON.stringify(s));
+}
+
+interface Props {
+  seed?: SavingsSeed;
+  onAddToCompare?: (plan: { label: string; principal: number; rate: number; monthly: number }) => void;
+}
 
 function Slider({ label, value, min, max, step, unit, onChange }: {
   label: string; value: number; min: number; max: number; step: number; unit: string;
@@ -57,12 +83,12 @@ function ToggleSection({ label, badge, active, onToggle, children }: {
   );
 }
 
-export default function SavingsSimulator() {
-  // 基本パラメータ
-  const [monthly,       setMonthly]       = useState(30_000);
-  const [rate,          setRate]          = useState(5.0);
-  const [years,         setYears]         = useState(20);
-  const [initial,       setInitial]       = useState(0);
+export default function SavingsSimulator({ seed, onAddToCompare }: Props) {
+  // 基本パラメータ（seed があれば複利比較の項目から引き継ぐ）
+  const [monthly,       setMonthly]       = useState(seed?.monthly ?? 30_000);
+  const [rate,          setRate]          = useState(seed?.rate ?? 5.0);
+  const [years,         setYears]         = useState(seed?.years ?? 20);
+  const [initial,       setInitial]       = useState(seed?.initial ?? 0);
   const [nisaType,      setNisaType]      = useState<NisaType>('tsumitate');
   // インフレ
   const [showInflation, setShowInflation] = useState(false);
@@ -86,6 +112,51 @@ export default function SavingsSimulator() {
   const [withdrawMonthly, setWithdrawMonthly] = useState(100_000);
   const [withdrawYears,   setWithdrawYears]   = useState(30);
   const [showCombined,    setShowCombined]    = useState(false);
+
+  // ── 入力の永続化（seed 経由なら storage を読まず、引き継いだ値を保持） ──
+  const [loaded, setLoaded] = useState(!!seed);
+  /* eslint-disable react-hooks/set-state-in-effect */
+  useEffect(() => {
+    if (seed) return;
+    const s = loadSavingsState();
+    if (s) {
+      if (s.monthly         != null) setMonthly(s.monthly);
+      if (s.rate            != null) setRate(s.rate);
+      if (s.years           != null) setYears(s.years);
+      if (s.initial         != null) setInitial(s.initial);
+      if (s.nisaType        != null) setNisaType(s.nisaType);
+      if (s.showInflation   != null) setShowInflation(s.showInflation);
+      if (s.inflationRate   != null) setInflationRate(s.inflationRate);
+      if (s.showBonus       != null) setShowBonus(s.showBonus);
+      if (s.bonusAmount     != null) setBonusAmount(s.bonusAmount);
+      if (s.bonusTimes      != null) setBonusTimes(s.bonusTimes);
+      if (s.showStepUp      != null) setShowStepUp(s.showStepUp);
+      if (s.stepUpYear      != null) setStepUpYear(s.stepUpYear);
+      if (s.stepUpAmount    != null) setStepUpAmount(s.stepUpAmount);
+      if (s.showGoal        != null) setShowGoal(s.showGoal);
+      if (s.goalAmount      != null) setGoalAmount(s.goalAmount);
+      if (s.withdrawMonthly != null) setWithdrawMonthly(s.withdrawMonthly);
+      if (s.withdrawYears   != null) setWithdrawYears(s.withdrawYears);
+    }
+    setLoaded(true);
+    // 初回マウントで一度だけ実行
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  /* eslint-enable react-hooks/set-state-in-effect */
+
+  useEffect(() => {
+    if (!loaded) return;
+    saveSavingsState({
+      monthly, rate, years, initial, nisaType,
+      showInflation, inflationRate,
+      showBonus, bonusAmount, bonusTimes,
+      showStepUp, stepUpYear, stepUpAmount,
+      showGoal, goalAmount,
+      withdrawMonthly, withdrawYears,
+    });
+  }, [loaded, monthly, rate, years, initial, nisaType, showInflation, inflationRate,
+      showBonus, bonusAmount, bonusTimes, showStepUp, stepUpYear, stepUpAmount,
+      showGoal, goalAmount, withdrawMonthly, withdrawYears]);
 
   const simParams = useMemo(() => ({
     monthlyAmount: monthly,
@@ -202,6 +273,12 @@ export default function SavingsSimulator() {
 
         {/* ===== 積み立てタブ ===== */}
         {activeTab === 'accumulate' && (<>
+
+          {seed && (
+            <div className="bg-purple-50 border border-purple-100 rounded-xl px-3 py-2 text-xs text-purple-600">
+              複利比較の項目から条件を引き継ぎました。NISA・ボーナス・取り崩しなどを設定して詳しく試算できます。
+            </div>
+          )}
 
           {/* 基本入力 */}
           <div className="bg-white rounded-xl shadow-sm p-4 space-y-5">
@@ -351,6 +428,20 @@ export default function SavingsSimulator() {
               <p className="text-lg font-bold text-yellow-700">¥{fmt(Math.round(taxSaved))}</p>
             </div>
           </div>
+
+          {/* 複利比較へ追加 */}
+          {onAddToCompare && (
+            <div>
+              <button
+                onClick={() => onAddToCompare({ label: `積み立て ${rate}%`, principal: initial, rate, monthly })}
+                className="w-full py-2.5 bg-purple-50 text-purple-600 rounded-xl text-sm font-medium hover:bg-purple-100 transition-colors">
+                ＋ この条件を「複利計算・比較」に追加
+              </button>
+              <p className="text-[10px] text-gray-400 mt-1 text-center">
+                元本{fmt(initial)}・月¥{fmt(monthly)}・年利{rate}% として比較に追加します（NISA・ボーナス等は反映されません）
+              </p>
+            </div>
+          )}
 
           {/* グラフ */}
           <div className="bg-white rounded-xl shadow-sm p-4">
