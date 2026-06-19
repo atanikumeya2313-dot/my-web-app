@@ -15,15 +15,15 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "地震情報",
   description: "日本全国の地震発生情報をリアルタイムで確認",
-  manifest: "/manifest.json",
+  manifest: "/quake/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
     title: "地震情報",
   },
   icons: {
-    icon: "/icon-192.png",
-    apple: "/icon-192.png",
+    icon: "/quake/icon-192.png",
+    apple: "/quake/icon-192.png",
   },
 };
 
