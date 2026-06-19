@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer,
@@ -22,6 +22,8 @@ interface Item {
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#84cc16'];
 const STORAGE_KEY = 'interest_calc_v1';
 const SETTINGS_KEY = 'interest_settings_v1';
+// バックアップ対象（複利比較・設定・積み立てシミュレーターの全状態）
+const BACKUP_KEYS = ['interest_calc_v1', 'interest_settings_v1', 'interest_savings_v1'];
 const TAX_RATE = 0.20315; // 特定口座の譲渡益課税（所得税・復興特別所得税・住民税の合計）
 const NISA_LIFETIME = 18_000_000; // NISA生涯非課税枠（簡易反映：超過拠出分の利益は課税扱い）
 
@@ -167,6 +169,48 @@ export default function Home() {
 
   function changeInflation(v: string)  { setInflation(v); saveSettings(parseFloat(v) || 0, mode); }
   function changeMode(m: Mode)         { setMode(m);      saveSettings(parseFloat(inflation) || 0, m); }
+
+  // ── バックアップ（JSONエクスポート/インポート） ───────────────
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  function handleExport() {
+    const data: Record<string, unknown> = {
+      app: 'shisan-sim', version: 1, exportedAt: new Date().toISOString(),
+    };
+    for (const k of BACKUP_KEYS) {
+      const v = localStorage.getItem(k);
+      if (v != null) { try { data[k] = JSON.parse(v); } catch { /* skip 不正値 */ } }
+    }
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    const ymd  = new Date().toISOString().slice(0, 10);
+    a.href = url; a.download = `資産形成_backup_${ymd}.json`; a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function handleImportFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+      try {
+        const d = JSON.parse(ev.target?.result as string) as Record<string, unknown>;
+        if (!BACKUP_KEYS.some(k => d[k] !== undefined)) {
+          alert('このファイルは取り込めませんでした。');
+        } else if (confirm('現在のデータをバックアップ内容で上書きします。よろしいですか？')) {
+          for (const k of BACKUP_KEYS) {
+            if (d[k] !== undefined) localStorage.setItem(k, JSON.stringify(d[k]));
+          }
+          location.reload();
+        }
+      } catch {
+        alert('JSONの読み込みに失敗しました。');
+      }
+      if (fileRef.current) fileRef.current.value = '';
+    };
+    reader.readAsText(file);
+  }
 
   // ── モード間連携 ─────────────────────────────────────────────
   // 複利比較の項目 → 積み立てシミュレーターで詳細試算
@@ -1003,6 +1047,25 @@ export default function Home() {
               </p>
             </div>
           )}
+        </section>
+
+        {/* バックアップ */}
+        <section className="bg-white rounded-xl shadow-sm p-4">
+          <h2 className="text-sm font-semibold text-gray-700 mb-1">バックアップ</h2>
+          <p className="text-xs text-gray-400 mb-3">
+            全データ（複利比較・積み立て・設定）をJSONで保存・復元できます。ドメイン移行や機種変更時の引き継ぎに。
+          </p>
+          <div className="flex gap-2">
+            <button onClick={handleExport}
+              className="flex-1 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors">
+              エクスポート
+            </button>
+            <button onClick={() => fileRef.current?.click()}
+              className="flex-1 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors">
+              インポート
+            </button>
+          </div>
+          <input ref={fileRef} type="file" accept="application/json,.json" onChange={handleImportFile} className="hidden" />
         </section>
 
         {/* 空状態 */}
