@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 const ITEMS = [
   { href: '/',          label: 'タスク',      icon: '✓' },
   { href: '/calendar',  label: 'カレンダー',  icon: '📅' },
+  { href: '/stats',     label: '統計',        icon: '📊' },
   { href: '/settings',  label: '設定',        icon: '⚙' },
 ];
 

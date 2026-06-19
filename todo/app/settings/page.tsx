@@ -1,7 +1,7 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Task, TimeSlot } from '../types';
-import { loadTasks, saveTasks, loadCategories, saveCategories } from '../lib/storage';
+import { loadTasks, saveTasks, loadCategories, saveCategories, exportData, importData, toYMD } from '../lib/storage';
 
 const PRIORITY_STYLE = {
   high:   { label: '高', cls: 'bg-red-100 text-red-600' },
@@ -32,11 +32,15 @@ export default function Settings() {
   const [editing,    setEditing]    = useState<Task | undefined>();
   const [showForm,   setShowForm]   = useState(false);
   const [newCat,     setNewCat]     = useState('');
+  const fileRef = useRef<HTMLInputElement>(null);
 
+  // localStorage はマウント後にのみ読めるため、ここでの同期的な setState は意図的。
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     setTasks(loadTasks());
     setCategories(loadCategories());
   }, []);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   function handleSave(task: Task) {
     const next = editing
@@ -72,6 +76,38 @@ export default function Settings() {
 
   function openEdit(task: Task) { setEditing(task); setShowForm(true); }
   function openAdd()             { setEditing(undefined); setShowForm(true); }
+
+  function handleExport() {
+    const blob = new Blob([JSON.stringify(exportData(), null, 2)], { type: 'application/json' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href = url; a.download = `todo_backup_${toYMD(new Date())}.json`; a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function handleImportFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+      try {
+        const data = JSON.parse(ev.target?.result as string);
+        if (!confirm('現在のデータをバックアップ内容で上書きします。よろしいですか？')) {
+          if (fileRef.current) fileRef.current.value = '';
+          return;
+        }
+        if (importData(data)) {
+          location.reload();
+        } else {
+          alert('このファイルは取り込めませんでした。');
+        }
+      } catch {
+        alert('JSONの読み込みに失敗しました。');
+      }
+      if (fileRef.current) fileRef.current.value = '';
+    };
+    reader.readAsText(file);
+  }
 
   const repeating = tasks.filter(t => t.repeat !== 'none');
   const once      = tasks.filter(t => t.repeat === 'none');
@@ -172,6 +208,23 @@ export default function Settings() {
             </div>
           </section>
         )}
+
+        {/* バックアップ */}
+        <section className="bg-white rounded-xl shadow-sm p-4">
+          <h2 className="text-sm font-semibold text-gray-700 mb-1">バックアップ</h2>
+          <p className="text-xs text-gray-400 mb-3">全データ（タスク・完了履歴・カテゴリ）をJSONで保存・復元できます。</p>
+          <div className="flex gap-2">
+            <button onClick={handleExport}
+              className="flex-1 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors">
+              エクスポート
+            </button>
+            <button onClick={() => fileRef.current?.click()}
+              className="flex-1 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors">
+              インポート
+            </button>
+          </div>
+          <input ref={fileRef} type="file" accept="application/json,.json" onChange={handleImportFile} className="hidden" />
+        </section>
       </main>
 
       <button onClick={openAdd}
@@ -185,6 +238,12 @@ export default function Settings() {
           onClose={() => { setShowForm(false); setEditing(undefined); }}
           editing={editing}
           categories={categories}
+          onDelete={(id) => {
+            const next = tasks.filter(t => t.id !== id);
+            saveTasks(next);
+            setTasks(next);
+            setEditing(undefined);
+          }}
         />
       )}
     </div>

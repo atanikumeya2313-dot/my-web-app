@@ -70,7 +70,10 @@ function shouldShow(task: Task, ymd: string, todayYmd: string, completed?: Compl
     const pastDates  = (completed?.[task.id] ?? []).filter(d => d !== ymd);
     const lastDone   = pastDates.length > 0 ? [...pastDates].sort().at(-1)! : null;
     if (lastDone) {
-      return diffDays(ymd, lastDone) === task.intervalDays!;
+      // 完了日から「間隔の倍数」後をすべて予定日とする。
+      // （ちょうど次回予定をスキップした場合に、その先の予定日で表示が抜けないように）
+      const diff = diffDays(ymd, lastDone);
+      return diff > 0 && task.intervalDays! > 0 && diff % task.intervalDays! === 0;
     } else {
       const start = task.startDate ?? todayYmd;
       const diff  = diffDays(ymd, start);
@@ -82,7 +85,11 @@ function shouldShow(task: Task, ymd: string, todayYmd: string, completed?: Compl
     const pastDates = (completed?.[task.id] ?? []).filter(d => d !== ymd);
     const lastDone  = pastDates.length > 0 ? [...pastDates].sort().at(-1)! : null;
     if (lastDone) {
-      return addMonths(lastDone, n) === ymd;
+      // 完了日から n か月の倍数後をすべて予定日とする（境界での表示抜けを防ぐ）
+      const ld  = new Date(lastDone);
+      const cur = new Date(ymd);
+      const monthsDiff = (cur.getFullYear() - ld.getFullYear()) * 12 + (cur.getMonth() - ld.getMonth());
+      return n > 0 && monthsDiff > 0 && monthsDiff % n === 0 && addMonths(lastDone, monthsDiff) === ymd;
     } else {
       const start      = task.startDate ?? todayYmd;
       if (ymd < start) return false;
@@ -225,8 +232,11 @@ export function loadCompletedLog(): CompletedLogEntry[] {
   catch { return []; }
 }
 
+// 統計・連続記録（ストリーク）に使うため、完了ログは約400日保持する
+const LOG_RETENTION_DAYS = 400;
+
 export function addToLog(entry: CompletedLogEntry): CompletedLogEntry[] {
-  const cutoff = toYMD(new Date(Date.now() - 7 * 86_400_000));
+  const cutoff = toYMD(new Date(Date.now() - LOG_RETENTION_DAYS * 86_400_000));
   const next = [...loadCompletedLog().filter(e => e.date >= cutoff), entry];
   localStorage.setItem(COMPLETED_LOG_KEY, JSON.stringify(next));
   return next;
@@ -254,4 +264,38 @@ export function undoRepeat(completed: CompletedMap, id: string): CompletedMap {
   const next = { ...completed };
   if (prev.length === 0) delete next[id]; else next[id] = prev;
   return next;
+}
+
+// ── バックアップ（JSONエクスポート/インポート） ──────────
+
+export interface BackupData {
+  version: number;
+  exportedAt: string;
+  tasks: Task[];
+  completed: CompletedMap;
+  categories: string[];
+  log: CompletedLogEntry[];
+}
+
+export function exportData(): BackupData {
+  return {
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    tasks: loadTasks(),
+    completed: loadCompleted(),
+    categories: loadCategories(),
+    log: loadCompletedLog(),
+  };
+}
+
+// 取り込み成功なら true（最低限 tasks 配列があることを確認）
+export function importData(raw: unknown): boolean {
+  if (!raw || typeof raw !== 'object') return false;
+  const d = raw as Partial<BackupData>;
+  if (!Array.isArray(d.tasks)) return false;
+  saveTasks(d.tasks);
+  saveCompleted(d.completed && typeof d.completed === 'object' ? d.completed : {});
+  if (Array.isArray(d.categories)) saveCategories(d.categories);
+  if (Array.isArray(d.log)) saveLog(d.log);
+  return true;
 }

@@ -35,9 +35,10 @@ interface Props {
   editing?: Task;
   categories: string[];
   defaultDate?: string;
+  onDelete?: (id: string) => void;
 }
 
-export default function TaskForm({ onSave, onClose, editing, categories, defaultDate }: Props) {
+export default function TaskForm({ onSave, onClose, editing, categories, defaultDate, onDelete }: Props) {
   const today = toYMD(new Date());
 
   const [title,               setTitle]               = useState(editing?.title               ?? '');
@@ -296,6 +297,20 @@ export default function TaskForm({ onSave, onClose, editing, categories, default
             {editing ? '保存' : '追加'}
           </button>
         </div>
+
+        {/* 削除（編集時のみ） */}
+        {editing && onDelete && (
+          <button
+            onClick={() => {
+              if (confirm(`「${editing.title}」を削除しますか？`)) {
+                onDelete(editing.id);
+                onClose();
+              }
+            }}
+            className="w-full py-2 text-sm font-medium text-red-500 hover:text-red-600 transition-colors">
+            このタスクを削除
+          </button>
+        )}
       </div>
     </div>
   );

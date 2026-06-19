@@ -40,11 +40,14 @@ export default function CalendarPage() {
   const [undo,       setUndo]       = useState<UndoAction | null>(null);
   const undoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // localStorage はマウント後にのみ読めるため、ここでの同期的な setState は意図的。
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     setTasks(loadTasks());
     setCompleted(loadCompleted());
     setCategories(loadCategories());
   }, []);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const [year, month] = ym.split('-').map(Number);
   const firstDay  = new Date(year, month - 1, 1).getDay();

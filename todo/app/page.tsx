@@ -60,6 +60,8 @@ export default function Home() {
   const [searchQuery,  setSearchQuery]  = useState('');
   const undoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // localStorage はマウント後にのみ読めるため、ここでの同期的な setState は意図的。
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     const today = toYMD(new Date());
     const loaded = loadTasks();
@@ -75,6 +77,7 @@ export default function Home() {
     setCompletedLog(loadCompletedLog());
     setCategories(loadCategories());
   }, []);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const todayTasks   = viewDate === 'today'
     ? getTodayTasks(tasks, completed)
@@ -188,6 +191,13 @@ export default function Home() {
     const next = editing
       ? tasks.map(t => t.id === task.id ? task : t)
       : [...tasks, task];
+    saveTasks(next);
+    setTasks(next);
+    setEditing(undefined);
+  }
+
+  function handleDeleteTask(id: string) {
+    const next = tasks.filter(t => t.id !== id);
     saveTasks(next);
     setTasks(next);
     setEditing(undefined);
@@ -425,6 +435,7 @@ export default function Home() {
           onSave={handleSave}
           onClose={() => { setShowForm(false); setEditing(undefined); }}
           categories={categories}
+          onDelete={handleDeleteTask}
         />
       )}
 
