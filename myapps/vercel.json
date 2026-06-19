@@ -1,6 +1,7 @@
 {
   "rewrites": [
     { "source": "/quake", "destination": "https://earthquake-app-delta.vercel.app/quake" },
+    { "source": "/quake/", "destination": "https://earthquake-app-delta.vercel.app/quake" },
     { "source": "/quake/:path*", "destination": "https://earthquake-app-delta.vercel.app/quake/:path*" }
   ]
 }
