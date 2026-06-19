@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>マイアプリ</title>
+  <meta name="theme-color" content="#3b82f6" />
+  <style>
+    :root { color-scheme: light; }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, "Segoe UI", "Hiragino Kaku Gothic ProN", sans-serif;
+      background: #f9fafb;
+      color: #1f2937;
+      min-height: 100vh;
+    }
+    header {
+      padding: 24px 16px 8px;
+      max-width: 560px;
+      margin: 0 auto;
+    }
+    header h1 { font-size: 20px; font-weight: 700; margin: 0; }
+    header p { font-size: 12px; color: #9ca3af; margin: 4px 0 0; }
+    main {
+      max-width: 560px;
+      margin: 0 auto;
+      padding: 12px 16px 40px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    a.card {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      background: #fff;
+      border: 1px solid #f1f1f4;
+      border-radius: 16px;
+      padding: 18px 16px;
+      text-decoration: none;
+      color: inherit;
+      box-shadow: 0 1px 2px rgba(0,0,0,.04);
+      transition: transform .08s ease, box-shadow .15s ease;
+    }
+    a.card:active { transform: scale(.97); }
+    a.card .icon { font-size: 28px; line-height: 1; }
+    a.card .name { font-size: 14px; font-weight: 600; }
+    a.card .tag {
+      font-size: 10px; font-weight: 600; align-self: flex-start;
+      padding: 2px 8px; border-radius: 999px;
+    }
+    .tag.local { background: #ecfdf5; color: #059669; }
+    .tag.ext { background: #f3f4f6; color: #9ca3af; }
+    footer { max-width: 560px; margin: 0 auto; padding: 0 16px 32px; color: #d1d5db; font-size: 11px; text-align: center; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>マイアプリ</h1>
+    <p>各アプリへの入口</p>
+  </header>
+  <main>
+    <a class="card" href="/quake">
+      <span class="icon">🗾</span>
+      <span class="name">地震・防災情報</span>
+      <span class="tag local">この入口</span>
+    </a>
+    <a class="card" href="https://kakeibo-seven-iota.vercel.app">
+      <span class="icon">💰</span>
+      <span class="name">家計簿</span>
+      <span class="tag ext">移行前</span>
+    </a>
+    <a class="card" href="https://interest-zeta.vercel.app">
+      <span class="icon">📈</span>
+      <span class="name">資産形成シミュレーター</span>
+      <span class="tag ext">移行前</span>
+    </a>
+    <a class="card" href="https://todo-sandy-eight-90.vercel.app">
+      <span class="icon">✓</span>
+      <span class="name">TODO</span>
+      <span class="tag ext">移行前</span>
+    </a>
+    <a class="card" href="https://inventory-xi-three.vercel.app">
+      <span class="icon">📦</span>
+      <span class="name">在庫管理</span>
+      <span class="tag ext">移行前</span>
+    </a>
+  </main>
+  <footer>「この入口」のアプリは同じドメイン配下でデータを共有します</footer>
+</body>
+</html>
