@@ -2,13 +2,14 @@
   "name": "資産形成シミュレーター",
   "short_name": "資産形成",
   "description": "複利計算・シナリオ比較と、積み立て・NISA・取り崩しシミュレーション",
-  "start_url": "/",
+  "start_url": "/interest/",
+  "scope": "/interest/",
   "display": "standalone",
   "background_color": "#f9fafb",
   "theme_color": "#3b82f6",
   "lang": "ja",
   "icons": [
-    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
-    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+    { "src": "/interest/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/interest/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
   ]
 }

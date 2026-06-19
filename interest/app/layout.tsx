@@ -4,15 +4,15 @@ import './globals.css';
 export const metadata: Metadata = {
   title: '資産形成シミュレーター',
   description: '複利計算・シナリオ比較と、積み立て・NISA・取り崩しシミュレーション',
-  manifest: '/manifest.json',
+  manifest: '/interest/manifest.json',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
     title: '資産形成シミュレーター',
   },
   icons: {
-    icon: '/icon-192.png',
-    apple: '/icon-192.png',
+    icon: '/interest/icon-192.png',
+    apple: '/interest/icon-192.png',
   },
 };
 
