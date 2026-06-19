@@ -2,6 +2,10 @@
   "rewrites": [
     { "source": "/quake", "destination": "https://earthquake-app-delta.vercel.app/quake" },
     { "source": "/quake/", "destination": "https://earthquake-app-delta.vercel.app/quake" },
-    { "source": "/quake/:path*", "destination": "https://earthquake-app-delta.vercel.app/quake/:path*" }
+    { "source": "/quake/:path*", "destination": "https://earthquake-app-delta.vercel.app/quake/:path*" },
+
+    { "source": "/interest", "destination": "https://interest-zeta.vercel.app/interest" },
+    { "source": "/interest/", "destination": "https://interest-zeta.vercel.app/interest" },
+    { "source": "/interest/:path*", "destination": "https://interest-zeta.vercel.app/interest/:path*" }
   ]
 }
