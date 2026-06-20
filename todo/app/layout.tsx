@@ -8,15 +8,15 @@ const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 export const metadata: Metadata = {
   title: "TODO",
   description: "シンプルなTODO管理アプリ（繰り返しタスク対応）",
-  manifest: "/manifest.json",
+  manifest: "/todo/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
     title: "TODO",
   },
   icons: {
-    icon: "/icon-192.png",
-    apple: "/icon-192.png",
+    icon: "/todo/icon-192.png",
+    apple: "/todo/icon-192.png",
   },
 };
 
