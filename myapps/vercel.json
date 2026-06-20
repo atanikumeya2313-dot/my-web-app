@@ -6,6 +6,10 @@
 
     { "source": "/interest", "destination": "https://interest-zeta.vercel.app/interest" },
     { "source": "/interest/", "destination": "https://interest-zeta.vercel.app/interest" },
-    { "source": "/interest/:path*", "destination": "https://interest-zeta.vercel.app/interest/:path*" }
+    { "source": "/interest/:path*", "destination": "https://interest-zeta.vercel.app/interest/:path*" },
+
+    { "source": "/kakeibo", "destination": "https://kakeibo-seven-iota.vercel.app/kakeibo" },
+    { "source": "/kakeibo/", "destination": "https://kakeibo-seven-iota.vercel.app/kakeibo" },
+    { "source": "/kakeibo/:path*", "destination": "https://kakeibo-seven-iota.vercel.app/kakeibo/:path*" }
   ]
 }
