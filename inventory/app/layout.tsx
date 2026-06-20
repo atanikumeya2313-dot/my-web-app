@@ -4,15 +4,15 @@ import './globals.css';
 export const metadata: Metadata = {
   title: '在庫管理',
   description: '家の物の在庫を管理するアプリ',
-  manifest: '/manifest.json',
+  manifest: '/inventory/manifest.json',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
     title: '在庫管理',
   },
   icons: {
-    icon: '/icon-192.png',
-    apple: '/icon-192.png',
+    icon: '/inventory/icon-192.png',
+    apple: '/inventory/icon-192.png',
   },
 };
 

@@ -1,3 +1,6 @@
 import type { NextConfig } from "next";
-const nextConfig: NextConfig = {};
+const nextConfig: NextConfig = {
+  // ハブ（統合ドメイン）配下 /inventory で配信するためのサブパス
+  basePath: "/inventory",
+};
 export default nextConfig;
