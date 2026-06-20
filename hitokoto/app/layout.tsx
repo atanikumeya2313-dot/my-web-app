@@ -4,15 +4,15 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "ひとこと日記",
   description: "一日一言の記録に、AIがそっと一言を返します",
-  manifest: "/manifest.json",
+  manifest: "/diary/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
     title: "ひとこと日記",
   },
   icons: {
-    icon: "/icon-192.png",
-    apple: "/icon-192.png",
+    icon: "/diary/icon-192.png",
+    apple: "/diary/icon-192.png",
   },
 };
 
