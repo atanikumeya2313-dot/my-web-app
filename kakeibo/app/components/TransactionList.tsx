@@ -70,6 +70,11 @@ export default function TransactionList({ transactions, categories, onDelete, on
     .filter(t => !amountMax  || t.amount <= Number(amountMax))
     .sort((a, b) => b.date.localeCompare(a.date));
 
+  // 絞り込み結果の合計
+  const fIncome  = filtered.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
+  const fExpense = filtered.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
+  const fNet     = fIncome - fExpense;
+
   return (
     <div>
       {/* 保存した検索条件 */}
@@ -183,14 +188,25 @@ export default function TransactionList({ transactions, categories, onDelete, on
         </div>
       )}
 
-      {/* 件数表示・条件保存 */}
+      {/* 件数・合計・条件保存 */}
       {anyFilterActive && (
-        <div className="flex items-center justify-between mb-1">
-          <p className="text-xs text-gray-400">{filtered.length} 件</p>
-          <button onClick={saveCurrentSearch}
-            className="text-xs text-amber-500 hover:text-amber-600 font-medium">
-            ⭐ この条件を保存
-          </button>
+        <div className="mb-1.5">
+          <div className="flex items-center justify-between">
+            <p className="text-xs text-gray-400">{filtered.length} 件</p>
+            <button onClick={saveCurrentSearch}
+              className="text-xs text-amber-500 hover:text-amber-600 font-medium">
+              ⭐ この条件を保存
+            </button>
+          </div>
+          {(fIncome > 0 || fExpense > 0) && (
+            <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] mt-1">
+              {fIncome > 0 && <span className="text-green-600">収入計 ¥{fmt(fIncome)}</span>}
+              {fExpense > 0 && <span className="text-red-500">支出計 ¥{fmt(fExpense)}</span>}
+              <span className={fNet >= 0 ? 'text-blue-500' : 'text-orange-500'}>
+                収支 {fNet >= 0 ? '+' : '−'}¥{fmt(Math.abs(fNet))}
+              </span>
+            </div>
+          )}
         </div>
       )}
 

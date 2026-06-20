@@ -57,6 +57,32 @@ export default function Settings() {
     }
   }
 
+  function handleFixedEdited(oldItem: FixedItem, newItem: FixedItem) {
+    const today = new Date();
+    const currentMonth = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
+    const allTxs = loadTransactions();
+    // 当月、旧固定費の内容で自動追加された取引を探す
+    const related = allTxs.filter(t =>
+      t.date.startsWith(currentMonth) &&
+      t.memo === oldItem.name &&
+      t.amount === oldItem.amount &&
+      t.category === oldItem.category &&
+      t.type === oldItem.type
+    );
+    if (related.length === 0) return;
+
+    const label = `${today.getFullYear()}年${today.getMonth() + 1}月`;
+    if (!confirm(`${label}に自動追加された「${oldItem.name}」（${related.length}件）も新しい内容に更新しますか？`)) return;
+
+    const maxDay = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
+    const newDate = `${currentMonth}-${String(Math.min(newItem.day, maxDay)).padStart(2, '0')}`;
+    const relatedIds = new Set(related.map(t => t.id));
+    saveTransactions(allTxs.map(t => relatedIds.has(t.id)
+      ? { ...t, memo: newItem.name, amount: newItem.amount, category: newItem.category, type: newItem.type, date: newDate }
+      : t
+    ));
+  }
+
   return (
     <div className="min-h-screen">
       <header className="bg-white border-b border-gray-100 sticky top-0 z-10">
@@ -67,7 +93,7 @@ export default function Settings() {
       <main className="px-4 py-4 space-y-4">
         <AssetManager assets={assets} onChange={handleAssets} />
         <GoalManager goal={goal} onChange={handleGoal} />
-        <FixedManager items={fixed} categories={cats} onChange={handleFixed} onDelete={handleFixedDelete} />
+        <FixedManager items={fixed} categories={cats} onChange={handleFixed} onDelete={handleFixedDelete} onEdited={handleFixedEdited} />
         <TemplateManager templates={templates} categories={cats} onChange={handleTemplates} />
         <CategoryManager categories={cats} onChange={handleCats} />
         <BudgetManager categories={cats} budgets={budgets} onChange={handleBudgets} />

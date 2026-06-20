@@ -21,6 +21,7 @@ import WeeklySummary from './components/WeeklySummary';
 import QuickTemplates from './components/QuickTemplates';
 import GoalProgress from './components/GoalProgress';
 import MonthlyReport from './components/MonthlyReport';
+import MonthEndForecast from './components/MonthEndForecast';
 
 type Tab = '一覧' | 'カレンダー' | 'グラフ' | 'レポート' | '年間' | '推移' | '残高';
 
@@ -46,6 +47,7 @@ export default function Home() {
   const [assets]                  = useStored<Asset[]>(loadAssets, []);
   const [templates, setTemplates] = useStored<Template[]>(loadTemplates, []);
   const [goal]                    = useStored<Goal | null>(loadGoal, null);
+  const [fixed]                   = useStored<FixedItem[]>(loadFixed, []);
   const [showForm,  setShowForm]  = useState(false);
   const [editing,   setEditing]   = useState<Transaction | undefined>();
   const [prefill,   setPrefill]   = useState<Partial<Transaction> | undefined>();
@@ -92,6 +94,11 @@ export default function Home() {
 
   const defaultDate = `${month}-${String(today.getDate()).padStart(2,'0')}`;
 
+  // 当月の経過割合（予算ペースの目安に使用）
+  const paceFraction = isCurrMonth
+    ? Math.min(today.getDate(), daysInMonth(thisMonth)) / daysInMonth(thisMonth)
+    : undefined;
+
   const handleSave = (tx: Transaction) => {
     setTxs(editing ? updateTransaction(tx) : addTransaction(tx));
     setEditing(undefined);
@@ -133,7 +140,8 @@ export default function Home() {
         <AssetSummary assets={assets} transactions={txs} />
         <Summary transactions={monthTxs} prevTransactions={prevMonthTxs} samePeriod={isCurrMonth} />
         {isCurrMonth && <GoalProgress goal={goal} transactions={monthTxs} />}
-        <BudgetProgress transactions={monthTxs} categories={cats} budgets={budgets} />
+        {isCurrMonth && <MonthEndForecast transactions={monthTxs} fixedItems={fixed} yearMonth={month} />}
+        <BudgetProgress transactions={monthTxs} categories={cats} budgets={budgets} paceFraction={paceFraction} />
         <WeeklySummary transactions={monthTxs} yearMonth={month} />
 
         <div className="bg-white rounded-xl shadow-sm overflow-hidden">

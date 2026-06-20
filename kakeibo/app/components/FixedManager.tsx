@@ -7,9 +7,10 @@ interface Props {
   categories: Category[];
   onChange: (items: FixedItem[]) => void;
   onDelete?: (id: string) => void;
+  onEdited?: (oldItem: FixedItem, newItem: FixedItem) => void;
 }
 
-export default function FixedManager({ items, categories, onChange, onDelete }: Props) {
+export default function FixedManager({ items, categories, onChange, onDelete, onEdited }: Props) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [type,     setType]   = useState<TxType>('expense');
   const [name,     setName]   = useState('');
@@ -38,11 +39,10 @@ export default function FixedManager({ items, categories, onChange, onDelete }: 
     const dayNum = Math.min(Math.max(Number(day), 1), 31);
 
     if (editingId) {
-      onChange(items.map(i =>
-        i.id === editingId
-          ? { ...i, name: name.trim(), amount: Number(amount), type, category, day: dayNum }
-          : i
-      ));
+      const oldItem = items.find(i => i.id === editingId);
+      const newItem: FixedItem = { id: editingId, name: name.trim(), amount: Number(amount), type, category, day: dayNum };
+      onChange(items.map(i => i.id === editingId ? newItem : i));
+      if (oldItem && onEdited) onEdited(oldItem, newItem);
       setEditingId(null);
     } else {
       const item: FixedItem = {

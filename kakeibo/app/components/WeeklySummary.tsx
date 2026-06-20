@@ -42,7 +42,7 @@ export default function WeeklySummary({ transactions, yearMonth }: Props) {
 
   return (
     <div className="bg-white rounded-xl shadow-sm p-4">
-      <h2 className="text-sm font-semibold text-gray-700 mb-3">週次サマリー</h2>
+      <h2 className="text-sm font-semibold text-gray-600 mb-3">週次サマリー</h2>
       <div className="space-y-2">
         {weeks.map((week, i) => {
           const isCurrent = todayDay >= week.startDay && todayDay <= week.endDay;

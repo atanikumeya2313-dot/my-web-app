@@ -16,7 +16,7 @@ export default function TemplateManager({ templates, categories, onChange }: Pro
   return (
     <div className="bg-white rounded-xl shadow-sm p-4">
       <button className="w-full flex items-center justify-between" onClick={() => setOpen(o => !o)}>
-        <h2 className="text-sm font-semibold text-gray-700">クイックテンプレート</h2>
+        <h2 className="text-sm font-semibold text-gray-600">クイックテンプレート</h2>
         <span className="text-gray-400 text-xs">{open ? '▲' : '▼'}</span>
       </button>
 
