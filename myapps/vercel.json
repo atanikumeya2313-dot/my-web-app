@@ -10,6 +10,10 @@
 
     { "source": "/kakeibo", "destination": "https://kakeibo-seven-iota.vercel.app/kakeibo" },
     { "source": "/kakeibo/", "destination": "https://kakeibo-seven-iota.vercel.app/kakeibo" },
-    { "source": "/kakeibo/:path*", "destination": "https://kakeibo-seven-iota.vercel.app/kakeibo/:path*" }
+    { "source": "/kakeibo/:path*", "destination": "https://kakeibo-seven-iota.vercel.app/kakeibo/:path*" },
+
+    { "source": "/inventory", "destination": "https://inventory-xi-three.vercel.app/inventory" },
+    { "source": "/inventory/", "destination": "https://inventory-xi-three.vercel.app/inventory" },
+    { "source": "/inventory/:path*", "destination": "https://inventory-xi-three.vercel.app/inventory/:path*" }
   ]
 }
