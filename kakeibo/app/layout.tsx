@@ -5,15 +5,15 @@ import BottomNav from './components/BottomNav';
 export const metadata: Metadata = {
   title: '家計簿',
   description: '個人用家計簿アプリ',
-  manifest: '/manifest.json',
+  manifest: '/kakeibo/manifest.json',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
     title: '家計簿',
   },
   icons: {
-    icon: '/icon-192.png',
-    apple: '/icon-192.png',
+    icon: '/kakeibo/icon-192.png',
+    apple: '/kakeibo/icon-192.png',
   },
 };
 
