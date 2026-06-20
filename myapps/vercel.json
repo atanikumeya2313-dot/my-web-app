@@ -14,6 +14,10 @@
 
     { "source": "/inventory", "destination": "https://inventory-xi-three.vercel.app/inventory" },
     { "source": "/inventory/", "destination": "https://inventory-xi-three.vercel.app/inventory" },
-    { "source": "/inventory/:path*", "destination": "https://inventory-xi-three.vercel.app/inventory/:path*" }
+    { "source": "/inventory/:path*", "destination": "https://inventory-xi-three.vercel.app/inventory/:path*" },
+
+    { "source": "/todo", "destination": "https://todo-sandy-eight-90.vercel.app/todo" },
+    { "source": "/todo/", "destination": "https://todo-sandy-eight-90.vercel.app/todo" },
+    { "source": "/todo/:path*", "destination": "https://todo-sandy-eight-90.vercel.app/todo/:path*" }
   ]
 }
