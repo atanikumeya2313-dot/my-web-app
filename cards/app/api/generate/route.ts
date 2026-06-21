@@ -44,8 +44,9 @@ type Body = {
   mode?: "text" | "topic" | "photo";
   text?: string;
   topic?: string;
-  imageBase64?: string;   // data URLではなく純粋なbase64
+  imageBase64?: string;   // data URLではなく純粋なbase64（旧・単一画像）
   imageMimeType?: string;
+  images?: { base64?: string; mimeType?: string }[];  // 複数画像
   count?: number;
 };
 
@@ -67,11 +68,17 @@ export async function POST(req: NextRequest) {
   // モードごとに Gemini への入力（contents）を組み立てる
   let contents: unknown;
   if (mode === "photo") {
-    const data = (body.imageBase64 ?? "").trim();
-    if (!data) return Response.json({ error: "画像がありません" }, { status: 400 });
+    // 複数画像（images）優先。旧形式（imageBase64）も後方互換でサポート。
+    const list = Array.isArray(body.images) && body.images.length
+      ? body.images
+      : (body.imageBase64 ? [{ base64: body.imageBase64, mimeType: body.imageMimeType }] : []);
+    const valid = list
+      .map(i => ({ data: (i?.base64 ?? "").trim(), mimeType: i?.mimeType || "image/jpeg" }))
+      .filter(i => i.data);
+    if (valid.length === 0) return Response.json({ error: "画像がありません" }, { status: 400 });
     contents = [
-      { inlineData: { mimeType: body.imageMimeType || "image/jpeg", data } },
-      { text: `この画像（教科書・ノート・資料など）の内容から、暗記カードを${count}枚程度作ってください。画像内の文字を読み取り、重要事項を一問一答にしてください。` },
+      ...valid.map(i => ({ inlineData: { mimeType: i.mimeType, data: i.data } })),
+      { text: `これらの画像（教科書・ノート・資料。複数ページのことがあります）の内容から、暗記カードを合計${count}枚程度作ってください。各画像内の文字を読み取り、重要事項を一問一答にしてください。同じ内容の重複カードは作らないでください。` },
     ];
   } else if (mode === "topic") {
     const topic = (body.topic ?? "").trim();

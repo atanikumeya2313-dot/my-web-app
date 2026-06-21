@@ -44,28 +44,37 @@ export default function GenerateModal({ deckName, onAdd, onClose }: Props) {
   const [text,    setText]    = useState('');
   const [topic,   setTopic]   = useState('');
   const [count,   setCount]   = useState('5');  // 入力中は文字列で自由に編集（生成時に1〜30へ正規化）
-  const [image,   setImage]   = useState<{ base64: string; mimeType: string; preview: string } | null>(null);
+  const [images,  setImages]  = useState<{ base64: string; mimeType: string; preview: string }[]>([]);
   const [loading, setLoading] = useState(false);
   const [error,   setError]   = useState('');
   const [drafts,  setDrafts]  = useState<DraftCard[] | null>(null);  // null=入力フェーズ
 
-  async function handlePickImage(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const MAX_IMAGES = 10;
+
+  async function handlePickImages(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(e.target.files ?? []);
+    e.target.value = '';   // 同じ写真を選び直せるようにクリア
+    if (files.length === 0) return;
     setError('');
     try {
-      const { base64, mimeType } = await downscaleImage(file);
-      setImage({ base64, mimeType, preview: `data:${mimeType};base64,${base64}` });
+      const added = await Promise.all(files.map(async f => {
+        const { base64, mimeType } = await downscaleImage(f);
+        return { base64, mimeType, preview: `data:${mimeType};base64,${base64}` };
+      }));
+      setImages(prev => [...prev, ...added].slice(0, MAX_IMAGES));
     } catch {
       setError('画像を読み込めませんでした');
     }
+  }
+  function removeImage(idx: number) {
+    setImages(prev => prev.filter((_, i) => i !== idx));
   }
 
   async function handleGenerate() {
     if (loading) return;
     if (mode === 'text' && !text.trim()) return;
     if (mode === 'topic' && !topic.trim()) return;
-    if (mode === 'photo' && !image) return;
+    if (mode === 'photo' && images.length === 0) return;
     setLoading(true);
     setError('');
     try {
@@ -73,7 +82,7 @@ export default function GenerateModal({ deckName, onAdd, onClose }: Props) {
       const payload: Record<string, unknown> = { mode, count: n };
       if (mode === 'text')  payload.text = text.trim();
       if (mode === 'topic') payload.topic = topic.trim();
-      if (mode === 'photo' && image) { payload.imageBase64 = image.base64; payload.imageMimeType = image.mimeType; }
+      if (mode === 'photo') payload.images = images.map(i => ({ base64: i.base64, mimeType: i.mimeType }));
 
       const res = await fetch('/cards/api/generate', {
         method: 'POST',
@@ -103,7 +112,7 @@ export default function GenerateModal({ deckName, onAdd, onClose }: Props) {
   const canGenerate =
     (mode === 'text' && text.trim().length > 0) ||
     (mode === 'topic' && topic.trim().length > 0) ||
-    (mode === 'photo' && !!image);
+    (mode === 'photo' && images.length > 0);
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col justify-end bg-black/40" onClick={onClose}>
@@ -143,14 +152,24 @@ export default function GenerateModal({ deckName, onAdd, onClose }: Props) {
               )}
               {mode === 'photo' && (
                 <div className="space-y-2">
-                  <label className="block w-full border-2 border-dashed border-gray-200 rounded-xl px-3 py-6 text-center text-sm text-gray-400 cursor-pointer hover:border-indigo-300">
-                    {image ? '別の写真を選ぶ' : '📷 写真を選ぶ / 撮影する'}
-                    <input type="file" accept="image/*" capture="environment" className="hidden" onChange={handlePickImage} />
+                  <label className="block w-full border-2 border-dashed border-gray-200 rounded-xl px-3 py-5 text-center text-sm text-gray-400 cursor-pointer hover:border-indigo-300">
+                    {images.length > 0 ? '＋ 写真を追加' : '📷 写真を選ぶ（複数まとめて選べます）'}
+                    <input type="file" accept="image/*" multiple className="hidden" onChange={handlePickImages} />
                   </label>
-                  {image && (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={image.preview} alt="プレビュー" className="max-h-40 rounded-lg mx-auto" />
+                  <p className="text-[11px] text-gray-400">ライブラリから複数選択／撮影もできます（最大{MAX_IMAGES}枚）。複数ページを一度にカード化します。</p>
+                  {images.length > 0 && (
+                    <div className="grid grid-cols-4 gap-2">
+                      {images.map((img, idx) => (
+                        <div key={idx} className="relative">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={img.preview} alt={`写真${idx + 1}`} className="w-full h-16 object-cover rounded-lg border border-gray-100" />
+                          <button onClick={() => removeImage(idx)}
+                            className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-gray-700 text-white rounded-full text-[10px] flex items-center justify-center shadow">✕</button>
+                        </div>
+                      ))}
+                    </div>
                   )}
+                  {images.length > 0 && <p className="text-[11px] text-gray-400 text-right">{images.length}枚 選択中</p>}
                 </div>
               )}
 
