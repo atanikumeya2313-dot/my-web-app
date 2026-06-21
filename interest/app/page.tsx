@@ -5,6 +5,7 @@ import {
   Tooltip, ResponsiveContainer,
 } from 'recharts';
 import SavingsSimulator from './components/SavingsSimulator';
+import AiExplain from './components/AiExplain';
 import { SavingsSeed } from './lib/calc';
 
 type Mode = 'compound' | 'savings';
@@ -813,6 +814,20 @@ export default function Home() {
               </p>
             </div>
           </section>
+        )}
+
+        {/* AIによる結果の解説 */}
+        {items.length > 0 && (
+          <AiExplain payload={{
+            years,
+            inflation: inflNum,
+            items: items.map(i => ({
+              label: i.label, principal: i.principal, monthly: i.monthly,
+              rate: i.rate, taxable: !!i.taxable, savingsEndYear: i.savingsEndYear,
+            })),
+            totalPrincipal, totalInvested, totalFv, totalGain, totalPct,
+            taxAmount, afterTaxFv, realFv,
+          }} />
         )}
 
         {/* 推移グラフ */}
