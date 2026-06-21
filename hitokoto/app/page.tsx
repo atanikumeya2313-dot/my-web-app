@@ -25,7 +25,8 @@ export default function Home() {
     setLoadingDate(date);
     setErr(null);
     try {
-      const res = await fetch('/api/comment', {
+      // basePath は raw fetch に自動付与されないため明示（ハブ /diary 配下で動かすため）
+      const res = await fetch('/diary/api/comment', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text }),
