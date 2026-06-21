@@ -1,0 +1,189 @@
+'use client';
+import { useEffect, useRef, useState } from 'react';
+import {
+  Entry, loadEntries, saveEntries, todayYMD, fmtDate,
+  exportEntries, importEntries,
+} from './lib/storage';
+
+export default function Home() {
+  const [entries, setEntries] = useState<Entry[]>([]);
+  const [input, setInput] = useState('');
+  const [loadingDate, setLoadingDate] = useState<string | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  // localStorage はマウント後にのみ読めるため、ここでの setState は意図的
+  /* eslint-disable react-hooks/set-state-in-effect */
+  useEffect(() => { setEntries(loadEntries()); }, []);
+  /* eslint-enable react-hooks/set-state-in-effect */
+
+  const today = todayYMD();
+  const todayEntry = entries.find(e => e.date === today);
+  const past = entries.filter(e => e.date !== today);
+
+  async function fetchComment(date: string, text: string) {
+    setLoadingDate(date);
+    setErr(null);
+    try {
+      const res = await fetch('/api/comment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text }),
+      });
+      const data = await res.json();
+      if (res.ok && data.comment) {
+        setEntries(prev => {
+          const next = prev.map(e => e.date === date ? { ...e, comment: data.comment } : e);
+          saveEntries(next);
+          return next;
+        });
+      } else {
+        setErr(data.error || 'AIの返事を取得できませんでした');
+      }
+    } catch {
+      setErr('通信に失敗しました');
+    } finally {
+      setLoadingDate(null);
+    }
+  }
+
+  function handleRecord() {
+    const text = input.trim();
+    if (!text) return;
+    const entry: Entry = { date: today, text, comment: '' };
+    const next = [entry, ...entries.filter(e => e.date !== today)]
+      .sort((a, b) => b.date.localeCompare(a.date));
+    setEntries(next); saveEntries(next); setInput('');
+    fetchComment(today, text);
+  }
+
+  function rewriteToday() {
+    if (todayEntry) setInput(todayEntry.text);
+    const next = entries.filter(e => e.date !== today);
+    setEntries(next); saveEntries(next); setErr(null);
+  }
+
+  function handleExport() {
+    const blob = new Blob([exportEntries()], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `ひとこと日記_${today}.json`; a.click();
+    URL.revokeObjectURL(url);
+  }
+  function handleImportFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+      if (confirm('現在の日記をバックアップ内容で上書きします。よろしいですか？')) {
+        if (importEntries(ev.target?.result as string)) setEntries(loadEntries());
+        else alert('このファイルは取り込めませんでした。');
+      }
+      if (fileRef.current) fileRef.current.value = '';
+    };
+    reader.readAsText(file);
+  }
+
+  return (
+    <div className="max-w-lg mx-auto px-4 pb-16">
+      <header className="pt-8 pb-4 text-center">
+        <h1 className="text-xl font-bold text-amber-800">ひとこと日記</h1>
+        <p className="text-xs text-amber-700/60 mt-1">今日のひとことに、そっと一言かえします</p>
+      </header>
+
+      {/* 今日 */}
+      {!todayEntry ? (
+        <section className="bg-white rounded-2xl shadow-sm border border-amber-100/70 p-5">
+          <p className="text-xs text-amber-700/70 mb-2">{fmtDate(today)}</p>
+          <textarea
+            value={input}
+            onChange={e => setInput(e.target.value)}
+            placeholder="今日のひとこと…"
+            rows={3}
+            maxLength={300}
+            className="w-full resize-none border border-amber-100 rounded-xl px-4 py-3 text-sm bg-amber-50/30 focus:outline-none focus:ring-2 focus:ring-amber-300"
+          />
+          <div className="flex items-center justify-between mt-3">
+            <span className="text-[11px] text-gray-300">{input.length}/300</span>
+            <button
+              onClick={handleRecord}
+              disabled={!input.trim()}
+              className="px-5 py-2 bg-amber-700 text-white rounded-xl text-sm font-medium hover:bg-amber-800 disabled:opacity-40 transition-colors">
+              記録する
+            </button>
+          </div>
+        </section>
+      ) : (
+        <section className="bg-white rounded-2xl shadow-sm border border-amber-100/70 p-5">
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-xs text-amber-700/70">{fmtDate(today)}</p>
+            <button onClick={rewriteToday} className="text-[11px] text-amber-600/70 hover:text-amber-700">書き直す</button>
+          </div>
+          <p className="text-base text-gray-800 leading-relaxed whitespace-pre-wrap">{todayEntry.text}</p>
+
+          <div className="mt-4 pt-4 border-t border-amber-100/70">
+            {loadingDate === today ? (
+              <p className="text-sm text-amber-600/70 flex items-center gap-2">
+                <span className="inline-block w-3 h-3 border-2 border-amber-300 border-t-transparent rounded-full animate-spin" />
+                AIが考えています…
+              </p>
+            ) : todayEntry.comment ? (
+              <div className="flex gap-2.5 items-start">
+                <span className="text-lg leading-none mt-0.5">🪄</span>
+                <p className="text-sm text-amber-900/90 leading-relaxed whitespace-pre-wrap">{todayEntry.comment}</p>
+              </div>
+            ) : (
+              <button
+                onClick={() => fetchComment(today, todayEntry.text)}
+                className="text-sm text-amber-700 underline-offset-2 hover:underline">
+                AIに一言もらう
+              </button>
+            )}
+          </div>
+        </section>
+      )}
+
+      {err && (
+        <p className="mt-3 text-xs text-red-500 bg-red-50 rounded-lg px-3 py-2">{err}</p>
+      )}
+
+      {/* 過去の記録 */}
+      {past.length > 0 && (
+        <section className="mt-8">
+          <h2 className="text-xs font-semibold text-amber-700/70 mb-3 px-1">これまでのひとこと</h2>
+          <div className="space-y-3">
+            {past.map(e => (
+              <div key={e.date} className="bg-white/70 rounded-2xl border border-amber-100/60 p-4">
+                <p className="text-[11px] text-amber-700/60 mb-1.5">{fmtDate(e.date)}</p>
+                <p className="text-sm text-gray-800 leading-relaxed whitespace-pre-wrap">{e.text}</p>
+                {e.comment ? (
+                  <div className="mt-2.5 pt-2.5 border-t border-amber-100/60 flex gap-2 items-start">
+                    <span className="text-base leading-none mt-0.5">🪄</span>
+                    <p className="text-xs text-amber-900/80 leading-relaxed whitespace-pre-wrap">{e.comment}</p>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => fetchComment(e.date, e.text)}
+                    disabled={loadingDate === e.date}
+                    className="mt-2 text-xs text-amber-600/80 hover:text-amber-700 disabled:opacity-50">
+                    {loadingDate === e.date ? 'AIが考えています…' : 'AIに一言もらう'}
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* バックアップ */}
+      <section className="mt-10 text-center">
+        <div className="inline-flex gap-4 text-[11px] text-amber-700/50">
+          <button onClick={handleExport} className="hover:text-amber-700">エクスポート</button>
+          <span className="text-amber-200">|</span>
+          <button onClick={() => fileRef.current?.click()} className="hover:text-amber-700">インポート</button>
+        </div>
+        <input ref={fileRef} type="file" accept="application/json,.json" onChange={handleImportFile} className="hidden" />
+      </section>
+    </div>
+  );
+}
