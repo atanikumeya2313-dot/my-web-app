@@ -22,6 +22,7 @@ import QuickTemplates from './components/QuickTemplates';
 import GoalProgress from './components/GoalProgress';
 import MonthlyReport from './components/MonthlyReport';
 import MonthEndForecast from './components/MonthEndForecast';
+import AiInsight from './components/AiInsight';
 
 type Tab = '一覧' | 'カレンダー' | 'グラフ' | 'レポート' | '年間' | '推移' | '残高';
 
@@ -143,6 +144,16 @@ export default function Home() {
         {isCurrMonth && <MonthEndForecast transactions={monthTxs} fixedItems={fixed} yearMonth={month} />}
         <BudgetProgress transactions={monthTxs} categories={cats} budgets={budgets} paceFraction={paceFraction} />
         <WeeklySummary transactions={monthTxs} yearMonth={month} />
+        <AiInsight
+          yearMonth={month}
+          isCurrentMonth={isCurrMonth}
+          transactions={monthTxs}
+          prevTransactions={prevMonthTxs}
+          categories={cats}
+          budgets={budgets}
+          goal={goal}
+          paceFraction={paceFraction}
+        />
 
         <div className="bg-white rounded-xl shadow-sm overflow-hidden">
           {/* タブバー（スクロール対応） */}

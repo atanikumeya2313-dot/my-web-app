@@ -103,6 +103,23 @@ export function saveGoal(goal: Goal) {
   localStorage.setItem(KEYS.goal, JSON.stringify(goal));
 }
 
+// ── AI マンスリーレビュー（月次インサイト）のキャッシュ ────
+// 集計値だけをAIに渡して生成した文章を、月ごとにキャッシュする。
+// sig は生成元の集計のシグネチャで、データが変わったら再生成を促すために使う。
+const AI_INSIGHT_KEY = 'kakeibo_ai_insight';
+
+export interface InsightCache { text: string; at: string; sig: string; }
+
+export function loadInsights(): Record<string, InsightCache> {
+  try { return JSON.parse(localStorage.getItem(AI_INSIGHT_KEY) || '{}'); }
+  catch { return {}; }
+}
+export function saveInsight(ym: string, entry: InsightCache) {
+  const all = loadInsights();
+  all[ym] = entry;
+  localStorage.setItem(AI_INSIGHT_KEY, JSON.stringify(all));
+}
+
 // ── Applied months（固定費を適用済みの月） ─────────────────
 export function loadAppliedMonths(): string[] {
   try { return JSON.parse(localStorage.getItem(KEYS.appliedMonths) || '[]'); }
