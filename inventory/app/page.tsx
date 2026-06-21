@@ -11,6 +11,7 @@ import {
 } from './lib/storage';
 import ItemCard from './components/ItemCard';
 import ItemForm from './components/ItemForm';
+import AiAddModal, { ParsedItem } from './components/AiAddModal';
 
 type Tab = 'inventory' | 'shopping' | 'history';
 
@@ -34,6 +35,7 @@ export default function Home() {
   const [history,  setHistory]  = useState<HistoryEntry[]>([]);
   const [tab,      setTab]      = useState<Tab>('inventory');
   const [showForm, setShowForm] = useState(false);
+  const [showAi,   setShowAi]   = useState(false);
   const [editing,  setEditing]  = useState<StockItem | undefined>();
   const [query,    setQuery]    = useState('');
   const [catFilter, setCatFilter] = useState<string>(CAT_ALL);
@@ -166,6 +168,22 @@ export default function Home() {
 
   const openEdit = (item: StockItem) => { setEditing(item); setShowForm(true); };
   const openAdd  = () => { setEditing(undefined); setShowForm(true); };
+
+  // AIが解析した複数アイテムをまとめて追加する
+  const handleAiAdd = (parsed: ParsedItem[]) => {
+    const now = Date.now();
+    const newItems: StockItem[] = parsed.map((p, i) => ({
+      id:          crypto.randomUUID(),
+      name:        p.name,
+      category:    categories.includes(p.category) ? p.category : (categories[0] ?? DEFAULT_CATEGORIES[0]),
+      quantity:    Math.max(0, p.quantity),
+      minQuantity: 1,
+      unit:        p.unit || '個',
+      addedAt:     new Date(now + i).toISOString(),
+    }));
+    setItems(replaceItems([...loadItems(), ...newItems]));
+    setShowAi(false);
+  };
 
   function sortItems(list: StockItem[]): StockItem[] {
     return [...list].sort((a, b) => {
@@ -440,10 +458,26 @@ export default function Home() {
         )}
       </main>
 
-      <button onClick={openAdd}
-        className="fixed bottom-20 right-4 w-14 h-14 bg-blue-500 text-white rounded-full text-2xl shadow-lg hover:bg-blue-600 flex items-center justify-center z-40">
-        +
-      </button>
+      <div className="fixed bottom-20 right-4 flex flex-col items-end gap-3 z-40">
+        <button onClick={() => setShowAi(true)} aria-label="AIでまとめて追加"
+          className="h-11 pl-3.5 pr-4 bg-gradient-to-r from-violet-500 to-blue-500 text-white rounded-full text-sm font-semibold shadow-lg hover:opacity-90 active:scale-95 transition flex items-center gap-1.5">
+          <span className="text-base leading-none">✨</span>
+          <span>AIで追加</span>
+        </button>
+        <button onClick={openAdd} aria-label="アイテムを追加"
+          className="w-14 h-14 bg-blue-500 text-white rounded-full text-2xl shadow-lg hover:bg-blue-600 active:scale-90 transition-transform flex items-center justify-center">
+          +
+        </button>
+      </div>
+
+      {showAi && (
+        <AiAddModal
+          categories={categories}
+          customIcons={customIcons}
+          onAdd={handleAiAdd}
+          onClose={() => setShowAi(false)}
+        />
+      )}
 
       {showForm && (
         <ItemForm
