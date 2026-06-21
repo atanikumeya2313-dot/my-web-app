@@ -13,7 +13,7 @@ const REPEATS = [
   "interval", "monthly-interval", "monthly-weekday",
 ] as const;
 const TIME_SLOTS = ["morning", "afternoon", "evening", "anytime"] as const;
-const PRIORITIES = ["high", "medium", "low", ""] as const;
+const PRIORITIES = ["high", "medium", "low"] as const;
 
 const DOW = ["日", "月", "火", "水", "木", "金", "土"];
 
@@ -28,7 +28,7 @@ function buildSystem(today: string, dow: string, categories: string[]): string {
 - title: タスクの内容を簡潔に。日時・繰り返しの表現は title から取り除く（例「毎週月曜にゴミ出し」→ title は「ゴミ出し」）。
 - repeat: none=一回限り / daily=毎日 / weekly=毎週(特定曜日) / monthly=毎月(特定日) / interval=N日ごと / monthly-interval=Nか月ごと / monthly-weekday=毎月第N曜日。繰り返し表現が無ければ none。
 - timeSlot: 朝=morning / 昼=afternoon / 夜=evening / 指定なし=anytime。「朝」「午前」→morning、「昼」「日中」→afternoon、「夜」「夕方」→evening。
-- priority: 「重要」「急ぎ」「絶対」等→high、「なるべく」→medium、特に無ければ ""。
+- priority: 「重要」「急ぎ」「絶対」等→high、「なるべく」→medium。特に無ければ priority フィールド自体を出さない。
 - category: 内容に最も合うものを「選べるカテゴリ」から1つ選ぶ。合うものが無ければ ""。新しいカテゴリは作らない。
 - memo: 補足があれば。無ければ ""。
 - date: repeat=none で「明日」「6月25日」等の指定があれば YYYY-MM-DD。今日の日付を基準に解決する。指定が無ければ ""。
