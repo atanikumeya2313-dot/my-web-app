@@ -8,6 +8,7 @@ import {
 } from './lib/storage';
 import TaskItem from './components/TaskItem';
 import TaskForm from './components/TaskForm';
+import AiAddModal from './components/AiAddModal';
 
 const DOW = ['日','月','火','水','木','金','土'];
 
@@ -51,6 +52,8 @@ export default function Home() {
   const [categories,   setCategories]   = useState<string[]>([]);
   const [showForm,     setShowForm]     = useState(false);
   const [editing,      setEditing]      = useState<Task | undefined>();
+  const [showAi,       setShowAi]       = useState(false);
+  const [aiDraft,      setAiDraft]      = useState<Partial<Task> | undefined>();
   const [filterCat,    setFilterCat]    = useState('');
   const [timeFilter,   setTimeFilter]   = useState<TabSlot>(defaultTimeSlot());
   const [undo,         setUndo]         = useState<UndoAction | null>(null);
@@ -205,11 +208,21 @@ export default function Home() {
 
   function openEdit(task: Task) {
     setEditing(task);
+    setAiDraft(undefined);
     setShowForm(true);
   }
 
   function openAdd() {
     setEditing(undefined);
+    setAiDraft(undefined);
+    setShowForm(true);
+  }
+
+  // AIが解析した下書きを受け取り、確認用のフォームを開く
+  function handleAiParsed(draft: Partial<Task>) {
+    setShowAi(false);
+    setEditing(undefined);
+    setAiDraft(draft);
     setShowForm(true);
   }
 
@@ -424,16 +437,31 @@ export default function Home() {
         )}
       </main>
 
-      <button onClick={openAdd}
-        className="fixed bottom-20 right-4 w-14 h-14 bg-blue-500 text-white rounded-full text-2xl shadow-lg hover:bg-blue-600 active:scale-90 transition-transform flex items-center justify-center z-40">
-        +
-      </button>
+      <div className="fixed bottom-20 right-4 flex flex-col items-center gap-3 z-40">
+        <button onClick={() => setShowAi(true)} aria-label="AIで追加"
+          className="w-12 h-12 bg-white text-blue-500 border border-blue-200 rounded-full text-xl shadow-lg hover:bg-blue-50 active:scale-90 transition-transform flex items-center justify-center">
+          ✨
+        </button>
+        <button onClick={openAdd} aria-label="タスクを追加"
+          className="w-14 h-14 bg-blue-500 text-white rounded-full text-2xl shadow-lg hover:bg-blue-600 active:scale-90 transition-transform flex items-center justify-center">
+          +
+        </button>
+      </div>
+
+      {showAi && (
+        <AiAddModal
+          categories={categories}
+          onParsed={handleAiParsed}
+          onClose={() => setShowAi(false)}
+        />
+      )}
 
       {showForm && (
         <TaskForm
           editing={editing}
+          draft={aiDraft}
           onSave={handleSave}
-          onClose={() => { setShowForm(false); setEditing(undefined); }}
+          onClose={() => { setShowForm(false); setEditing(undefined); setAiDraft(undefined); }}
           categories={categories}
           onDelete={handleDeleteTask}
         />

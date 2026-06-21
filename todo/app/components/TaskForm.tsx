@@ -36,25 +36,27 @@ interface Props {
   categories: string[];
   defaultDate?: string;
   onDelete?: (id: string) => void;
+  draft?: Partial<Task>;   // AIが解析した下書き（新規追加時の事前入力）
 }
 
-export default function TaskForm({ onSave, onClose, editing, categories, defaultDate, onDelete }: Props) {
+export default function TaskForm({ onSave, onClose, editing, categories, defaultDate, onDelete, draft }: Props) {
   const today = toYMD(new Date());
+  const src = editing ?? draft;   // 編集対象 or AI下書き。どちらも無ければ空フォーム
 
-  const [title,               setTitle]               = useState(editing?.title               ?? '');
-  const [repeat,              setRepeat]              = useState<RepeatType>(editing?.repeat   ?? 'none');
-  const [timeSlot,            setTimeSlot]            = useState<TimeSlot>(editing?.timeSlot   ?? 'anytime');
-  const [priority,            setPriority]            = useState<Priority | ''>(editing?.priority ?? '');
-  const [memo,                setMemo]                = useState(editing?.memo                 ?? '');
-  const [date,                setDate]                = useState(editing?.date                 ?? defaultDate ?? '');
-  const [category,            setCategory]            = useState(editing?.category             ?? '');
-  const [weekdays,            setWeekdays]            = useState<number[]>(editing?.weekdays   ?? []);
-  const [monthDay,            setMonthDay]            = useState<number>(editing?.monthDay     ?? 1);
-  const [intervalDays,        setIntervalDays]        = useState<number>(editing?.intervalDays        ?? 3);
-  const [monthIntervalMonths, setMonthIntervalMonths] = useState<number>(editing?.monthIntervalMonths ?? 2);
-  const [startDate,           setStartDate]           = useState(editing?.startDate            ?? today);
-  const [monthlyWeekdayNth,   setMonthlyWeekdayNth]   = useState<number>(editing?.monthlyWeekdayNth ?? 1);
-  const [monthlyWeekdayDow,   setMonthlyWeekdayDow]   = useState<number>(editing?.monthlyWeekdayDow ?? 0);
+  const [title,               setTitle]               = useState(src?.title               ?? '');
+  const [repeat,              setRepeat]              = useState<RepeatType>(src?.repeat   ?? 'none');
+  const [timeSlot,            setTimeSlot]            = useState<TimeSlot>(src?.timeSlot   ?? 'anytime');
+  const [priority,            setPriority]            = useState<Priority | ''>(src?.priority ?? '');
+  const [memo,                setMemo]                = useState(src?.memo                 ?? '');
+  const [date,                setDate]                = useState(src?.date                 ?? defaultDate ?? '');
+  const [category,            setCategory]            = useState(src?.category             ?? '');
+  const [weekdays,            setWeekdays]            = useState<number[]>(src?.weekdays   ?? []);
+  const [monthDay,            setMonthDay]            = useState<number>(src?.monthDay     ?? 1);
+  const [intervalDays,        setIntervalDays]        = useState<number>(src?.intervalDays        ?? 3);
+  const [monthIntervalMonths, setMonthIntervalMonths] = useState<number>(src?.monthIntervalMonths ?? 2);
+  const [startDate,           setStartDate]           = useState(src?.startDate            ?? today);
+  const [monthlyWeekdayNth,   setMonthlyWeekdayNth]   = useState<number>(src?.monthlyWeekdayNth ?? 1);
+  const [monthlyWeekdayDow,   setMonthlyWeekdayDow]   = useState<number>(src?.monthlyWeekdayDow ?? 0);
 
   function toggleDow(d: number) {
     setWeekdays(prev => prev.includes(d) ? prev.filter(x => x !== d) : [...prev, d].sort());
