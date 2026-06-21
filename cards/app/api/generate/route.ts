@@ -2,6 +2,8 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { NextRequest } from "next/server";
 
 export const runtime = "nodejs";
+// 複数画像＋多めの生成でも時間切れにならないよう延長
+export const maxDuration = 60;
 
 // 暗記カードの自動生成。
 // mode = 'text'（文章を貼る） / 'topic'（テーマ） / 'photo'（画像を読み取る）。
@@ -76,9 +78,12 @@ export async function POST(req: NextRequest) {
       .map(i => ({ data: (i?.base64 ?? "").trim(), mimeType: i?.mimeType || "image/jpeg" }))
       .filter(i => i.data);
     if (valid.length === 0) return Response.json({ error: "画像がありません" }, { status: 400 });
+    // photoモードの count は「1画像あたりの枚数」。合計は count × 画像枚数。
+    const per = count;
+    const total = per * valid.length;
     contents = [
       ...valid.map(i => ({ inlineData: { mimeType: i.mimeType, data: i.data } })),
-      { text: `これらの画像（教科書・ノート・資料。複数ページのことがあります）の内容から、暗記カードを合計${count}枚程度作ってください。各画像内の文字を読み取り、重要事項を一問一答にしてください。同じ内容の重複カードは作らないでください。` },
+      { text: `これらは教科書・ノート・資料の画像です（全${valid.length}枚＝${valid.length}ページ）。各画像（ページ）ごとに暗記カードを${per}枚程度ずつ作り、合計で約${total}枚にしてください。各画像内の文字を読み取り、重要事項を一問一答にし、同じ内容の重複カードは作らないでください。` },
     ];
   } else if (mode === "topic") {
     const topic = (body.topic ?? "").trim();

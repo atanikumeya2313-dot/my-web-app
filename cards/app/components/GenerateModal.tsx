@@ -109,6 +109,8 @@ export default function GenerateModal({ deckName, onAdd, onClose }: Props) {
     setDrafts(list => list!.filter((_, i) => i !== idx));
   }
 
+  const numericCount = Math.min(30, Math.max(1, parseInt(count) || 5));
+
   const canGenerate =
     (mode === 'text' && text.trim().length > 0) ||
     (mode === 'topic' && topic.trim().length > 0) ||
@@ -174,13 +176,20 @@ export default function GenerateModal({ deckName, onAdd, onClose }: Props) {
               )}
 
               {/* 枚数 */}
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-gray-500">作る枚数の目安</span>
-                <input type="number" inputMode="numeric" min={1} max={30} value={count}
-                  onChange={e => setCount(e.target.value)}
-                  onBlur={() => setCount(String(Math.min(30, Math.max(1, parseInt(count) || 5))))}
-                  className="w-16 text-center border border-gray-200 rounded-lg px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300" />
-                <span className="text-xs text-gray-400">枚</span>
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-gray-500">{mode === 'photo' ? '写真1枚あたりの枚数' : '作る枚数の目安'}</span>
+                  <input type="number" inputMode="numeric" min={1} max={30} value={count}
+                    onChange={e => setCount(e.target.value)}
+                    onBlur={() => setCount(String(Math.min(30, Math.max(1, parseInt(count) || 5))))}
+                    className="w-16 text-center border border-gray-200 rounded-lg px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300" />
+                  <span className="text-xs text-gray-400">枚</span>
+                </div>
+                {mode === 'photo' && images.length > 0 && (
+                  <p className="text-[11px] text-gray-400">
+                    写真{images.length}枚 × {numericCount}枚 ＝ 合計 約{numericCount * images.length}枚
+                  </p>
+                )}
               </div>
 
               {error && <p className="text-xs text-red-500">{error}</p>}
