@@ -22,6 +22,10 @@
 
     { "source": "/diary", "destination": "https://hitokoto-two.vercel.app/diary" },
     { "source": "/diary/", "destination": "https://hitokoto-two.vercel.app/diary" },
-    { "source": "/diary/:path*", "destination": "https://hitokoto-two.vercel.app/diary/:path*" }
+    { "source": "/diary/:path*", "destination": "https://hitokoto-two.vercel.app/diary/:path*" },
+
+    { "source": "/cards", "destination": "https://cards-green-eight.vercel.app/cards" },
+    { "source": "/cards/", "destination": "https://cards-green-eight.vercel.app/cards" },
+    { "source": "/cards/:path*", "destination": "https://cards-green-eight.vercel.app/cards/:path*" }
   ]
 }
