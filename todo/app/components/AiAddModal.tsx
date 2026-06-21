@@ -63,7 +63,6 @@ export default function AiAddModal({ categories, onParsed, onClose }: Props) {
         </p>
 
         <textarea
-          autoFocus
           value={text}
           onChange={e => setText(e.target.value)}
           onKeyDown={e => {

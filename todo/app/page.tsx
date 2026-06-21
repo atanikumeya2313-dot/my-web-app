@@ -437,10 +437,11 @@ export default function Home() {
         )}
       </main>
 
-      <div className="fixed bottom-20 right-4 flex flex-col items-center gap-3 z-40">
-        <button onClick={() => setShowAi(true)} aria-label="AIで追加"
-          className="w-12 h-12 bg-white text-blue-500 border border-blue-200 rounded-full text-xl shadow-lg hover:bg-blue-50 active:scale-90 transition-transform flex items-center justify-center">
-          ✨
+      <div className="fixed bottom-20 right-4 flex flex-col items-end gap-3 z-40">
+        <button onClick={() => setShowAi(true)} aria-label="AIでタスク追加"
+          className="h-11 pl-3.5 pr-4 bg-gradient-to-r from-violet-500 to-blue-500 text-white rounded-full text-sm font-semibold shadow-lg hover:opacity-90 active:scale-95 transition flex items-center gap-1.5">
+          <span className="text-base leading-none">✨</span>
+          <span>AIで追加</span>
         </button>
         <button onClick={openAdd} aria-label="タスクを追加"
           className="w-14 h-14 bg-blue-500 text-white rounded-full text-2xl shadow-lg hover:bg-blue-600 active:scale-90 transition-transform flex items-center justify-center">
