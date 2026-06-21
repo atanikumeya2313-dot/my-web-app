@@ -2,6 +2,7 @@ import { GoogleGenAI } from "@google/genai";
 import { NextRequest } from "next/server";
 
 export const runtime = "nodejs";
+export const maxDuration = 60;
 
 const SYSTEM = `あなたは日記に寄り添う、おだやかで優しい相棒です。
 ユーザーが書いた「今日のひとこと」に対して、日本語で**一文だけ**、あたたかく短い言葉を返してください。

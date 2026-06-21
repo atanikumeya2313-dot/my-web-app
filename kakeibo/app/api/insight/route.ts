@@ -2,6 +2,7 @@ import { GoogleGenAI } from "@google/genai";
 import { NextRequest } from "next/server";
 
 export const runtime = "nodejs";
+export const maxDuration = 60;
 
 // 家計簿の「月次AIインサイト」。フロントから渡されるのは集計値のみ
 // （カテゴリ別合計・先月比・予算・目標・着地見込み）。個々の明細やメモは送らない。

@@ -2,6 +2,7 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { NextRequest } from "next/server";
 
 export const runtime = "nodejs";
+export const maxDuration = 60;
 
 // 自然言語の入力（例「牛乳2本と卵1パック、トイレットペーパー」）を
 // 在庫アイテムの配列に変換する。1文に複数品目が入る前提。

@@ -2,6 +2,7 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { NextRequest } from "next/server";
 
 export const runtime = "nodejs";
+export const maxDuration = 60;
 
 // 自然言語の入力を、TODOのタスク構造に変換するAPI。
 // AIには「全フィールドを必ず返す」よう求め、サーバー側で repeat に応じて

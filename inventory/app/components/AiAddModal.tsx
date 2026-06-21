@@ -34,11 +34,30 @@ export default function AiAddModal({ categories, customIcons, onAdd, onClose }: 
     setLoading(true);
     setError('');
     try {
-      const res = await fetch('/inventory/api/parse-items', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: t, categories }),
-      });
+      // 通信失敗やサーバー一時エラー(5xx/429)は自動で最大3回リトライ
+      let res!: Response;
+      for (let attempt = 0; ; attempt++) {
+        const ctrl = new AbortController();
+        const timer = setTimeout(() => ctrl.abort(), 65000);
+        try {
+          res = await fetch('/inventory/api/parse-items', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text: t, categories }),
+            signal: ctrl.signal,
+          });
+        } catch (e) {
+          if (attempt < 2) { await new Promise(r => setTimeout(r, 800 * (attempt + 1))); continue; }
+          throw e;
+        } finally {
+          clearTimeout(timer);
+        }
+        if (attempt < 2 && [500, 502, 504, 429].includes(res.status)) {
+          await new Promise(r => setTimeout(r, 800 * (attempt + 1)));
+          continue;
+        }
+        break;
+      }
       const data = await res.json();
       if (!res.ok || !Array.isArray(data?.items)) {
         setError(res.status === 503 ? 'AI機能はまだ準備中です（APIキー未設定）' : (data?.error ?? '解析に失敗しました'));

@@ -2,6 +2,7 @@ import { GoogleGenAI } from "@google/genai";
 import { NextRequest } from "next/server";
 
 export const runtime = "nodejs";
+export const maxDuration = 60;
 
 // 資産形成シミュレーターの試算結果を、平易な日本語で解説する。
 // 渡されるのは計算結果（集計値）のみ。個人情報は含まない。
