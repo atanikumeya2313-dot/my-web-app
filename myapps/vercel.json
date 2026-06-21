@@ -18,6 +18,10 @@
 
     { "source": "/todo", "destination": "https://todo-sandy-eight-90.vercel.app/todo" },
     { "source": "/todo/", "destination": "https://todo-sandy-eight-90.vercel.app/todo" },
-    { "source": "/todo/:path*", "destination": "https://todo-sandy-eight-90.vercel.app/todo/:path*" }
+    { "source": "/todo/:path*", "destination": "https://todo-sandy-eight-90.vercel.app/todo/:path*" },
+
+    { "source": "/diary", "destination": "https://hitokoto-two.vercel.app/diary" },
+    { "source": "/diary/", "destination": "https://hitokoto-two.vercel.app/diary" },
+    { "source": "/diary/:path*", "destination": "https://hitokoto-two.vercel.app/diary/:path*" }
   ]
 }
