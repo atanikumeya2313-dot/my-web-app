@@ -43,7 +43,7 @@ export default function GenerateModal({ deckName, onAdd, onClose }: Props) {
   const [mode,    setMode]    = useState<Mode>('text');
   const [text,    setText]    = useState('');
   const [topic,   setTopic]   = useState('');
-  const [count,   setCount]   = useState(10);
+  const [count,   setCount]   = useState('10');  // 入力中は文字列で自由に編集（生成時に1〜30へ正規化）
   const [image,   setImage]   = useState<{ base64: string; mimeType: string; preview: string } | null>(null);
   const [loading, setLoading] = useState(false);
   const [error,   setError]   = useState('');
@@ -69,7 +69,8 @@ export default function GenerateModal({ deckName, onAdd, onClose }: Props) {
     setLoading(true);
     setError('');
     try {
-      const payload: Record<string, unknown> = { mode, count };
+      const n = Math.min(30, Math.max(1, parseInt(count) || 10));  // 生成時に1〜30へ正規化
+      const payload: Record<string, unknown> = { mode, count: n };
       if (mode === 'text')  payload.text = text.trim();
       if (mode === 'topic') payload.topic = topic.trim();
       if (mode === 'photo' && image) { payload.imageBase64 = image.base64; payload.imageMimeType = image.mimeType; }
@@ -156,8 +157,9 @@ export default function GenerateModal({ deckName, onAdd, onClose }: Props) {
               {/* 枚数 */}
               <div className="flex items-center gap-2">
                 <span className="text-xs text-gray-500">作る枚数の目安</span>
-                <input type="number" min={1} max={30} value={count}
-                  onChange={e => setCount(Math.min(30, Math.max(1, parseInt(e.target.value) || 1)))}
+                <input type="number" inputMode="numeric" min={1} max={30} value={count}
+                  onChange={e => setCount(e.target.value)}
+                  onBlur={() => setCount(String(Math.min(30, Math.max(1, parseInt(count) || 10))))}
                   className="w-16 text-center border border-gray-200 rounded-lg px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300" />
                 <span className="text-xs text-gray-400">枚</span>
               </div>
