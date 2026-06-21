@@ -135,7 +135,7 @@ export default function Home() {
         <>
           <header className="bg-white border-b border-gray-100 sticky top-0 z-10">
             <div className="max-w-lg mx-auto px-4 py-3 flex items-center justify-between">
-              <h1 className="text-base font-bold text-gray-800">🧠 暗記カード</h1>
+              <h1 className="text-base font-bold text-gray-800">📇 暗記カード</h1>
               <div className="flex items-center gap-1.5">
                 <button onClick={handleExport} className="text-xs px-2.5 py-1 rounded-full bg-gray-100 text-gray-500">書き出し</button>
                 <button onClick={() => importRef.current?.click()} className="text-xs px-2.5 py-1 rounded-full bg-gray-100 text-gray-500">読み込み</button>
@@ -147,7 +147,7 @@ export default function Home() {
           <main className="max-w-lg mx-auto px-4 py-4 space-y-2">
             {decks.length === 0 ? (
               <div className="text-center py-16">
-                <p className="text-5xl mb-3">🧠</p>
+                <p className="text-5xl mb-3">📇</p>
                 <p className="text-gray-400 text-sm">デッキを作って、AIでカードを追加しましょう</p>
               </div>
             ) : (
