@@ -46,7 +46,7 @@ export function notifyQuake(q: Earthquake) {
   const mag   = q.hypocenter.magnitude > 0 ? ` M${q.hypocenter.magnitude.toFixed(1)}` : '';
   new Notification(`地震情報：最大震度${scaleLabel(q.maxScale)}`, {
     body: `${place}${mag}`,
-    icon: '/icon-192.png',
+    icon: '/quake/icon-192.png', // basePath '/quake' 配下のため明示
     tag:  q.id, // 同じ地震の重複通知を防ぐ
   });
 }
