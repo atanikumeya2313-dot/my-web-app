@@ -102,20 +102,30 @@ export default function GenerateModal({ deckName, onAdd, onClose }: Props) {
         } finally {
           clearTimeout(timer);
         }
-        if (attempt < 2 && [500, 502, 504, 429].includes(res.status)) {
-          await new Promise(r => setTimeout(r, 800 * (attempt + 1)));
+        // サーバーの一時エラー(500/502)のみ自動リトライ。
+        // レート制限(429)・時間切れ(504)は待っても無駄／重複生成になるので即メッセージ表示
+        if (attempt < 2 && [500, 502].includes(res.status)) {
+          await new Promise(r => setTimeout(r, 1000 * (attempt + 1)));
           continue;
         }
         break;
       }
-      const data = await res.json();
+      // 504などで本文がJSONでないことがあるため安全にパース
+      let data: { cards?: unknown; error?: string } | null = null;
+      try { data = await res.json(); } catch { data = null; }
+
       if (!res.ok || !Array.isArray(data?.cards)) {
-        setError(res.status === 503 ? 'AI機能はまだ準備中です（APIキー未設定）' : (data?.error ?? '生成に失敗しました'));
+        if (res.status === 503)       setError('AI機能はまだ準備中です（APIキー未設定）');
+        else if (res.status === 429)  setError(data?.error ?? '短時間に多く作成したため一時的に制限中です。少し待って再実行してください。');
+        else if (res.status === 504)  setError('生成に時間がかかりすぎました。写真の枚数や1枚あたりの枚数を減らして再試行してください。');
+        else                          setError(data?.error ?? '生成に失敗しました');
         return;
       }
       setDrafts(data.cards as DraftCard[]);
-    } catch {
-      setError('通信に失敗しました');
+    } catch (e) {
+      setError((e as Error)?.name === 'AbortError'
+        ? '生成に時間がかかりすぎました。写真の枚数や1枚あたりの枚数を減らして再試行してください。'
+        : '通信に失敗しました。電波の良い場所で、少し待ってから再試行してください。');
     } finally {
       setLoading(false);
     }

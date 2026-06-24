@@ -123,7 +123,15 @@ export async function POST(req: NextRequest) {
       return Response.json({ error: "カードを作成できませんでした" }, { status: 502 });
     }
     return Response.json({ cards });
-  } catch {
+  } catch (e) {
+    const m = String((e as { message?: string })?.message ?? e);
+    // レート制限（短時間に多く実行）は待っても即時には解消しないので、専用メッセージで返す
+    if (/429|RESOURCE_EXHAUSTED|quota|rate limit/i.test(m)) {
+      return Response.json(
+        { error: "短時間に多く作成したため、一時的に回数制限に達しました。30〜60秒ほど待ってから再実行してください。" },
+        { status: 429 },
+      );
+    }
     return Response.json({ error: "AIの応答に失敗しました" }, { status: 502 });
   }
 }
