@@ -53,10 +53,7 @@ async function aiFetch(body: unknown): Promise<Response> {
         signal: ctrl.signal,
       });
       clearTimeout(timer);
-      if (attempt < 2 && [500, 502].includes(res.status)) {
-        await new Promise(r => setTimeout(r, 1000 * (attempt + 1)));
-        continue;
-      }
+      // 混雑/サーバー一時エラーの再試行はサーバー側で行うため、ここでは結果をそのまま返す
       return res;
     } catch (e) {
       clearTimeout(timer);

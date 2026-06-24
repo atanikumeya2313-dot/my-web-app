@@ -95,21 +95,51 @@ export async function POST(req: NextRequest) {
     contents = `次の文章から暗記カードを${count}枚程度作ってください。文章:\n${text.slice(0, 8000)}`;
   }
 
-  try {
-    const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-    const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      contents: contents as any,
-      config: {
-        systemInstruction: SYSTEM,
-        responseMimeType: "application/json",
-        responseSchema,
-      },
-    });
-    const out = response.text?.trim();
-    if (!out) return Response.json({ error: "生成できませんでした" }, { status: 502 });
+  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
+  // Geminiの一時的な混雑(503/overloaded)・サーバーエラーは、関数内で短い待機を入れて
+  // 自動再試行する（60秒上限に収まるよう最大2回）。レート制限(429)は待っても無駄なので即返す。
+  let out: string | undefined;
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const response = await ai.models.generateContent({
+        model: "gemini-2.5-flash",
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        contents: contents as any,
+        config: {
+          systemInstruction: SYSTEM,
+          responseMimeType: "application/json",
+          responseSchema,
+        },
+      });
+      out = response.text?.trim();
+      break;
+    } catch (e) {
+      const m = String((e as { message?: string })?.message ?? e);
+      if (/429|RESOURCE_EXHAUSTED|quota|rate limit/i.test(m)) {
+        return Response.json(
+          { error: "短時間に多く作成したため、一時的に回数制限に達しました。30〜60秒ほど待ってから再実行してください。" },
+          { status: 429 },
+        );
+      }
+      const overloaded = /503|UNAVAILABLE|overloaded/i.test(m);
+      const transient = overloaded || /\b500\b|INTERNAL|deadline|ETIMEDOUT|ECONNRESET|fetch failed|network/i.test(m);
+      if (attempt === 0 && transient) {
+        await new Promise(r => setTimeout(r, 2500));   // 少し待って1回だけ再試行
+        continue;
+      }
+      return Response.json(
+        { error: overloaded
+            ? "AIが混雑しています。少し時間をおいてから再実行してください。"
+            : "AIの応答に失敗しました" },
+        { status: 502 },
+      );
+    }
+  }
+
+  if (!out) return Response.json({ error: "生成できませんでした" }, { status: 502 });
+
+  try {
     const parsed = JSON.parse(out) as { cards?: RawCard[] };
     const cards = (parsed.cards ?? [])
       .map(c => ({
@@ -123,15 +153,7 @@ export async function POST(req: NextRequest) {
       return Response.json({ error: "カードを作成できませんでした" }, { status: 502 });
     }
     return Response.json({ cards });
-  } catch (e) {
-    const m = String((e as { message?: string })?.message ?? e);
-    // レート制限（短時間に多く実行）は待っても即時には解消しないので、専用メッセージで返す
-    if (/429|RESOURCE_EXHAUSTED|quota|rate limit/i.test(m)) {
-      return Response.json(
-        { error: "短時間に多く作成したため、一時的に回数制限に達しました。30〜60秒ほど待ってから再実行してください。" },
-        { status: 429 },
-      );
-    }
+  } catch {
     return Response.json({ error: "AIの応答に失敗しました" }, { status: 502 });
   }
 }
