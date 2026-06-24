@@ -25,8 +25,8 @@ export default function Home() {
     setLoadingDate(date);
     setErr(null);
     try {
-      // basePath は raw fetch に自動付与されないため明示（ハブ /diary 配下で動かすため）
-      // 通信失敗やサーバー一時エラー(5xx/429)は自動で最大3回リトライ
+      // basePath は raw fetch に自動付与されないため明示（ハブ /diary 配下で動かすため）。
+      // 通信断は最大3回まで再試行。混雑/一時エラーの再試行はサーバー側で行う。
       let res!: Response;
       for (let attempt = 0; ; attempt++) {
         const ctrl = new AbortController();
@@ -44,24 +44,25 @@ export default function Home() {
         } finally {
           clearTimeout(timer);
         }
-        if (attempt < 2 && [500, 502, 504, 429].includes(res.status)) {
-          await new Promise(r => setTimeout(r, 800 * (attempt + 1)));
-          continue;
-        }
         break;
       }
-      const data = await res.json();
-      if (res.ok && data.comment) {
+      // 本文が非JSONでも安全に処理
+      let data: { comment?: string; error?: string } | null = null;
+      try { data = await res.json(); } catch { data = null; }
+      if (res.ok && data?.comment) {
+        const comment = data.comment;
         setEntries(prev => {
-          const next = prev.map(e => e.date === date ? { ...e, comment: data.comment } : e);
+          const next = prev.map(e => e.date === date ? { ...e, comment } : e);
           saveEntries(next);
           return next;
         });
       } else {
-        setErr(data.error || 'AIの返事を取得できませんでした');
+        setErr(data?.error || 'AIの返事を取得できませんでした');
       }
-    } catch {
-      setErr('通信に失敗しました');
+    } catch (e) {
+      setErr((e as Error)?.name === 'AbortError'
+        ? 'AIの応答に時間がかかっています。少し待ってからもう一度お試しください。'
+        : '通信に失敗しました。電波の良い場所で、少し待ってから再試行してください。');
     } finally {
       setLoadingDate(null);
     }
