@@ -4,12 +4,16 @@ import {
   Entry, loadEntries, saveEntries, todayYMD, fmtDate,
   exportEntries, importEntries,
 } from './lib/storage';
+import CalendarView from './components/CalendarView';
+import Reflection from './components/Reflection';
 
 export default function Home() {
   const [entries, setEntries] = useState<Entry[]>([]);
   const [input, setInput] = useState('');
   const [loadingDate, setLoadingDate] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
+  const [view, setView] = useState<'home' | 'calendar' | 'reflect'>('home');
+  const [query, setQuery] = useState('');
   const fileRef = useRef<HTMLInputElement>(null);
 
   // localStorage はマウント後にのみ読めるため、ここでの setState は意図的
@@ -20,6 +24,10 @@ export default function Home() {
   const today = todayYMD();
   const todayEntry = entries.find(e => e.date === today);
   const past = entries.filter(e => e.date !== today);
+  const q = query.trim().toLowerCase();
+  const pastFiltered = q
+    ? past.filter(e => e.text.toLowerCase().includes(q) || (e.comment || '').toLowerCase().includes(q))
+    : past;
 
   async function fetchComment(date: string, text: string) {
     setLoadingDate(date);
@@ -112,6 +120,17 @@ export default function Home() {
         <p className="text-xs text-amber-700/60 mt-1">今日のひとことに、そっと一言かえします</p>
       </header>
 
+      {/* タブ */}
+      <div className="flex rounded-xl overflow-hidden border border-amber-200 text-xs mb-4">
+        {([['home', '日記'], ['calendar', 'カレンダー'], ['reflect', 'ふりかえり']] as const).map(([v, label]) => (
+          <button key={v} onClick={() => setView(v)}
+            className={`flex-1 py-2 font-medium transition-colors ${view === v ? 'bg-amber-600 text-white' : 'bg-white text-amber-700/70'}`}>
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {view === 'home' && (<>
       {/* 今日 */}
       {!todayEntry ? (
         <section className="bg-white rounded-2xl shadow-sm border border-amber-100/70 p-5">
@@ -171,30 +190,41 @@ export default function Home() {
       {/* 過去の記録 */}
       {past.length > 0 && (
         <section className="mt-8">
-          <h2 className="text-xs font-semibold text-amber-700/70 mb-3 px-1">これまでのひとこと</h2>
-          <div className="space-y-3">
-            {past.map(e => (
-              <div key={e.date} className="bg-white/70 rounded-2xl border border-amber-100/60 p-4">
-                <p className="text-[11px] text-amber-700/60 mb-1.5">{fmtDate(e.date)}</p>
-                <p className="text-sm text-gray-800 leading-relaxed whitespace-pre-wrap">{e.text}</p>
-                {e.comment ? (
-                  <div className="mt-2.5 pt-2.5 border-t border-amber-100/60 flex gap-2 items-start">
-                    <span className="text-base leading-none mt-0.5">🪄</span>
-                    <p className="text-xs text-amber-900/80 leading-relaxed whitespace-pre-wrap">{e.comment}</p>
-                  </div>
-                ) : (
-                  <button
-                    onClick={() => fetchComment(e.date, e.text)}
-                    disabled={loadingDate === e.date}
-                    className="mt-2 text-xs text-amber-600/80 hover:text-amber-700 disabled:opacity-50">
-                    {loadingDate === e.date ? 'AIが考えています…' : 'AIに一言もらう'}
-                  </button>
-                )}
-              </div>
-            ))}
-          </div>
+          <h2 className="text-xs font-semibold text-amber-700/70 mb-2 px-1">これまでのひとこと</h2>
+          <input value={query} onChange={e => setQuery(e.target.value)}
+            placeholder="キーワードで検索"
+            className="w-full mb-3 border border-amber-100 rounded-xl px-3 py-2 text-sm bg-amber-50/30 focus:outline-none focus:ring-2 focus:ring-amber-300" />
+          {pastFiltered.length === 0 ? (
+            <p className="text-center text-xs text-amber-700/50 py-6">「{query.trim()}」に一致する記録はありません</p>
+          ) : (
+            <div className="space-y-3">
+              {pastFiltered.map(e => (
+                <div key={e.date} className="bg-white/70 rounded-2xl border border-amber-100/60 p-4">
+                  <p className="text-[11px] text-amber-700/60 mb-1.5">{fmtDate(e.date)}</p>
+                  <p className="text-sm text-gray-800 leading-relaxed whitespace-pre-wrap">{e.text}</p>
+                  {e.comment ? (
+                    <div className="mt-2.5 pt-2.5 border-t border-amber-100/60 flex gap-2 items-start">
+                      <span className="text-base leading-none mt-0.5">🪄</span>
+                      <p className="text-xs text-amber-900/80 leading-relaxed whitespace-pre-wrap">{e.comment}</p>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => fetchComment(e.date, e.text)}
+                      disabled={loadingDate === e.date}
+                      className="mt-2 text-xs text-amber-600/80 hover:text-amber-700 disabled:opacity-50">
+                      {loadingDate === e.date ? 'AIが考えています…' : 'AIに一言もらう'}
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
         </section>
       )}
+      </>)}
+
+      {view === 'calendar' && <CalendarView entries={entries} />}
+      {view === 'reflect'  && <Reflection entries={entries} />}
 
       {/* バックアップ */}
       <section className="mt-10 text-center">
