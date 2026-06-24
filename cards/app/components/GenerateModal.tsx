@@ -39,6 +39,51 @@ function downscaleImage(file: File, max = 1280): Promise<{ base64: string; mimeT
   });
 }
 
+// サーバー一時エラー(500/502)とネットワーク失敗のみ自動リトライ。65秒で打ち切り。
+async function aiFetch(body: unknown): Promise<Response> {
+  let lastErr: unknown;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 65000);
+    try {
+      const res = await fetch('/cards/api/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+        signal: ctrl.signal,
+      });
+      clearTimeout(timer);
+      if (attempt < 2 && [500, 502].includes(res.status)) {
+        await new Promise(r => setTimeout(r, 1000 * (attempt + 1)));
+        continue;
+      }
+      return res;
+    } catch (e) {
+      clearTimeout(timer);
+      lastErr = e;
+      if (attempt < 2) { await new Promise(r => setTimeout(r, 1000 * (attempt + 1))); continue; }
+      throw e;
+    }
+  }
+  throw lastErr;
+}
+
+// 1リクエスト分の生成。成功なら cards、失敗なら status/error を返す（504などの非JSONも安全に処理）
+async function requestCards(body: unknown): Promise<{ ok: boolean; status: number; cards?: DraftCard[]; error?: string }> {
+  const res = await aiFetch(body);
+  let data: { cards?: unknown; error?: string } | null = null;
+  try { data = await res.json(); } catch { data = null; }
+  if (res.ok && Array.isArray(data?.cards)) return { ok: true, status: res.status, cards: data!.cards as DraftCard[] };
+  return { ok: false, status: res.status, error: data?.error };
+}
+
+function msgFor(status: number, error?: string): string {
+  if (status === 503) return 'AI機能はまだ準備中です（APIキー未設定）';
+  if (status === 429) return error ?? '短時間に多く作成したため一時的に制限中です。少し待って再実行してください。';
+  if (status === 504 || status === 413) return '画像が多すぎ／重すぎました。写真の枚数や1枚あたりの枚数を減らして再試行してください。';
+  return error ?? '生成に失敗しました';
+}
+
 export default function GenerateModal({ deckName, onAdd, onClose }: Props) {
   const [mode,    setMode]    = useState<Mode>('text');
   const [text,    setText]    = useState('');
@@ -46,6 +91,7 @@ export default function GenerateModal({ deckName, onAdd, onClose }: Props) {
   const [count,   setCount]   = useState('5');  // 入力中は文字列で自由に編集（生成時に1〜30へ正規化）
   const [images,  setImages]  = useState<{ base64: string; mimeType: string; preview: string }[]>([]);
   const [loading, setLoading] = useState(false);
+  const [progress,setProgress]= useState<{ cur: number; total: number } | null>(null);
   const [error,   setError]   = useState('');
   const [drafts,  setDrafts]  = useState<DraftCard[] | null>(null);  // null=入力フェーズ
 
@@ -79,54 +125,47 @@ export default function GenerateModal({ deckName, onAdd, onClose }: Props) {
     setError('');
     try {
       const n = Math.min(30, Math.max(1, parseInt(count) || 5));  // 生成時に1〜30へ正規化
-      const payload: Record<string, unknown> = { mode, count: n };
-      if (mode === 'text')  payload.text = text.trim();
-      if (mode === 'topic') payload.topic = topic.trim();
-      if (mode === 'photo') payload.images = images.map(i => ({ base64: i.base64, mimeType: i.mimeType }));
 
-      // 通信失敗やサーバー一時エラー(5xx/429)は自動で最大3回リトライ
-      let res!: Response;
-      for (let attempt = 0; ; attempt++) {
-        const ctrl = new AbortController();
-        const timer = setTimeout(() => ctrl.abort(), 65000);
-        try {
-          res = await fetch('/cards/api/generate', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload),
-            signal: ctrl.signal,
+      if (mode === 'photo') {
+        // 大きく/重くなりすぎないよう、写真は4枚ずつに分割して順番に生成し合算
+        const CHUNK = 4;
+        const chunks: typeof images[] = [];
+        for (let i = 0; i < images.length; i += CHUNK) chunks.push(images.slice(i, i + CHUNK));
+        const all: DraftCard[] = [];
+        for (let ci = 0; ci < chunks.length; ci++) {
+          setProgress({ cur: ci + 1, total: chunks.length });
+          const r = await requestCards({
+            mode: 'photo', count: n,
+            images: chunks[ci].map(img => ({ base64: img.base64, mimeType: img.mimeType })),
           });
-        } catch (e) {
-          if (attempt < 2) { await new Promise(r => setTimeout(r, 800 * (attempt + 1))); continue; }
-          throw e;
-        } finally {
-          clearTimeout(timer);
+          if (!r.ok) {
+            // 一部成功していれば、その分は確認画面に出しつつ残りの失敗を知らせる
+            if (all.length > 0) {
+              setError(`写真${chunks.length}グループ中${ci}グループ分まで作成しました。${msgFor(r.status, r.error)}`);
+              setDrafts(all);
+            } else {
+              setError(msgFor(r.status, r.error));
+            }
+            return;
+          }
+          all.push(...(r.cards ?? []));
         }
-        // サーバーの一時エラー(500/502)のみ自動リトライ。
-        // レート制限(429)・時間切れ(504)は待っても無駄／重複生成になるので即メッセージ表示
-        if (attempt < 2 && [500, 502].includes(res.status)) {
-          await new Promise(r => setTimeout(r, 1000 * (attempt + 1)));
-          continue;
-        }
-        break;
-      }
-      // 504などで本文がJSONでないことがあるため安全にパース
-      let data: { cards?: unknown; error?: string } | null = null;
-      try { data = await res.json(); } catch { data = null; }
-
-      if (!res.ok || !Array.isArray(data?.cards)) {
-        if (res.status === 503)       setError('AI機能はまだ準備中です（APIキー未設定）');
-        else if (res.status === 429)  setError(data?.error ?? '短時間に多く作成したため一時的に制限中です。少し待って再実行してください。');
-        else if (res.status === 504)  setError('生成に時間がかかりすぎました。写真の枚数や1枚あたりの枚数を減らして再試行してください。');
-        else                          setError(data?.error ?? '生成に失敗しました');
+        setDrafts(all);
         return;
       }
-      setDrafts(data.cards as DraftCard[]);
+
+      // テキスト/トピックは1回で生成
+      const r = await requestCards(
+        mode === 'text' ? { mode, count: n, text: text.trim() } : { mode, count: n, topic: topic.trim() }
+      );
+      if (!r.ok) { setError(msgFor(r.status, r.error)); return; }
+      setDrafts(r.cards ?? []);
     } catch (e) {
       setError((e as Error)?.name === 'AbortError'
         ? '生成に時間がかかりすぎました。写真の枚数や1枚あたりの枚数を減らして再試行してください。'
         : '通信に失敗しました。電波の良い場所で、少し待ってから再試行してください。');
     } finally {
+      setProgress(null);
       setLoading(false);
     }
   }
@@ -226,7 +265,7 @@ export default function GenerateModal({ deckName, onAdd, onClose }: Props) {
               <button onClick={handleGenerate} disabled={!canGenerate || loading}
                 className="w-full py-2.5 rounded-xl text-sm font-semibold text-white bg-gradient-to-r from-violet-500 to-indigo-500 disabled:opacity-50 flex items-center justify-center gap-2">
                 {loading && <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />}
-                {loading ? 'カードを作成中…' : 'カードを作る'}
+                {loading ? (progress ? `作成中… (${progress.cur}/${progress.total})` : 'カードを作成中…') : 'カードを作る'}
               </button>
             </>
           )}
