@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Task, CompletedMap, CompletedLogEntry, UndoAction } from '../types';
 import {
-  loadTasks, saveTasks, loadCompleted, saveCompleted, loadCategories,
+  saveTasks, rollOverPastOnceTasks, loadCompleted, saveCompleted, loadCategories,
   loadCompletedLog, addToLog, saveLog,
   toYMD, getTasksForDate, completeOnce, completeRepeat, nextOccurrenceAfter,
 } from '../lib/storage';
@@ -43,7 +43,7 @@ export default function CalendarPage() {
   // localStorage はマウント後にのみ読めるため、ここでの同期的な setState は意図的。
   /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
-    setTasks(loadTasks());
+    setTasks(rollOverPastOnceTasks());
     setCompleted(loadCompleted());
     setCategories(loadCategories());
   }, []);
@@ -231,8 +231,13 @@ export default function CalendarPage() {
           <div className="text-center py-8 text-gray-400 text-sm">タスクなし</div>
         ) : (
           <div className="space-y-2">
+            {selectedYmd > today && (
+              <p className="text-[11px] text-gray-400 text-center pb-1">未来の予定（読み取り専用）</p>
+            )}
             {selectedTasks.map(task => (
-              <TaskItem key={task.id} task={task} onComplete={handleComplete} onReschedule={handleReschedule} />
+              <TaskItem key={task.id} task={task}
+                onComplete={selectedYmd === today ? handleComplete : undefined}
+                onReschedule={selectedYmd === today ? handleReschedule : undefined} />
             ))}
           </div>
         )}

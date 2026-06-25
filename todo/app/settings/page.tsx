@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import { Task, TimeSlot } from '../types';
-import { loadTasks, saveTasks, loadCategories, saveCategories, exportData, importData, toYMD } from '../lib/storage';
+import { rollOverPastOnceTasks, saveTasks, loadCategories, saveCategories, exportData, importData, toYMD } from '../lib/storage';
 
 const PRIORITY_STYLE = {
   high:   { label: '高', cls: 'bg-red-100 text-red-600' },
@@ -37,7 +37,7 @@ export default function Settings() {
   // localStorage はマウント後にのみ読めるため、ここでの同期的な setState は意図的。
   /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
-    setTasks(loadTasks());
+    setTasks(rollOverPastOnceTasks());
     setCategories(loadCategories());
   }, []);
   /* eslint-enable react-hooks/set-state-in-effect */

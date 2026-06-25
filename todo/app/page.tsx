@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Task, CompletedMap, CompletedLogEntry, TimeSlot, UndoAction } from './types';
 import {
-  loadTasks, saveTasks, loadCompleted, saveCompleted, loadCategories,
+  saveTasks, rollOverPastOnceTasks, loadCompleted, saveCompleted, loadCategories,
   loadCompletedLog, addToLog, saveLog,
   getTodayTasks, getTomorrowTasks, completeOnce, completeRepeat, nextOccurrenceAfter, toYMD,
 } from './lib/storage';
@@ -66,16 +66,8 @@ export default function Home() {
   // localStorage はマウント後にのみ読めるため、ここでの同期的な setState は意図的。
   /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
-    const today = toYMD(new Date());
-    const loaded = loadTasks();
-    // 繰り返しなし・日付あり・日付が過去 → 今日に繰り越す
-    const rolled = loaded.map(task =>
-      task.repeat === 'none' && task.date && task.date < today
-        ? { ...task, date: today }
-        : task
-    );
-    if (rolled.some((t, i) => t !== loaded[i])) saveTasks(rolled);
-    setTasks(rolled);
+    // 繰り返しなし・過去日のタスクを今日に繰り越す（全画面共通の正規化）
+    setTasks(rollOverPastOnceTasks());
     setCompleted(loadCompleted());
     setCompletedLog(loadCompletedLog());
     setCategories(loadCategories());

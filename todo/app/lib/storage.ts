@@ -14,6 +14,18 @@ export function saveTasks(tasks: Task[]) {
   localStorage.setItem(TASKS_KEY, JSON.stringify(tasks));
 }
 
+// 繰り返しなし・日付あり・過去日のタスクを今日に繰り越す。
+// 各画面のマウント時に呼び、どの画面でも同じ状態に揃える。
+export function rollOverPastOnceTasks(): Task[] {
+  const today = toYMD(new Date());
+  const tasks = loadTasks();
+  const rolled = tasks.map(t =>
+    t.repeat === 'none' && t.date && t.date < today ? { ...t, date: today } : t
+  );
+  if (rolled.some((t, i) => t !== tasks[i])) saveTasks(rolled);
+  return rolled;
+}
+
 export function loadCompleted(): CompletedMap {
   try { return JSON.parse(localStorage.getItem(COMPLETED_KEY) ?? '{}'); }
   catch { return {}; }
