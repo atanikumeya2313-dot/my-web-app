@@ -53,6 +53,8 @@ export default function CalendarPage() {
   const firstDay  = new Date(year, month - 1, 1).getDay();
   const daysCount = new Date(year, month, 0).getDate();
   const today     = toYMD(new Date());
+  // 1週間以内は先行して完了できる。1週間より先は読み取り専用。
+  const weekAhead = toYMD(new Date(Date.now() + 7 * 86_400_000));
 
   // カレンダーのセルリスト（前月の空白 + 当月の日）
   const cells: (number | null)[] = [
@@ -231,13 +233,13 @@ export default function CalendarPage() {
           <div className="text-center py-8 text-gray-400 text-sm">タスクなし</div>
         ) : (
           <div className="space-y-2">
-            {selectedYmd > today && (
-              <p className="text-[11px] text-gray-400 text-center pb-1">未来の予定（読み取り専用）</p>
+            {selectedYmd > weekAhead && (
+              <p className="text-[11px] text-gray-400 text-center pb-1">1週間より先の予定（読み取り専用）</p>
             )}
             {selectedTasks.map(task => (
               <TaskItem key={task.id} task={task}
-                onComplete={selectedYmd === today ? handleComplete : undefined}
-                onReschedule={selectedYmd === today ? handleReschedule : undefined} />
+                onComplete={selectedYmd <= weekAhead ? handleComplete : undefined}
+                onReschedule={selectedYmd <= weekAhead ? handleReschedule : undefined} />
             ))}
           </div>
         )}
