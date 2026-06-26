@@ -190,11 +190,23 @@ export default function GenerateModal({ deckName, onAdd, onClose }: Props) {
   return (
     <div className="fixed inset-0 z-50 flex flex-col justify-end bg-black/40" onClick={onClose}>
       <div className="bg-white rounded-t-2xl max-h-[92vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-        <div className="sticky top-0 bg-white border-b border-gray-100 px-4 py-3 flex items-center justify-between z-10">
-          <h2 className="text-sm font-bold text-gray-700 flex items-center gap-1.5">
-            <span>✨</span>{drafts ? '確認して保存' : 'AIでカード作成'}
+        <div className="sticky top-0 bg-white border-b border-gray-100 px-4 py-3 flex items-center justify-between z-10 gap-2">
+          <h2 className="text-sm font-bold text-gray-700 flex items-center gap-1.5 min-w-0">
+            <span>✨</span><span className="truncate">{drafts ? '確認して保存' : 'AIでカード作成'}</span>
           </h2>
-          <button onClick={onClose} className="text-gray-400 text-xl w-8 h-8 flex items-center justify-center">✕</button>
+          {drafts ? (
+            <div className="flex items-center gap-1.5 shrink-0">
+              <button onClick={() => { setDrafts(null); setError(''); }}
+                className="px-2.5 py-1.5 rounded-lg border border-gray-200 text-gray-600 text-xs font-medium">戻る</button>
+              <button onClick={() => onAdd(drafts)} disabled={drafts.length === 0}
+                className="px-3 py-1.5 rounded-lg bg-indigo-500 text-white text-xs font-bold disabled:opacity-40">
+                {drafts.length}枚を保存
+              </button>
+              <button onClick={onClose} className="text-gray-400 text-lg w-7 h-7 flex items-center justify-center">✕</button>
+            </div>
+          ) : (
+            <button onClick={onClose} className="text-gray-400 text-xl w-8 h-8 flex items-center justify-center">✕</button>
+          )}
         </div>
 
         <div className="p-4 space-y-4 pb-8">
@@ -303,14 +315,6 @@ export default function GenerateModal({ deckName, onAdd, onClose }: Props) {
                 </div>
               )}
               {error && <p className="text-xs text-red-500">{error}</p>}
-              <div className="flex gap-2 pt-1">
-                <button onClick={() => { setDrafts(null); setError(''); }}
-                  className="px-4 py-2.5 rounded-xl border border-gray-200 text-gray-600 text-sm font-medium">戻る</button>
-                <button onClick={() => onAdd(drafts)} disabled={drafts.length === 0}
-                  className="flex-1 py-2.5 rounded-xl bg-indigo-500 text-white text-sm font-bold disabled:opacity-40">
-                  {drafts.length}枚を保存
-                </button>
-              </div>
             </>
           )}
         </div>
