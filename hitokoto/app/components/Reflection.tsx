@@ -45,7 +45,8 @@ function fmtAt(iso: string): string {
 }
 
 export default function Reflection({ entries }: { entries: Entry[] }) {
-  const [period,  setPeriod]  = useState<'week' | 'month'>('week');
+  const [period,  setPeriod]  = useState<'week' | 'month'>('month');
+  const [offset,  setOffset]  = useState(0);   // 0=今週/今月, 負=過去（カレンダーと同じ移動）
   const [loading, setLoading] = useState(false);
   const [error,   setError]   = useState('');
   const [history, setHistory] = useState<ReflectionRecord[]>([]);
@@ -57,30 +58,34 @@ export default function Reflection({ entries }: { entries: Entry[] }) {
 
   const today = todayYMD();
 
-  // 現在の期間のキー・ラベル・対象日記
+  // 期間（period＋offset）のキー・ラベル・対象日記
   const { key, label, target } = useMemo(() => {
     if (period === 'month') {
-      const mk = today.slice(0, 7);
-      const [y, m] = mk.split('-');
+      const base = new Date(today + 'T00:00:00');
+      const a = new Date(base.getFullYear(), base.getMonth() + offset, 1);
+      const mk = `${a.getFullYear()}-${String(a.getMonth() + 1).padStart(2, '0')}`;
       return {
         key: mk,
-        label: `${y}年${Number(m)}月`,
-        target: entries.filter(e => e.date.startsWith(mk)).sort((a, b) => a.date.localeCompare(b.date)),
+        label: `${a.getFullYear()}年${a.getMonth() + 1}月`,
+        target: entries.filter(e => e.date.startsWith(mk)).sort((x, y) => x.date.localeCompare(y.date)),
       };
     }
-    const ws = mondayOf(today);
+    const ws = mondayOf(today); ws.setDate(ws.getDate() + offset * 7);
     const wsY = ymd(ws);
     const we = new Date(ws); we.setDate(we.getDate() + 6);
+    const weY = ymd(we);
     return {
       key: wsY,
       label: `${ws.getMonth() + 1}/${ws.getDate()}〜${we.getMonth() + 1}/${we.getDate()}の週`,
-      target: entries.filter(e => e.date >= wsY && e.date <= today).sort((a, b) => a.date.localeCompare(b.date)),
+      target: entries.filter(e => e.date >= wsY && e.date <= weY).sort((x, y) => x.date.localeCompare(y.date)),
     };
-  }, [period, entries, today]);
+  }, [period, offset, entries, today]);
 
   const sig = JSON.stringify(target.map(e => [e.date, e.text]));
   const current = history.find(r => r.period === period && r.key === key);
   const stale = current ? current.sig !== sig : false;
+
+  function switchPeriod(p: 'week' | 'month') { setPeriod(p); setOffset(0); setError(''); }
 
   async function generate() {
     if (loading) return;
@@ -110,23 +115,31 @@ export default function Reflection({ entries }: { entries: Entry[] }) {
     }
   }
 
-  // 過去のふりかえり（今表示中の期間そのものは上に出すので一覧からは除外）
   const past = history.filter(r => !(r.period === period && r.key === key));
 
   return (
     <div className="space-y-3">
-      {/* 今期間の生成 */}
       <section className="bg-white rounded-2xl shadow-sm border border-amber-100/70 p-5 space-y-3">
+        {/* 週/月 切替 */}
         <div className="flex rounded-lg overflow-hidden border border-amber-200 text-xs">
           {(['week', 'month'] as const).map(p => (
-            <button key={p} onClick={() => setPeriod(p)}
+            <button key={p} onClick={() => switchPeriod(p)}
               className={`flex-1 py-2 font-medium transition-colors ${period === p ? 'bg-amber-600 text-white' : 'bg-white text-amber-700/70'}`}>
-              {p === 'week' ? '今週' : '今月'}
+              {p === 'week' ? '週' : '月'}
             </button>
           ))}
         </div>
 
-        <p className="text-[11px] text-amber-700/50">{label}　記録：{target.length}件</p>
+        {/* 期間移動（カレンダーと同じ ‹ ›） */}
+        <div className="flex items-center justify-between">
+          <button onClick={() => setOffset(o => o - 1)}
+            className="w-8 h-8 flex items-center justify-center text-amber-600/70 hover:text-amber-700 text-lg">‹</button>
+          <span className="text-sm font-semibold text-amber-800">{label}</span>
+          <button onClick={() => setOffset(o => Math.min(0, o + 1))} disabled={offset === 0}
+            className="w-8 h-8 flex items-center justify-center text-amber-600/70 hover:text-amber-700 text-lg disabled:opacity-30">›</button>
+        </div>
+
+        <p className="text-[11px] text-amber-700/50 text-center">記録：{target.length}件</p>
 
         {current && (
           <div className="space-y-2">
@@ -135,20 +148,20 @@ export default function Reflection({ entries }: { entries: Entry[] }) {
               <p className="text-sm text-amber-900/90 leading-relaxed whitespace-pre-wrap">{current.text}</p>
             </div>
             {stale && (
-              <p className="text-[11px] text-amber-600">※ この後に記録が増えています。「作り直す」で最新にできます。</p>
+              <p className="text-[11px] text-amber-600">※ この後に記録が変わっています。「作り直す」で最新にできます。</p>
             )}
             <p className="text-[10px] text-amber-700/40 text-right">生成: {fmtAt(current.at)}</p>
           </div>
         )}
 
         {target.length < 2 ? (
-          !current && <p className="text-sm text-amber-700/60 text-center py-4">記録がまだ少ないようです。もう少したまったら、やさしくふりかえります。</p>
+          !current && <p className="text-sm text-amber-700/60 text-center py-4">この期間の記録がまだ少ないようです。</p>
         ) : (
           <button onClick={generate} disabled={loading}
             className={`w-full py-2.5 rounded-xl text-sm font-medium disabled:opacity-50 flex items-center justify-center gap-2
               ${current ? 'text-amber-700 border border-amber-200 bg-white' : 'text-white bg-amber-700 hover:bg-amber-800'}`}>
             {loading && <span className={`w-4 h-4 border-2 rounded-full animate-spin ${current ? 'border-amber-300 border-t-transparent' : 'border-white/40 border-t-white'}`} />}
-            {loading ? '考えています…' : current ? (stale ? '最新の内容で作り直す' : '作り直す') : `${label}をAIにふりかえってもらう`}
+            {loading ? '考えています…' : current ? (stale ? '最新の内容で作り直す' : '作り直す') : 'この期間をAIにふりかえってもらう'}
           </button>
         )}
 
