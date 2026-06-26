@@ -5,11 +5,10 @@ import { Entry, todayYMD, ReflectionRecord, loadReflections, upsertReflection } 
 function ymd(d: Date) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
-// その日を含む週の月曜
-function mondayOf(dateStr: string): Date {
+// その日を含む週の日曜（カレンダーの日曜始まりに合わせる）
+function weekStartOf(dateStr: string): Date {
   const d = new Date(dateStr + 'T00:00:00');
-  const dow = (d.getDay() + 6) % 7; // 月曜=0
-  d.setDate(d.getDate() - dow);
+  d.setDate(d.getDate() - d.getDay()); // 日曜=0
   d.setHours(0, 0, 0, 0);
   return d;
 }
@@ -70,7 +69,7 @@ export default function Reflection({ entries }: { entries: Entry[] }) {
         target: entries.filter(e => e.date.startsWith(mk)).sort((x, y) => x.date.localeCompare(y.date)),
       };
     }
-    const ws = mondayOf(today); ws.setDate(ws.getDate() + offset * 7);
+    const ws = weekStartOf(today); ws.setDate(ws.getDate() + offset * 7);
     const wsY = ymd(ws);
     const we = new Date(ws); we.setDate(we.getDate() + 6);
     const weY = ymd(we);
