@@ -6,6 +6,7 @@ import {
 } from './lib/storage';
 import CalendarView from './components/CalendarView';
 import Reflection from './components/Reflection';
+import VoiceInput from './components/VoiceInput';
 
 export default function Home() {
   const [entries, setEntries] = useState<Entry[]>([]);
@@ -143,6 +144,12 @@ export default function Home() {
             maxLength={300}
             className="w-full resize-none border border-amber-100 rounded-xl px-4 py-3 text-sm bg-amber-50/30 focus:outline-none focus:ring-2 focus:ring-amber-300"
           />
+          <div className="mt-2">
+            <VoiceInput onText={t => setInput(prev => {
+              const joined = prev ? `${prev}${/\s$/.test(prev) ? '' : ' '}${t}` : t;
+              return joined.slice(0, 300);
+            })} />
+          </div>
           <div className="flex items-center justify-between mt-3">
             <span className="text-[11px] text-gray-300">{input.length}/300</span>
             <button
