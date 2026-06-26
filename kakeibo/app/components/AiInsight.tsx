@@ -105,7 +105,7 @@ export default function AiInsight({
         goalTarget: goal?.monthlyTarget,
         categories: cats,
       };
-      // 通信失敗やサーバー一時エラー(5xx/429)は自動で最大3回リトライ
+      // 通信断は最大3回再試行。混雑/一時エラーの再試行はサーバー側で行う。
       let res!: Response;
       for (let attempt = 0; ; attempt++) {
         const ctrl = new AbortController();
@@ -123,24 +123,24 @@ export default function AiInsight({
         } finally {
           clearTimeout(timer);
         }
-        if (attempt < 2 && [500, 502, 504, 429].includes(res.status)) {
-          await new Promise(r => setTimeout(r, 800 * (attempt + 1)));
-          continue;
-        }
         break;
       }
-      const data = await res.json();
+      let data: { insight?: string; error?: string } | null = null;
+      try { data = await res.json(); } catch { data = null; }
       if (!res.ok || !data?.insight) {
         setError(res.status === 503 ? 'AI機能はまだ準備中です（APIキー未設定）' : (data?.error ?? '生成に失敗しました'));
         return;
       }
+      const insight = data.insight;
       const now = new Date().toISOString();
-      setText(data.insight);
+      setText(insight);
       setAt(now);
       setStale(false);
-      saveInsight(yearMonth, { text: data.insight, at: now, sig });
-    } catch {
-      setError('通信に失敗しました');
+      saveInsight(yearMonth, { text: insight, at: now, sig });
+    } catch (e) {
+      setError((e as Error)?.name === 'AbortError'
+        ? 'AIの応答に時間がかかっています。少し待ってからお試しください。'
+        : '通信に失敗しました。少し待ってから再試行してください。');
     } finally {
       setLoading(false);
     }

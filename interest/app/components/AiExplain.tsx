@@ -25,7 +25,7 @@ export default function AiExplain({ payload }: { payload: ExplainPayload }) {
     setLoading(true);
     setError('');
     try {
-      // 通信失敗やサーバー一時エラー(5xx/429)は自動で最大3回リトライ
+      // 通信断は最大3回再試行。混雑/一時エラーの再試行はサーバー側で行う。
       let res!: Response;
       for (let attempt = 0; ; attempt++) {
         const ctrl = new AbortController();
@@ -43,20 +43,19 @@ export default function AiExplain({ payload }: { payload: ExplainPayload }) {
         } finally {
           clearTimeout(timer);
         }
-        if (attempt < 2 && [500, 502, 504, 429].includes(res.status)) {
-          await new Promise(r => setTimeout(r, 800 * (attempt + 1)));
-          continue;
-        }
         break;
       }
-      const data = await res.json();
+      let data: { explanation?: string; error?: string } | null = null;
+      try { data = await res.json(); } catch { data = null; }
       if (!res.ok || !data?.explanation) {
         setError(res.status === 503 ? 'AI機能はまだ準備中です（APIキー未設定）' : (data?.error ?? '生成に失敗しました'));
         return;
       }
       setText(data.explanation);
-    } catch {
-      setError('通信に失敗しました');
+    } catch (e) {
+      setError((e as Error)?.name === 'AbortError'
+        ? 'AIの応答に時間がかかっています。少し待ってからお試しください。'
+        : '通信に失敗しました。少し待ってから再試行してください。');
     } finally {
       setLoading(false);
     }

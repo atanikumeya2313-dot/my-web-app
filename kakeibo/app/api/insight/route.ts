@@ -77,19 +77,43 @@ export async function POST(req: NextRequest) {
     return Response.json({ error: "APIキーが設定されていません" }, { status: 503 });
   }
 
-  try {
-    const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-    const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
-      contents: buildPrompt(payload),
-      config: { systemInstruction: SYSTEM },
-    });
-    const insight = response.text?.trim() ?? "";
-    if (!insight) {
-      return Response.json({ error: "生成できませんでした" }, { status: 502 });
+  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+
+  // Geminiの一時的な混雑(503/overloaded)は関数内で短く待って1回だけ自動再試行。
+  // レート制限(429)は待っても無駄なので即メッセージで返す。
+  let insight = "";
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const response = await ai.models.generateContent({
+        model: "gemini-2.5-flash",
+        contents: buildPrompt(payload),
+        config: { systemInstruction: SYSTEM },
+      });
+      insight = response.text?.trim() ?? "";
+      break;
+    } catch (e) {
+      const m = String((e as { message?: string })?.message ?? e);
+      if (/429|RESOURCE_EXHAUSTED|quota|rate limit/i.test(m)) {
+        return Response.json(
+          { error: "短時間に多く実行したため、一時的に回数制限に達しました。少し待ってから再実行してください。" },
+          { status: 429 },
+        );
+      }
+      const overloaded = /503|UNAVAILABLE|overloaded/i.test(m);
+      const transient = overloaded || /\b500\b|INTERNAL|deadline|ETIMEDOUT|ECONNRESET|fetch failed|network/i.test(m);
+      if (attempt === 0 && transient) {
+        await new Promise(r => setTimeout(r, 2500));
+        continue;
+      }
+      return Response.json(
+        { error: overloaded ? "AIが混雑しています。少し時間をおいてから再実行してください。" : "AIの応答に失敗しました" },
+        { status: 502 },
+      );
     }
-    return Response.json({ insight });
-  } catch {
-    return Response.json({ error: "AIの応答に失敗しました" }, { status: 502 });
   }
+
+  if (!insight) {
+    return Response.json({ error: "生成できませんでした" }, { status: 502 });
+  }
+  return Response.json({ insight });
 }
