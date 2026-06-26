@@ -94,6 +94,12 @@ export default function GenerateModal({ deckName, onAdd, onClose }: Props) {
 
   const MAX_IMAGES = 10;
 
+  // モード切替時に既定枚数も切り替える（写真は「1枚あたり」3枚、テキスト/トピックは合計5枚）
+  function selectMode(v: Mode) {
+    setMode(v);
+    setCount(v === 'photo' ? '3' : '5');
+  }
+
   async function handlePickImages(e: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files ?? []);
     e.target.value = '';   // 同じ写真を選び直せるようにクリア
@@ -199,7 +205,7 @@ export default function GenerateModal({ deckName, onAdd, onClose }: Props) {
               {/* モードタブ */}
               <div className="grid grid-cols-3 gap-1.5">
                 {MODES.map(m => (
-                  <button key={m.value} onClick={() => setMode(m.value)}
+                  <button key={m.value} onClick={() => selectMode(m.value)}
                     className={`py-2 rounded-lg text-xs font-medium flex flex-col items-center gap-0.5 transition-colors ${mode === m.value ? 'bg-indigo-500 text-white' : 'bg-gray-100 text-gray-600'}`}>
                     <span className="text-base">{m.icon}</span>{m.label}
                   </button>
