@@ -21,10 +21,12 @@ interface Payload {
   projectedExpense?: number;
   goalTarget?: number;
   categories?: CategoryAgg[];
+  periodLabel?: string;   // 「今週（6/22〜）」「2026年6月」など。あれば優先
+  compareLabel?: string;  // 「先月」「先週」など比較対象の呼称
 }
 
 const SYSTEM = `あなたは家計簿アプリの中で、利用者にそっと寄り添う家計アドバイザーです。
-渡される「その月の集計データ」だけを根拠に、日本語で短いふりかえりを返してください。
+渡される「対象期間の集計データ」だけを根拠に、日本語で短いふりかえりを返してください。
 
 守ること:
 - 全体で3〜4行程度。各行は「・」で始める箇条書き。前置き・締めの挨拶は書かない。
@@ -40,24 +42,29 @@ function buildPrompt(p: Payload): string {
   const lines: string[] = [];
   const income = p.income ?? 0;
   const expense = p.expense ?? 0;
-  lines.push(`対象月: ${p.yearMonth ?? "不明"}${p.isCurrentMonth ? "（今月・進行中）" : "（確定済み）"}`);
+  const cmp = p.compareLabel ?? "先月";
+  if (p.periodLabel) {
+    lines.push(`対象: ${p.periodLabel}`);
+  } else {
+    lines.push(`対象月: ${p.yearMonth ?? "不明"}${p.isCurrentMonth ? "（今月・進行中）" : "（確定済み）"}`);
+  }
   if (p.isCurrentMonth && p.daysElapsed && p.daysInMonth) {
     lines.push(`経過: ${p.daysInMonth}日中 ${p.daysElapsed}日目`);
   }
-  lines.push(`収入: ${fmt(income)}（先月${p.samePeriod ? "同期間" : ""}: ${fmt(p.prevIncome ?? 0)}）`);
-  lines.push(`支出: ${fmt(expense)}（先月${p.samePeriod ? "同期間" : ""}: ${fmt(p.prevExpense ?? 0)}）`);
+  lines.push(`収入: ${fmt(income)}（${cmp}${p.samePeriod ? "同期間" : ""}: ${fmt(p.prevIncome ?? 0)}）`);
+  lines.push(`支出: ${fmt(expense)}（${cmp}${p.samePeriod ? "同期間" : ""}: ${fmt(p.prevExpense ?? 0)}）`);
   lines.push(`収支: ${fmt(income - expense)}`);
   if (p.projectedExpense !== undefined) {
-    lines.push(`今月の支出着地見込み: 約${fmt(p.projectedExpense)}`);
+    lines.push(`支出の着地見込み: 約${fmt(p.projectedExpense)}`);
   }
   if (p.goalTarget !== undefined) {
     lines.push(`貯金目標(月): ${fmt(p.goalTarget)}`);
   }
   if (p.categories && p.categories.length) {
-    lines.push("支出カテゴリ別（金額 / 先月 / 予算）:");
+    lines.push(`支出カテゴリ別（金額 / ${cmp} / 予算）:`);
     for (const c of p.categories) {
       const b = c.budget !== undefined ? ` / 予算${fmt(c.budget)}` : "";
-      lines.push(`  - ${c.name}: ${fmt(c.amount)} / 先月${fmt(c.prev)}${b}`);
+      lines.push(`  - ${c.name}: ${fmt(c.amount)} / ${cmp}${fmt(c.prev)}${b}`);
     }
   }
   return lines.join("\n");
