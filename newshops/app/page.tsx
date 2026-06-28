@@ -1,9 +1,10 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
-import { Shop, ShopStatus, ShopCandidate, EHIME_AREAS } from './types';
+import { Shop, ShopStatus, ShopCandidate, SearchShop, EHIME_AREAS } from './types';
 import { loadShops, saveShops, daysUntil, mapUrl, exportData, importData } from './lib/storage';
 import ShopForm from './components/ShopForm';
 import DiscoverModal from './components/DiscoverModal';
+import SearchModal from './components/SearchModal';
 
 type StatusFilter = 'all' | 'planned' | 'open';
 
@@ -17,6 +18,7 @@ export default function Home() {
   const [editing,  setEditing]  = useState<Shop | undefined>();
   const [draft,    setDraft]    = useState<Partial<Shop> | undefined>();
   const [showAi,   setShowAi]   = useState(false);
+  const [showSearch, setShowSearch] = useState(false);
   const importRef = useRef<HTMLInputElement>(null);
 
   /* eslint-disable react-hooks/set-state-in-effect */
@@ -45,6 +47,22 @@ export default function Home() {
       ...(c.openDate ? { openDate: c.openDate } : {}),
       ...(c.note ? { memo: c.note } : {}),
       favorite: false, source: 'ai', createdAt: new Date().toISOString(),
+    };
+    persist([shop, ...shops]);
+  }
+
+  function addFromSearch(s: SearchShop, selectedArea: string) {
+    // 住所から市町を抽出（無ければ選択中エリア）
+    const cityMatch = s.address.match(/[^\s　]+?[市町村]/);
+    const area = (selectedArea && selectedArea !== 'すべて') ? selectedArea : (cityMatch?.[0] ?? '');
+    const memo = [s.catch, s.access].filter(Boolean).join(' / ');
+    const shop: Shop = {
+      id: crypto.randomUUID(),
+      name: s.name, category: s.genre || 'その他', area,
+      status: 'open',
+      ...(s.url ? { url: s.url } : {}),
+      ...(memo ? { memo } : {}),
+      favorite: false, source: 'hotpepper', createdAt: new Date().toISOString(),
     };
     persist([shop, ...shops]);
   }
@@ -187,15 +205,22 @@ export default function Home() {
       </main>
 
       {/* アクションボタン */}
-      <div className="fixed bottom-6 right-4 flex flex-col items-end gap-3 z-40">
+      <div className="fixed bottom-6 right-4 flex flex-col items-end gap-2.5 z-40">
+        <button onClick={() => setShowSearch(true)}
+          className="h-10 pl-3 pr-4 bg-white text-emerald-700 border border-emerald-200 rounded-full text-xs font-semibold shadow-lg active:scale-95 transition flex items-center gap-1.5">
+          🍴 ジャンルで探す
+        </button>
         <button onClick={() => setShowAi(true)}
-          className="h-11 pl-3.5 pr-4 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-full text-sm font-semibold shadow-lg active:scale-95 transition flex items-center gap-1.5">
-          🔎 AIで探す
+          className="h-10 pl-3 pr-4 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-full text-xs font-semibold shadow-lg active:scale-95 transition flex items-center gap-1.5">
+          🔎 AIで新店を探す
         </button>
         <button onClick={openAdd} aria-label="手動で追加"
           className="w-14 h-14 bg-emerald-600 text-white rounded-full text-2xl shadow-lg active:scale-90 transition-transform flex items-center justify-center">＋</button>
       </div>
 
+      {showSearch && (
+        <SearchModal onAdd={addFromSearch} onClose={() => setShowSearch(false)} />
+      )}
       {showAi && (
         <DiscoverModal onAdd={addFromCandidate} onClose={() => setShowAi(false)} />
       )}
