@@ -30,6 +30,10 @@
 
     { "source": "/newshops", "destination": "https://newshops-pi.vercel.app/newshops" },
     { "source": "/newshops/", "destination": "https://newshops-pi.vercel.app/newshops" },
-    { "source": "/newshops/:path*", "destination": "https://newshops-pi.vercel.app/newshops/:path*" }
+    { "source": "/newshops/:path*", "destination": "https://newshops-pi.vercel.app/newshops/:path*" },
+
+    { "source": "/appnotes", "destination": "https://appnotes-phi.vercel.app/appnotes" },
+    { "source": "/appnotes/", "destination": "https://appnotes-phi.vercel.app/appnotes" },
+    { "source": "/appnotes/:path*", "destination": "https://appnotes-phi.vercel.app/appnotes/:path*" }
   ]
 }
