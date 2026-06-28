@@ -44,7 +44,7 @@ export const GENRES: { code: string; name: string }[] = [
   { code: 'G015', name: 'その他グルメ' },
 ];
 
-// 標準検索の結果
+// 標準検索の結果（ホットペッパー）
 export interface SearchShop {
   name: string;
   genre: string;
@@ -54,6 +54,18 @@ export interface SearchShop {
   url: string;
   photo: string;
   catch: string;
+}
+
+// Google Places の検索結果（料理名でも探せる）
+export interface PlaceShop {
+  name: string;
+  genre: string;
+  address: string;
+  rating?: number;
+  reviews?: number;
+  price: string;
+  url: string;
+  closed?: boolean;
 }
 export const EHIME_AREAS = [
   '松山市', '今治市', '宇和島市', '八幡浜市', '新居浜市', '西条市', '大洲市',

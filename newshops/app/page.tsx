@@ -1,10 +1,11 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
-import { Shop, ShopStatus, ShopCandidate, SearchShop, EHIME_AREAS } from './types';
+import { Shop, ShopStatus, ShopCandidate, SearchShop, PlaceShop, EHIME_AREAS } from './types';
 import { loadShops, saveShops, daysUntil, mapUrl, exportData, importData } from './lib/storage';
 import ShopForm from './components/ShopForm';
 import DiscoverModal from './components/DiscoverModal';
 import SearchModal from './components/SearchModal';
+import GoogleSearchModal from './components/GoogleSearchModal';
 
 type StatusFilter = 'all' | 'planned' | 'open';
 
@@ -19,6 +20,7 @@ export default function Home() {
   const [draft,    setDraft]    = useState<Partial<Shop> | undefined>();
   const [showAi,   setShowAi]   = useState(false);
   const [showSearch, setShowSearch] = useState(false);
+  const [showGoogle, setShowGoogle] = useState(false);
   const importRef = useRef<HTMLInputElement>(null);
 
   /* eslint-disable react-hooks/set-state-in-effect */
@@ -63,6 +65,21 @@ export default function Home() {
       ...(s.url ? { url: s.url } : {}),
       ...(memo ? { memo } : {}),
       favorite: false, source: 'hotpepper', createdAt: new Date().toISOString(),
+    };
+    persist([shop, ...shops]);
+  }
+
+  function addFromPlace(s: PlaceShop, selectedArea: string) {
+    const cityMatch = s.address.match(/[^\s　]+?[市町村]/);
+    const area = (selectedArea && selectedArea !== 'すべて') ? selectedArea : (cityMatch?.[0] ?? '');
+    const memo = [typeof s.rating === 'number' ? `★${s.rating}${s.reviews ? `(${s.reviews})` : ''}` : '', s.price].filter(Boolean).join(' / ');
+    const shop: Shop = {
+      id: crypto.randomUUID(),
+      name: s.name, category: s.genre || 'その他', area,
+      status: 'open',
+      ...(s.url ? { url: s.url } : {}),
+      ...(memo ? { memo } : {}),
+      favorite: false, source: 'google', createdAt: new Date().toISOString(),
     };
     persist([shop, ...shops]);
   }
@@ -206,6 +223,10 @@ export default function Home() {
 
       {/* アクションボタン */}
       <div className="fixed bottom-6 right-4 flex flex-col items-end gap-2.5 z-40">
+        <button onClick={() => setShowGoogle(true)}
+          className="h-10 pl-3 pr-4 bg-white text-emerald-700 border border-emerald-200 rounded-full text-xs font-semibold shadow-lg active:scale-95 transition flex items-center gap-1.5">
+          🔍 Googleで探す
+        </button>
         <button onClick={() => setShowSearch(true)}
           className="h-10 pl-3 pr-4 bg-white text-emerald-700 border border-emerald-200 rounded-full text-xs font-semibold shadow-lg active:scale-95 transition flex items-center gap-1.5">
           🍴 ジャンルで探す
@@ -218,6 +239,9 @@ export default function Home() {
           className="w-14 h-14 bg-emerald-600 text-white rounded-full text-2xl shadow-lg active:scale-90 transition-transform flex items-center justify-center">＋</button>
       </div>
 
+      {showGoogle && (
+        <GoogleSearchModal onAdd={addFromPlace} onClose={() => setShowGoogle(false)} />
+      )}
       {showSearch && (
         <SearchModal onAdd={addFromSearch} onClose={() => setShowSearch(false)} />
       )}
