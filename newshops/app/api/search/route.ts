@@ -31,9 +31,13 @@ export async function POST(req: NextRequest) {
     return Response.json({ error: "ホットペッパーのAPIキーが設定されていません" }, { status: 503 });
   }
 
-  // エリア名（市町）＋自由キーワードで愛媛県内を検索
-  const areaKw = body.area && body.area !== "すべて" ? body.area : "愛媛";
-  const kw = [areaKw, (body.keyword ?? "").trim()].filter(Boolean).join(" ");
+  // 「愛媛」を必ずAND条件に含めて他県（例：埼玉県東松山市）の誤ヒットを防ぐ。
+  // キーワードは店名・住所などのAND部分一致。
+  const parts = ["愛媛"];
+  if (body.area && body.area !== "すべて" && body.area !== "愛媛") parts.push(body.area);
+  const free = (body.keyword ?? "").trim();
+  if (free) parts.push(free);
+  const kw = parts.join(" ");
 
   const params = new URLSearchParams({
     key,
