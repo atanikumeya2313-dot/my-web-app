@@ -2,6 +2,8 @@
 import { useState } from 'react';
 import { SearchShop, GENRES, EHIME_AREAS } from '../types';
 
+const genreName = (code: string) => GENRES.find(g => g.code === code)?.name ?? '';
+
 function mapUrlFor(name: string, address: string): string {
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${name} ${address}`)}`;
 }
@@ -19,6 +21,7 @@ export default function SearchModal({ onAdd, onClose }: Props) {
   const [error,   setError]   = useState('');
   const [shops,   setShops]   = useState<SearchShop[] | null>(null);
   const [relaxed, setRelaxed] = useState(false);
+  const [mapped,  setMapped]  = useState('');
   const [added,   setAdded]   = useState<Set<number>>(new Set());
 
   async function run() {
@@ -30,7 +33,7 @@ export default function SearchModal({ onAdd, onClose }: Props) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ area, genre, keyword: keyword.trim() }),
       });
-      let data: { shops?: SearchShop[]; relaxed?: boolean; error?: string } | null = null;
+      let data: { shops?: SearchShop[]; relaxed?: boolean; mappedGenre?: string; error?: string } | null = null;
       try { data = await res.json(); } catch { data = null; }
       if (!res.ok || !Array.isArray(data?.shops)) {
         setError(res.status === 503 ? 'ホットペッパーのAPIキーが未設定です' : (data?.error ?? '検索に失敗しました'));
@@ -38,6 +41,7 @@ export default function SearchModal({ onAdd, onClose }: Props) {
       }
       setShops(data.shops);
       setRelaxed(!!data.relaxed);
+      setMapped(data.mappedGenre ?? '');
       setAdded(new Set());
       if (data.shops.length === 0) setError(`「${keyword.trim()}」では見つかりませんでした。キーワードを変えるか、ジャンルで探してみてください。`);
     } catch {
@@ -88,7 +92,12 @@ export default function SearchModal({ onAdd, onClose }: Props) {
 
           {shops && shops.length > 0 && (
             <div className="space-y-2 pt-1">
-              {relaxed && (
+              {mapped && (
+                <p className="text-[11px] text-amber-600 bg-amber-50 rounded-lg px-2.5 py-1.5">
+                  「{keyword.trim()}」は<b>{genreName(mapped)}</b>として検索しました（APIはメニュー名で絞り込めないため）。
+                </p>
+              )}
+              {relaxed && !mapped && (
                 <p className="text-[11px] text-amber-600 bg-amber-50 rounded-lg px-2.5 py-1.5">
                   「{keyword.trim()}」では見つからなかったため、キーワードを外して表示しています。
                 </p>
