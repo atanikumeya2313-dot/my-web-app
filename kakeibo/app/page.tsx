@@ -100,17 +100,17 @@ export default function Home() {
     ? Math.min(today.getDate(), daysInMonth(thisMonth)) / daysInMonth(thisMonth)
     : undefined;
 
-  // ── 今週（日曜〜今日）と先週同期間（AI週次レビュー用） ──
+  // ── 直近7日間と、その前の7日間（AI週次レビュー用・ローリング） ──
+  // 週の初日でも常に過去7日分を見られるよう、固定の週(日〜土)ではなく直近7日にする
   const ymd = (d: Date) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-  const dowToday   = today.getDay();                       // 0=日
-  const weekStart  = new Date(today); weekStart.setDate(today.getDate() - dowToday);
-  const weekStartY = ymd(weekStart);
   const todayY     = ymd(today);
+  const weekStart  = new Date(today); weekStart.setDate(today.getDate() - 6);   // 6日前〜今日 = 7日間
+  const weekStartY = ymd(weekStart);
   const weekTxs    = txs.filter(t => t.date >= weekStartY && t.date <= todayY);
-  const lastWeekStart   = new Date(weekStart); lastWeekStart.setDate(weekStart.getDate() - 7);
-  const lastWeekSameEnd = new Date(lastWeekStart); lastWeekSameEnd.setDate(lastWeekStart.getDate() + dowToday);
-  const prevWeekTxs = txs.filter(t => t.date >= ymd(lastWeekStart) && t.date <= ymd(lastWeekSameEnd));
-  const weekLabel   = `今週（${weekStart.getMonth()+1}/${weekStart.getDate()}〜${today.getMonth()+1}/${today.getDate()}）`;
+  const prevStart  = new Date(today); prevStart.setDate(today.getDate() - 13);
+  const prevEnd    = new Date(today); prevEnd.setDate(today.getDate() - 7);
+  const prevWeekTxs = txs.filter(t => t.date >= ymd(prevStart) && t.date <= ymd(prevEnd));
+  const weekLabel   = `直近7日間（${weekStart.getMonth()+1}/${weekStart.getDate()}〜${today.getMonth()+1}/${today.getDate()}）`;
 
   const handleSave = (tx: Transaction) => {
     setTxs(editing ? updateTransaction(tx) : addTransaction(tx));

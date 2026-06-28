@@ -53,8 +53,8 @@ export default function AiInsight(props: Props) {
   const label       = isMonth ? `${monthLabel}${isCurrentMonth ? '（今月・進行中）' : ''}` : weekLabel;
   const shortLabel  = isMonth ? monthLabel : weekLabel;
   const cacheKey    = isMonth ? yearMonth : `w:${weekKey}`;
-  const compareLabel = isMonth ? '先月' : '先週';
-  const samePeriod   = isMonth ? isCurrentMonth : true;
+  const compareLabel = isMonth ? '先月' : '前の7日間';
+  const samePeriod   = isMonth ? isCurrentMonth : false;
 
   const income  = sum(transactions, 'income');
   const expense = sum(transactions, 'expense');
@@ -212,12 +212,12 @@ export default function AiInsight(props: Props) {
       ) : !text ? (
         <>
           <p className="text-xs text-gray-400 mb-3">
-            {isMonth ? 'この月' : 'この1週間'}の集計（カテゴリ別の合計・{compareLabel}比{isMonth ? '・予算' : ''}）をAIが要約し、気づきをお伝えします。明細やメモは送信しません。
+            {isMonth ? 'この月' : '直近7日間'}の集計（カテゴリ別の合計・{compareLabel}比{isMonth ? '・予算' : ''}）をAIが要約し、気づきをお伝えします。明細やメモは送信しません。
           </p>
           <button onClick={generate} disabled={loading}
             className="w-full py-2.5 rounded-xl text-sm font-semibold text-white bg-gradient-to-r from-violet-500 to-blue-500 disabled:opacity-50 flex items-center justify-center gap-2">
             {loading && <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />}
-            {loading ? '分析中…' : `${isMonth ? 'この月' : 'この週'}をAIでふりかえる`}
+            {loading ? '分析中…' : `${isMonth ? 'この月' : '直近7日'}をAIでふりかえる`}
           </button>
         </>
       ) : (
