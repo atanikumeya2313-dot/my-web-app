@@ -20,25 +20,33 @@ export default function DiscoverModal({ onAdd, onClose }: Props) {
   async function search() {
     if (loading) return;
     setLoading(true); setError('');
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 75000);
     try {
       const res = await fetch('/newshops/api/discover', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ area, keyword: keyword.trim() }),
+        signal: ctrl.signal,
       });
       let data: { shops?: ShopCandidate[]; sources?: Source[]; error?: string } | null = null;
       try { data = await res.json(); } catch { data = null; }
       if (!res.ok || !Array.isArray(data?.shops)) {
-        setError(res.status === 503 ? 'AI機能はまだ準備中です（APIキー未設定）' : (data?.error ?? '検索に失敗しました'));
+        if (res.status === 503) setError('AI機能はまだ準備中です（APIキー未設定）');
+        else if (res.status === 429) setError(data?.error ?? '短時間に多く実行したため制限中です。少し待って再実行してください。');
+        else setError(data?.error ?? '検索が時間内に終わりませんでした。混雑時は時間がかかります。もう一度お試しください。');
         return;
       }
       setShops(data.shops);
       setSources(data.sources ?? []);
       setAdded(new Set());
       if (data.shops.length === 0) setError('候補が見つかりませんでした。キーワードを変えてお試しください。');
-    } catch {
-      setError('通信に失敗しました。少し待ってから再試行してください。');
+    } catch (e) {
+      setError((e as Error)?.name === 'AbortError'
+        ? '検索に時間がかかりすぎました。もう一度お試しください。'
+        : '通信に失敗しました。少し待ってから再試行してください。');
     } finally {
+      clearTimeout(timer);
       setLoading(false);
     }
   }
@@ -52,7 +60,7 @@ export default function DiscoverModal({ onAdd, onClose }: Props) {
         </div>
 
         <div className="p-4 space-y-3 pb-8">
-          <p className="text-xs text-gray-400">愛媛県内で最近オープン・予定のお店をAI（Google検索連携）が探します。候補は要確認です。</p>
+          <p className="text-xs text-gray-400">愛媛県内で最近オープン・予定のお店をAI（Google検索連携）が探します。<b>30〜60秒ほどかかります</b>。候補は要確認です。</p>
 
           <div className="grid grid-cols-2 gap-2">
             <select value={area} onChange={e => setArea(e.target.value)}
@@ -68,7 +76,7 @@ export default function DiscoverModal({ onAdd, onClose }: Props) {
           <button onClick={search} disabled={loading}
             className="w-full py-2.5 rounded-xl text-sm font-semibold text-white bg-gradient-to-r from-emerald-500 to-teal-500 disabled:opacity-50 flex items-center justify-center gap-2">
             {loading && <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />}
-            {loading ? '検索中…（数秒かかります）' : 'AIで探す'}
+            {loading ? '検索中…（30〜60秒）' : 'AIで探す'}
           </button>
 
           {error && <p className="text-xs text-red-500">{error}</p>}

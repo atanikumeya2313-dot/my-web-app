@@ -20,7 +20,7 @@ function buildPrompt(area?: string, keyword?: string): string {
 ルール:
 - status は オープン予定=planned / オープン済=open。
 - openDate は分かる場合のみ。不明なら空文字。
-- 最大12件。重複は避ける。`;
+- 直近（ここ数ヶ月）の確かなものを優先し、最大6件に絞る。重複は避ける。`;
 }
 
 function parseShops(text: string): RawShop[] {
@@ -91,7 +91,7 @@ export async function POST(req: NextRequest) {
       note: String(r.note ?? "").trim(),
     }))
     .filter(r => r.name)
-    .slice(0, 12);
+    .slice(0, 8);
 
   // 情報源（グラウンディングの参照リンク）
   interface Source { title: string; uri: string }
