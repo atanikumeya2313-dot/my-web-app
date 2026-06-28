@@ -26,6 +26,10 @@
 
     { "source": "/cards", "destination": "https://cards-green-eight.vercel.app/cards" },
     { "source": "/cards/", "destination": "https://cards-green-eight.vercel.app/cards" },
-    { "source": "/cards/:path*", "destination": "https://cards-green-eight.vercel.app/cards/:path*" }
+    { "source": "/cards/:path*", "destination": "https://cards-green-eight.vercel.app/cards/:path*" },
+
+    { "source": "/newshops", "destination": "https://newshops-pi.vercel.app/newshops" },
+    { "source": "/newshops/", "destination": "https://newshops-pi.vercel.app/newshops" },
+    { "source": "/newshops/:path*", "destination": "https://newshops-pi.vercel.app/newshops/:path*" }
   ]
 }
