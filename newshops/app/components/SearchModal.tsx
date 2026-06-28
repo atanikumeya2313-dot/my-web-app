@@ -18,6 +18,7 @@ export default function SearchModal({ onAdd, onClose }: Props) {
   const [loading, setLoading] = useState(false);
   const [error,   setError]   = useState('');
   const [shops,   setShops]   = useState<SearchShop[] | null>(null);
+  const [relaxed, setRelaxed] = useState(false);
   const [added,   setAdded]   = useState<Set<number>>(new Set());
 
   async function run() {
@@ -29,15 +30,16 @@ export default function SearchModal({ onAdd, onClose }: Props) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ area, genre, keyword: keyword.trim() }),
       });
-      let data: { shops?: SearchShop[]; error?: string } | null = null;
+      let data: { shops?: SearchShop[]; relaxed?: boolean; error?: string } | null = null;
       try { data = await res.json(); } catch { data = null; }
       if (!res.ok || !Array.isArray(data?.shops)) {
         setError(res.status === 503 ? 'ホットペッパーのAPIキーが未設定です' : (data?.error ?? '検索に失敗しました'));
         return;
       }
       setShops(data.shops);
+      setRelaxed(!!data.relaxed);
       setAdded(new Set());
-      if (data.shops.length === 0) setError('該当するお店が見つかりませんでした。条件を変えてお試しください。');
+      if (data.shops.length === 0) setError(`「${keyword.trim()}」では見つかりませんでした。キーワードを変えるか、ジャンルで探してみてください。`);
     } catch {
       setError('通信に失敗しました。少し待ってから再試行してください。');
     } finally {
@@ -86,6 +88,11 @@ export default function SearchModal({ onAdd, onClose }: Props) {
 
           {shops && shops.length > 0 && (
             <div className="space-y-2 pt-1">
+              {relaxed && (
+                <p className="text-[11px] text-amber-600 bg-amber-50 rounded-lg px-2.5 py-1.5">
+                  「{keyword.trim()}」では見つからなかったため、キーワードを外して表示しています。
+                </p>
+              )}
               <p className="text-xs text-gray-400">{shops.length}件</p>
               {shops.map((s, i) => (
                 <div key={i} className="border border-gray-200 rounded-xl p-3">

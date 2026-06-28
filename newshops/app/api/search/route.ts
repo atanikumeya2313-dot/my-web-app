@@ -33,32 +33,31 @@ export async function POST(req: NextRequest) {
 
   // 「愛媛」を必ずAND条件に含めて他県（例：埼玉県東松山市）の誤ヒットを防ぐ。
   // キーワードは店名・住所などのAND部分一致。
-  const parts = ["愛媛"];
-  if (body.area && body.area !== "すべて" && body.area !== "愛媛") parts.push(body.area);
+  const base = ["愛媛"];
+  if (body.area && body.area !== "すべて" && body.area !== "愛媛") base.push(body.area);
   const free = (body.keyword ?? "").trim();
-  if (free) parts.push(free);
-  const kw = parts.join(" ");
+  const genre = body.genre && /^G\d{3}$/.test(body.genre) ? body.genre : "";
 
-  const params = new URLSearchParams({
-    key,
-    keyword: kw,
-    count: "20",
-    order: "4",      // おすすめ順
-    format: "json",
-  });
-  if (body.genre && /^G\d{3}$/.test(body.genre)) params.set("genre", body.genre);
-
-  try {
-    const res = await fetch(`https://webservice.recruit.co.jp/hotpepper/gourmet/v1/?${params.toString()}`, {
-      cache: "no-store",
-    });
-    if (!res.ok) {
-      return Response.json({ error: "検索に失敗しました（外部サービス）" }, { status: 502 });
-    }
+  async function fetchShops(keyword: string) {
+    const params = new URLSearchParams({ key: key!, keyword, count: "20", order: "4", format: "json" });
+    if (genre) params.set("genre", genre);
+    const res = await fetch(`https://webservice.recruit.co.jp/hotpepper/gourmet/v1/?${params.toString()}`, { cache: "no-store" });
+    if (!res.ok) throw new Error("http");
     const data = await res.json();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const list: any[] = data?.results?.shop ?? [];
-    return Response.json({ shops: list.map(pick) });
+    return ((data?.results?.shop ?? []) as any[]).map(pick);
+  }
+
+  try {
+    // まずキーワード込みで検索
+    let shops = await fetchShops([...base, free].filter(Boolean).join(" "));
+    let relaxed = false;
+    // 0件かつフリーキーワードがあるときは、その語を外して再検索（エリア＋ジャンルのみ）
+    if (shops.length === 0 && free) {
+      shops = await fetchShops(base.join(" "));
+      relaxed = true;
+    }
+    return Response.json({ shops, relaxed, keyword: free });
   } catch {
     return Response.json({ error: "検索に失敗しました。少し待ってから再試行してください。" }, { status: 502 });
   }
