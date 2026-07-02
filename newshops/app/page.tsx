@@ -21,6 +21,7 @@ export default function Home() {
   const [showAi,   setShowAi]   = useState(false);
   const [showSearch, setShowSearch] = useState(false);
   const [showGoogle, setShowGoogle] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const importRef = useRef<HTMLInputElement>(null);
 
   /* eslint-disable react-hooks/set-state-in-effect */
@@ -221,22 +222,35 @@ export default function Home() {
         )}
       </main>
 
-      {/* アクションボタン */}
+      {/* アクションボタン（タップで開くメニュー） */}
+      {menuOpen && (
+        <div className="fixed inset-0 z-30" onClick={() => setMenuOpen(false)} />
+      )}
       <div className="fixed bottom-6 right-4 flex flex-col items-end gap-2.5 z-40">
-        <button onClick={() => setShowGoogle(true)}
-          className="h-10 pl-3 pr-4 bg-white text-emerald-700 border border-emerald-200 rounded-full text-xs font-semibold shadow-lg active:scale-95 transition flex items-center gap-1.5">
-          🔍 Googleで探す
+        {menuOpen && (
+          <>
+            <button onClick={() => { setShowGoogle(true); setMenuOpen(false); }}
+              className="h-10 pl-3 pr-4 bg-white text-emerald-700 border border-emerald-200 rounded-full text-xs font-semibold shadow-lg active:scale-95 transition flex items-center gap-1.5">
+              🔍 Googleで探す
+            </button>
+            <button onClick={() => { setShowSearch(true); setMenuOpen(false); }}
+              className="h-10 pl-3 pr-4 bg-white text-emerald-700 border border-emerald-200 rounded-full text-xs font-semibold shadow-lg active:scale-95 transition flex items-center gap-1.5">
+              🍴 ジャンルで探す
+            </button>
+            <button onClick={() => { setShowAi(true); setMenuOpen(false); }}
+              className="h-10 pl-3 pr-4 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-full text-xs font-semibold shadow-lg active:scale-95 transition flex items-center gap-1.5">
+              🔎 AIで新店を探す
+            </button>
+            <button onClick={() => { openAdd(); setMenuOpen(false); }}
+              className="h-10 pl-3 pr-4 bg-white text-gray-600 border border-gray-200 rounded-full text-xs font-semibold shadow-lg active:scale-95 transition flex items-center gap-1.5">
+              ✏️ 手動で追加
+            </button>
+          </>
+        )}
+        <button onClick={() => setMenuOpen(v => !v)} aria-label={menuOpen ? 'メニューを閉じる' : 'お店を追加'}
+          className="w-14 h-14 bg-emerald-600 text-white rounded-full text-2xl shadow-lg active:scale-90 transition-transform flex items-center justify-center">
+          {menuOpen ? '✕' : '＋'}
         </button>
-        <button onClick={() => setShowSearch(true)}
-          className="h-10 pl-3 pr-4 bg-white text-emerald-700 border border-emerald-200 rounded-full text-xs font-semibold shadow-lg active:scale-95 transition flex items-center gap-1.5">
-          🍴 ジャンルで探す
-        </button>
-        <button onClick={() => setShowAi(true)}
-          className="h-10 pl-3 pr-4 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-full text-xs font-semibold shadow-lg active:scale-95 transition flex items-center gap-1.5">
-          🔎 AIで新店を探す
-        </button>
-        <button onClick={openAdd} aria-label="手動で追加"
-          className="w-14 h-14 bg-emerald-600 text-white rounded-full text-2xl shadow-lg active:scale-90 transition-transform flex items-center justify-center">＋</button>
       </div>
 
       {showGoogle && (
