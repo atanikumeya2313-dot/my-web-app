@@ -189,9 +189,12 @@ export default function Home() {
     return [...list].sort((a, b) => {
       if (sortKey === 'name') return a.name.localeCompare(b.name, 'ja');
       if (sortKey === 'low-stock') {
+        // 数量の少ない順（ラベル通り）。同数なら警告ラインに近い方を先に、それも同じなら名前順で安定化。
+        if (a.quantity !== b.quantity) return a.quantity - b.quantity;
         const ra = a.minQuantity > 0 ? a.quantity / a.minQuantity : Infinity;
         const rb = b.minQuantity > 0 ? b.quantity / b.minQuantity : Infinity;
-        return ra - rb;
+        if (ra !== rb) return ra - rb;
+        return a.name.localeCompare(b.name, 'ja');
       }
       if (sortKey === 'category') return a.category.localeCompare(b.category, 'ja');
       if (sortKey === 'expiry') {
