@@ -95,6 +95,12 @@ export default function Home() {
   const today = toYMD(new Date());
   const todayCompleted: CompletedLogEntry[] = completedLog.filter(e => e.date === today);
 
+  // 今日のタスクをすべて完了（残0件・今日1件以上完了済み）。カテゴリ絞り込み中は誤判定を避けるため全体で判定。
+  const allTodayDone =
+    viewDate === 'today' &&
+    getTodayTasks(tasks, completed).length === 0 &&
+    todayCompleted.length > 0;
+
   function showUndo(action: UndoAction) {
     if (undoTimer.current) clearTimeout(undoTimer.current);
     setUndo(action);
@@ -362,6 +368,18 @@ export default function Home() {
             </>
           )
 
+        /* 今日ぜんぶ完了のお祝い（完了タブ以外で表示） */
+        ) : allTodayDone && timeFilter !== 'done' ? (
+          <div className="mt-6 rounded-2xl bg-gradient-to-b from-green-50 to-white border border-green-100 text-center py-12 px-6 animate-toast-in">
+            <p className="text-6xl mb-3 animate-bounce">🎉</p>
+            <p className="text-lg font-bold text-green-600 mb-1">今日のタスク、全部完了！</p>
+            <p className="text-sm text-gray-500">{todayCompleted.length}件やりきりました。おつかれさまです 🙌</p>
+            <button onClick={() => setTimeFilter('done')}
+              className="mt-4 text-xs px-4 py-1.5 rounded-full bg-green-500 text-white font-medium hover:bg-green-600 transition-colors">
+              完了した{todayCompleted.length}件を見る
+            </button>
+          </div>
+
         /* 完了タブ */
         ) : timeFilter === 'done' ? (
           todayCompleted.length === 0 ? (
@@ -371,6 +389,11 @@ export default function Home() {
             </div>
           ) : (
             <div className="space-y-2">
+              {allTodayDone && (
+                <div className="rounded-xl bg-green-50 border border-green-100 text-center py-3 px-4 mb-1">
+                  <p className="text-sm font-bold text-green-600">🎉 今日のタスク、全部完了！</p>
+                </div>
+              )}
               {todayCompleted.map(entry => {
                 const ps = entry.priority ? PRIORITY_STYLE[entry.priority] : null;
                 return (
