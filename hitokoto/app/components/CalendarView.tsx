@@ -12,7 +12,7 @@ function shiftMonth(ym: string, delta: number) {
 
 const DOW = ['日', '月', '火', '水', '木', '金', '土'];
 
-export default function CalendarView({ entries }: { entries: Entry[] }) {
+export default function CalendarView({ entries, onPick }: { entries: Entry[]; onPick?: (date: string) => void }) {
   const now = new Date();
   const todayFull = `${ymOf(now)}-${String(now.getDate()).padStart(2, '0')}`;
   const [ym, setYm] = useState(ymOf(now));
@@ -55,12 +55,16 @@ export default function CalendarView({ entries }: { entries: Entry[] }) {
           const has = byDate.has(c);
           const isToday = c === todayFull;
           const isSel = c === sel;
+          const isFuture = c > todayFull;
+          // 記録あり→その日を選択表示。記録なし（未来以外）→タップでその日を記録できる画面へ。
+          const onClick = has ? () => setSel(isSel ? null : c) : (onPick ? () => onPick(c) : undefined);
           return (
-            <button key={c} onClick={() => has && setSel(isSel ? null : c)} disabled={!has}
+            <button key={c} onClick={onClick} disabled={isFuture || (!has && !onPick)}
               className={`aspect-square rounded-lg text-xs flex flex-col items-center justify-center transition-colors
                 ${isSel ? 'bg-amber-600 text-white'
                   : has ? 'bg-amber-100 text-amber-800 hover:bg-amber-200'
-                  : 'text-gray-300'}
+                  : isFuture ? 'text-gray-200'
+                  : 'text-amber-700/40 hover:bg-amber-50'}
                 ${isToday && !isSel ? 'ring-1 ring-amber-400' : ''}`}>
               <span>{day}</span>
               {has && <span className={`mt-0.5 w-1 h-1 rounded-full ${isSel ? 'bg-white' : 'bg-amber-500'}`} />}
@@ -72,7 +76,12 @@ export default function CalendarView({ entries }: { entries: Entry[] }) {
       {/* 選択した日の記録 */}
       {selEntry ? (
         <div className="mt-4 pt-3 border-t border-amber-100/70">
-          <p className="text-[11px] text-amber-700/60 mb-1.5">{fmtDate(selEntry.date)}</p>
+          <div className="flex items-center justify-between mb-1.5">
+            <p className="text-[11px] text-amber-700/60">{fmtDate(selEntry.date)}</p>
+            {onPick && (
+              <button onClick={() => onPick(selEntry.date)} className="text-[11px] text-amber-600/80 hover:text-amber-700">編集する</button>
+            )}
+          </div>
           <p className="text-sm text-gray-800 leading-relaxed whitespace-pre-wrap">{selEntry.text}</p>
           {selEntry.comment && (
             <div className="mt-2.5 pt-2.5 border-t border-amber-100/60 flex gap-2 items-start">
@@ -83,7 +92,7 @@ export default function CalendarView({ entries }: { entries: Entry[] }) {
         </div>
       ) : (
         <p className="mt-4 pt-3 border-t border-amber-100/70 text-center text-[11px] text-amber-700/40">
-          ●の日をタップすると、その日の記録が見られます
+          ●の日はタップで記録を表示。空いた日はタップでその日に記録できます
         </p>
       )}
     </section>

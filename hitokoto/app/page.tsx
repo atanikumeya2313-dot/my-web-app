@@ -15,6 +15,7 @@ export default function Home() {
   const [err, setErr] = useState<string | null>(null);
   const [view, setView] = useState<'home' | 'calendar' | 'reflect'>('home');
   const [query, setQuery] = useState('');
+  const [selDate, setSelDate] = useState(todayYMD()); // 記録・編集する対象日（既定は今日／過去も選べる）
   const fileRef = useRef<HTMLInputElement>(null);
 
   // localStorage はマウント後にのみ読めるため、ここでの setState は意図的
@@ -23,12 +24,17 @@ export default function Home() {
   /* eslint-enable react-hooks/set-state-in-effect */
 
   const today = todayYMD();
-  const todayEntry = entries.find(e => e.date === today);
-  const past = entries.filter(e => e.date !== today);
+  const selEntry = entries.find(e => e.date === selDate);
+  const past = entries.filter(e => e.date !== selDate);
   const q = query.trim().toLowerCase();
   const pastFiltered = q
     ? past.filter(e => e.text.toLowerCase().includes(q) || (e.comment || '').toLowerCase().includes(q))
     : past;
+
+  // 別の日付を編集対象にする（入力欄・エラーはリセット）
+  function pickDate(date: string) {
+    setSelDate(date); setInput(''); setErr(null); setView('home');
+  }
 
   async function fetchComment(date: string, text: string) {
     setLoadingDate(date);
@@ -80,16 +86,16 @@ export default function Home() {
   function handleRecord() {
     const text = input.trim();
     if (!text) return;
-    const entry: Entry = { date: today, text, comment: '' };
-    const next = [entry, ...entries.filter(e => e.date !== today)]
+    const entry: Entry = { date: selDate, text, comment: '' };
+    const next = [entry, ...entries.filter(e => e.date !== selDate)]
       .sort((a, b) => b.date.localeCompare(a.date));
     setEntries(next); saveEntries(next); setInput('');
-    fetchComment(today, text);
+    fetchComment(selDate, text);
   }
 
-  function rewriteToday() {
-    if (todayEntry) setInput(todayEntry.text);
-    const next = entries.filter(e => e.date !== today);
+  function rewriteEntry() {
+    if (selEntry) setInput(selEntry.text);
+    const next = entries.filter(e => e.date !== selDate);
     setEntries(next); saveEntries(next); setErr(null);
   }
 
@@ -132,14 +138,33 @@ export default function Home() {
       </div>
 
       {view === 'home' && (<>
-      {/* 今日 */}
-      {!todayEntry ? (
+      {/* 日付えらび（既定は今日／過去に遡って記録も可） */}
+      <div className="flex items-center justify-between mb-3 px-1">
+        <label className="flex items-center gap-2 text-xs text-amber-700/70">
+          <span>日付</span>
+          <input
+            type="date"
+            value={selDate}
+            max={today}
+            onChange={e => { if (e.target.value) pickDate(e.target.value); }}
+            className="border border-amber-200 rounded-lg px-2 py-1 text-xs bg-white text-amber-800 focus:outline-none focus:ring-2 focus:ring-amber-300"
+          />
+        </label>
+        {selDate !== today && (
+          <button onClick={() => pickDate(today)} className="text-[11px] text-amber-600/80 hover:text-amber-700">今日に戻る</button>
+        )}
+      </div>
+
+      {/* 選択日の記録 */}
+      {!selEntry ? (
         <section className="bg-white rounded-2xl shadow-sm border border-amber-100/70 p-5">
-          <p className="text-xs text-amber-700/70 mb-2">{fmtDate(today)}</p>
+          <p className="text-xs text-amber-700/70 mb-2">
+            {fmtDate(selDate)}{selDate !== today && <span className="ml-1 text-amber-500/70">（あとから記録）</span>}
+          </p>
           <textarea
             value={input}
             onChange={e => setInput(e.target.value)}
-            placeholder="今日のひとこと…"
+            placeholder={selDate === today ? '今日のひとこと…' : 'この日のひとこと…'}
             rows={3}
             maxLength={300}
             className="w-full resize-none border border-amber-100 rounded-xl px-4 py-3 text-sm bg-amber-50/30 focus:outline-none focus:ring-2 focus:ring-amber-300"
@@ -163,25 +188,25 @@ export default function Home() {
       ) : (
         <section className="bg-white rounded-2xl shadow-sm border border-amber-100/70 p-5">
           <div className="flex items-center justify-between mb-2">
-            <p className="text-xs text-amber-700/70">{fmtDate(today)}</p>
-            <button onClick={rewriteToday} className="text-[11px] text-amber-600/70 hover:text-amber-700">書き直す</button>
+            <p className="text-xs text-amber-700/70">{fmtDate(selDate)}</p>
+            <button onClick={rewriteEntry} className="text-[11px] text-amber-600/70 hover:text-amber-700">書き直す</button>
           </div>
-          <p className="text-base text-gray-800 leading-relaxed whitespace-pre-wrap">{todayEntry.text}</p>
+          <p className="text-base text-gray-800 leading-relaxed whitespace-pre-wrap">{selEntry.text}</p>
 
           <div className="mt-4 pt-4 border-t border-amber-100/70">
-            {loadingDate === today ? (
+            {loadingDate === selDate ? (
               <p className="text-sm text-amber-600/70 flex items-center gap-2">
                 <span className="inline-block w-3 h-3 border-2 border-amber-300 border-t-transparent rounded-full animate-spin" />
                 AIが考えています…
               </p>
-            ) : todayEntry.comment ? (
+            ) : selEntry.comment ? (
               <div className="flex gap-2.5 items-start">
                 <span className="text-lg leading-none mt-0.5">🪄</span>
-                <p className="text-sm text-amber-900/90 leading-relaxed whitespace-pre-wrap">{todayEntry.comment}</p>
+                <p className="text-sm text-amber-900/90 leading-relaxed whitespace-pre-wrap">{selEntry.comment}</p>
               </div>
             ) : (
               <button
-                onClick={() => fetchComment(today, todayEntry.text)}
+                onClick={() => fetchComment(selDate, selEntry.text)}
                 className="text-sm text-amber-700 underline-offset-2 hover:underline">
                 AIに一言もらう
               </button>
@@ -230,7 +255,7 @@ export default function Home() {
       )}
       </>)}
 
-      {view === 'calendar' && <CalendarView entries={entries} />}
+      {view === 'calendar' && <CalendarView entries={entries} onPick={pickDate} />}
       {view === 'reflect'  && <Reflection entries={entries} />}
 
       {/* バックアップ */}
