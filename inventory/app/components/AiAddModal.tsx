@@ -158,19 +158,23 @@ export default function AiAddModal({ categories, customIcons, onAdd, onClose }: 
                 </div>
               )}
               {error && <p className="text-xs text-red-500">{error}</p>}
-              <div className="flex gap-2 pt-1">
-                <button onClick={() => { setItems(null); setError(''); }}
-                  className="px-4 py-2.5 rounded-xl border border-gray-200 text-gray-600 text-sm font-medium">
-                  戻る
-                </button>
-                <button onClick={() => onAdd(items)} disabled={items.length === 0}
-                  className="flex-1 py-2.5 rounded-xl bg-blue-500 text-white text-sm font-bold disabled:opacity-40">
-                  {items.length}件を追加
-                </button>
-              </div>
             </>
           )}
         </div>
+
+        {/* 確認フェーズの操作バー（常に見える固定フッター） */}
+        {items && (
+          <div className="sticky bottom-0 bg-white border-t border-gray-100 px-4 py-3 flex gap-2">
+            <button onClick={() => { setItems(null); setError(''); }}
+              className="px-4 py-2.5 rounded-xl border border-gray-200 text-gray-600 text-sm font-medium">
+              戻る
+            </button>
+            <button onClick={() => onAdd(items)} disabled={items.length === 0}
+              className="flex-1 py-2.5 rounded-xl bg-blue-500 text-white text-sm font-bold disabled:opacity-40">
+              {items.length}件を追加
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

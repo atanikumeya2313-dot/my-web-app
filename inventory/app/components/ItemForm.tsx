@@ -209,26 +209,26 @@ export default function ItemForm({
               rows={2}
               className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-300 resize-none" />
           </div>
+        </div>
 
-          {/* Buttons */}
-          <div className="flex gap-2 pt-2">
-            {onDelete && (
-              <button onClick={onDelete}
-                className="flex-1 py-2.5 rounded-xl border border-red-200 text-red-500 text-sm font-medium">
-                削除
-              </button>
-            )}
-            {onDuplicate && (
-              <button onClick={onDuplicate}
-                className="flex-1 py-2.5 rounded-xl border border-gray-200 text-gray-600 text-sm font-medium">
-                複製
-              </button>
-            )}
-            <button onClick={handleSubmit} disabled={!name.trim()}
-              className="flex-1 py-2.5 rounded-xl bg-blue-500 text-white text-sm font-bold disabled:opacity-40">
-              {editing ? '更新' : '追加'}
+        {/* Buttons（常に見える固定フッター） */}
+        <div className="sticky bottom-0 bg-white border-t border-gray-100 px-4 py-3 flex gap-2">
+          {onDelete && (
+            <button onClick={onDelete}
+              className="flex-1 py-2.5 rounded-xl border border-red-200 text-red-500 text-sm font-medium">
+              削除
             </button>
-          </div>
+          )}
+          {onDuplicate && (
+            <button onClick={onDuplicate}
+              className="flex-1 py-2.5 rounded-xl border border-gray-200 text-gray-600 text-sm font-medium">
+              複製
+            </button>
+          )}
+          <button onClick={handleSubmit} disabled={!name.trim()}
+            className="flex-1 py-2.5 rounded-xl bg-blue-500 text-white text-sm font-bold disabled:opacity-40">
+            {editing ? '更新' : '追加'}
+          </button>
         </div>
       </div>
     </div>
