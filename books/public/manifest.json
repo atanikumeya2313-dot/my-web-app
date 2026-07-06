@@ -1,0 +1,15 @@
+{
+  "name": "AI本だな",
+  "short_name": "本だな",
+  "description": "読んだ本を記録して、傾向からAIが次のおすすめを教えてくれる読書ノート",
+  "start_url": "/books/",
+  "scope": "/books/",
+  "display": "standalone",
+  "background_color": "#fffbeb",
+  "theme_color": "#d97706",
+  "lang": "ja",
+  "icons": [
+    { "src": "/books/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/books/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

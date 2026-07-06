@@ -34,6 +34,10 @@
 
     { "source": "/appnotes", "destination": "https://appnotes-phi.vercel.app/appnotes" },
     { "source": "/appnotes/", "destination": "https://appnotes-phi.vercel.app/appnotes" },
-    { "source": "/appnotes/:path*", "destination": "https://appnotes-phi.vercel.app/appnotes/:path*" }
+    { "source": "/appnotes/:path*", "destination": "https://appnotes-phi.vercel.app/appnotes/:path*" },
+
+    { "source": "/books", "destination": "https://books-eta-blue.vercel.app/books" },
+    { "source": "/books/", "destination": "https://books-eta-blue.vercel.app/books" },
+    { "source": "/books/:path*", "destination": "https://books-eta-blue.vercel.app/books/:path*" }
   ]
 }
