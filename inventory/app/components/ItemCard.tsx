@@ -1,4 +1,5 @@
 'use client';
+import { useState } from 'react';
 import { StockItem, getCategoryIcon } from '../types';
 
 interface Props {
@@ -21,6 +22,8 @@ function expiryStatus(expiryDate?: string): { label: string; color: string } | n
 }
 
 export default function ItemCard({ item, daysRemaining, onEdit, onQuantityChange, customIcons }: Props) {
+  const [bulkOpen, setBulkOpen] = useState(false);
+  const [amount, setAmount] = useState(1);
   const isOut = item.quantity === 0;
   const isLow = !isOut && item.minQuantity > 0 && item.quantity <= item.minQuantity;
   // targetQuantity が設定されていればそれを基準、なければ minQuantity * 2
@@ -67,17 +70,45 @@ export default function ItemCard({ item, daysRemaining, onEdit, onQuantityChange
             className="w-7 h-7 rounded-full bg-gray-100 text-gray-600 font-bold disabled:opacity-30 flex items-center justify-center text-base leading-none">
             −
           </button>
-          <span className={`text-sm font-bold text-center ${isOut ? 'text-red-500' : isLow ? 'text-orange-500' : 'text-gray-800'}`}
+          <button onClick={() => setBulkOpen(v => !v)}
+            className={`text-sm font-bold text-center ${isOut ? 'text-red-500' : isLow ? 'text-orange-500' : 'text-gray-800'}`}
             style={{ minWidth: '2.5rem' }}>
             {item.quantity}
             <span className="text-[10px] font-normal text-gray-400 ml-0.5">{item.unit}</span>
-          </span>
+          </button>
           <button onClick={() => onQuantityChange(1)}
             className="w-7 h-7 rounded-full bg-blue-100 text-blue-600 font-bold flex items-center justify-center text-base leading-none">
             ＋
           </button>
         </div>
       </div>
+
+      {/* まとめて増減（数量タップで開く） */}
+      {bulkOpen && (
+        <div className="mt-2 pl-8 flex items-center gap-2 flex-wrap">
+          <span className="text-[11px] text-gray-400">まとめて</span>
+          <div className="flex items-center gap-1">
+            <button onClick={() => setAmount(a => Math.max(1, a - 1))}
+              className="w-6 h-6 rounded-full bg-gray-100 text-gray-600 text-sm flex items-center justify-center leading-none">−</button>
+            <input type="number" min={1} value={amount}
+              onChange={e => setAmount(Math.max(1, parseInt(e.target.value) || 1))}
+              className="w-12 text-center text-sm font-bold border border-gray-200 rounded-lg py-1 focus:outline-none focus:ring-2 focus:ring-blue-300" />
+            <button onClick={() => setAmount(a => a + 1)}
+              className="w-6 h-6 rounded-full bg-gray-100 text-gray-600 text-sm flex items-center justify-center leading-none">＋</button>
+            <span className="text-[11px] text-gray-400">{item.unit}</span>
+          </div>
+          <div className="flex items-center gap-1.5 ml-auto">
+            <button onClick={() => { onQuantityChange(-amount); setBulkOpen(false); }} disabled={item.quantity === 0}
+              className="text-xs px-2.5 py-1.5 rounded-lg bg-gray-100 text-gray-600 font-medium disabled:opacity-30">
+              − 減らす
+            </button>
+            <button onClick={() => { onQuantityChange(amount); setBulkOpen(false); }}
+              className="text-xs px-3 py-1.5 rounded-lg bg-blue-500 text-white font-bold">
+              ＋ 追加
+            </button>
+          </div>
+        </div>
+      )}
 
       {item.minQuantity > 0 && (
         <div className="mt-2 flex items-center gap-2 pl-8">
