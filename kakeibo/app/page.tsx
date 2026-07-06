@@ -155,7 +155,7 @@ export default function Home() {
         {isCurrMonth && <GoalProgress goal={goal} transactions={monthTxs} />}
         {isCurrMonth && <MonthEndForecast transactions={monthTxs} fixedItems={fixed} yearMonth={month} />}
         <BudgetProgress transactions={monthTxs} categories={cats} budgets={budgets} paceFraction={paceFraction} />
-        <WeeklySummary transactions={monthTxs} yearMonth={month} />
+        <WeeklySummary transactions={monthTxs} yearMonth={month} categories={cats} />
         <AiInsight
           yearMonth={month}
           isCurrentMonth={isCurrMonth}
