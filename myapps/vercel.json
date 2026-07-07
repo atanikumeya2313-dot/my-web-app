@@ -38,6 +38,10 @@
 
     { "source": "/books", "destination": "https://books-eta-blue.vercel.app/books" },
     { "source": "/books/", "destination": "https://books-eta-blue.vercel.app/books" },
-    { "source": "/books/:path*", "destination": "https://books-eta-blue.vercel.app/books/:path*" }
+    { "source": "/books/:path*", "destination": "https://books-eta-blue.vercel.app/books/:path*" },
+
+    { "source": "/kondate", "destination": "https://kondate-nine.vercel.app/kondate" },
+    { "source": "/kondate/", "destination": "https://kondate-nine.vercel.app/kondate" },
+    { "source": "/kondate/:path*", "destination": "https://kondate-nine.vercel.app/kondate/:path*" }
   ]
 }
