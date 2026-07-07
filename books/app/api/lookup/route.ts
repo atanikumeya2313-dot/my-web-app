@@ -2,7 +2,7 @@ import { GoogleGenAI } from "@google/genai";
 import { NextRequest } from "next/server";
 
 export const runtime = "nodejs";
-export const maxDuration = 30;
+export const maxDuration = 60;
 
 // タイトル（や著者）から実在する本の候補を Gemini で取得する。
 // ブラウザから直接外部APIを叩かずサーバー側で行うため、CORS・混在コンテンツで失敗しない。
@@ -13,29 +13,38 @@ interface RawBook { title?: string; author?: string; genre?: string; year?: stri
 const GENRE_HINT = "小説 / ミステリー / SF・ファンタジー / ビジネス・自己啓発 / 実用・趣味 / ノンフィクション / エッセイ / 歴史 / 科学 / マンガ / その他";
 
 function buildPrompt(query: string): string {
-  return `あなたは書籍データベースです。次の手がかりに一致する「実在する本」を挙げてください。
+  return `あなたは書籍検索アシスタントです。次の手がかりに合いそうな本の候補を挙げてください。
 手がかり: 「${query}」
 
 出力は次のJSON配列だけを返してください（前後に説明文やコードフェンスは付けない）:
 [{"title":"正式なタイトル","author":"著者名","genre":"ジャンル","year":"出版年(西暦4桁, 不明なら空)","synopsis":"20〜60字程度の内容紹介"}]
 ルール:
-- 実在が確認できる本のみ。想像で存在しない本を作らない。
+- できるだけ実在する本を、確度の高い順に挙げる。想像で存在しない本を作るのは避けるが、確信が持てなくても近い候補は返してよい。
+- タイトルの一部・ひらがな/漢字違い・シリーズ名・著者名だけ・作品テーマなど、あいまいな手がかりでも、思い当たる本を幅広く候補に含める。
+- 同名や似たタイトルが複数あるときは、有名なもの・可能性の高いものから順に複数挙げる。
 - 日本語版があれば日本語のタイトル・著者名で。
 - genre は次から最も近いものを1つ選ぶ: ${GENRE_HINT}
-- タイトルが部分一致・あいまいでも、最も可能性の高い候補から順に最大6件。重複は避ける。`;
+- 最大8件。重複は避ける。該当がまったく思い当たらない場合のみ空配列 []。`;
 }
 
+// 配列そのもの、または {books:[...]} / {results:[...]} のようにオブジェクトで包まれていても取り出す
 function parseBooks(text: string): RawBook[] {
-  let t = text.trim();
-  t = t.replace(/^```(?:json)?/i, "").replace(/```$/i, "").trim();
+  let t = text.trim().replace(/^```(?:json)?/i, "").replace(/```$/i, "").trim();
+  // まず配列として抽出を試みる
   const s = t.indexOf("["), e = t.lastIndexOf("]");
-  if (s >= 0 && e > s) t = t.slice(s, e + 1);
+  const arrStr = s >= 0 && e > s ? t.slice(s, e + 1) : t;
   try {
-    const arr = JSON.parse(t);
-    return Array.isArray(arr) ? arr : [];
-  } catch {
-    return [];
-  }
+    const arr = JSON.parse(arrStr);
+    if (Array.isArray(arr)) return arr;
+  } catch { /* fall through */ }
+  // オブジェクトで包まれているケース
+  try {
+    const obj = JSON.parse(t);
+    if (obj && typeof obj === "object") {
+      for (const v of Object.values(obj)) if (Array.isArray(v)) return v as RawBook[];
+    }
+  } catch { /* ignore */ }
+  return [];
 }
 
 export async function POST(req: NextRequest) {
@@ -86,7 +95,7 @@ export async function POST(req: NextRequest) {
       synopsis: String(r.synopsis ?? "").trim(),
     }))
     .filter(r => r.title)
-    .slice(0, 6);
+    .slice(0, 8);
 
   return Response.json({ books });
 }

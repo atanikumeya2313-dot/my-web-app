@@ -48,6 +48,14 @@ export default function Home() {
     setShowForm(true);
   }
 
+  // 検索で見つからない時、入力タイトルのまま手動追加フォームを開く
+  function manualFromQuery(title: string) {
+    setShowSearch(false);
+    setEditing(undefined);
+    setDraft({ title, shelf });
+    setShowForm(true);
+  }
+
   // おすすめを「読みたい」に追加（重複はスキップ）
   function addWant(r: Recommendation) {
     const dup = books.some(b => b.title === r.title && b.author === r.author);
@@ -247,7 +255,7 @@ export default function Home() {
         </button>
       </div>
 
-      {showSearch && <SearchModal onPick={pickCandidate} onClose={() => setShowSearch(false)} />}
+      {showSearch && <SearchModal onPick={pickCandidate} onManual={manualFromQuery} onClose={() => setShowSearch(false)} />}
       {showRecommend && (
         <RecommendModal read={recRead} exclude={excludeTitles} onAddWant={addWant} onClose={() => setShowRecommend(false)} />
       )}

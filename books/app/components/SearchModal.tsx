@@ -4,10 +4,11 @@ import { BookCandidate } from '../types';
 
 interface Props {
   onPick: (b: BookCandidate) => void;   // 候補を選んでフォームへ
+  onManual: (title: string) => void;    // 見つからない時、入力内容で手動追加
   onClose: () => void;
 }
 
-export default function SearchModal({ onPick, onClose }: Props) {
+export default function SearchModal({ onPick, onManual, onClose }: Props) {
   const [query,   setQuery]   = useState('');
   const [loading, setLoading] = useState(false);
   const [error,   setError]   = useState('');
@@ -22,7 +23,7 @@ export default function SearchModal({ onPick, onClose }: Props) {
       let res!: Response;
       for (let attempt = 0; ; attempt++) {
         const ctrl = new AbortController();
-        const timer = setTimeout(() => ctrl.abort(), 40000);
+        const timer = setTimeout(() => ctrl.abort(), 55000);
         try {
           res = await fetch('/books/api/lookup', {
             method: 'POST',
@@ -95,6 +96,14 @@ export default function SearchModal({ onPick, onClose }: Props) {
               ))}
               <p className="text-[10px] text-gray-300 text-center pt-1">AIによる情報のため、念のためご確認ください</p>
             </div>
+          )}
+
+          {/* 見つからない時の手動追加（検索実行後に表示） */}
+          {(books !== null || error) && query.trim() && (
+            <button onClick={() => { onManual(query.trim()); onClose(); }}
+              className="w-full py-2 rounded-xl text-xs font-medium text-amber-600 border border-amber-200">
+              見つからない？「{query.trim()}」を手動で追加
+            </button>
           )}
         </div>
       </div>
