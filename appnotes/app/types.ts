@@ -17,7 +17,8 @@ export interface Note {
 // 対象アプリの候補（これまで作ったアプリ）
 export const APPS = [
   '家計簿', 'TODO', '資産形成', '在庫管理', 'ひとこと日記',
-  'AI暗記カード', 'えひめ新店チェック', '地震・防災', 'ハブ', 'その他',
+  'AI暗記カード', 'えひめ新店チェック', 'AI本だな', '献立アシスタント',
+  'サブスク管理', 'アプリ改善メモ', '地震・防災', 'ハブ', 'その他',
 ];
 
 export const KIND_LABEL: Record<Kind, string> = { bug: 'バグ', improve: '改善', idea: 'アイデア' };
