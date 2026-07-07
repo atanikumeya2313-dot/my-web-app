@@ -1,0 +1,15 @@
+{
+  "name": "サブスク管理",
+  "short_name": "サブスク",
+  "description": "契約中のサブスクを登録して、次回更新日と月・年の合計を見える化",
+  "start_url": "/subsc/",
+  "scope": "/subsc/",
+  "display": "standalone",
+  "background_color": "#f5f3ff",
+  "theme_color": "#7c3aed",
+  "lang": "ja",
+  "icons": [
+    { "src": "/subsc/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/subsc/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

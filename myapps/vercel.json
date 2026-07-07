@@ -42,6 +42,10 @@
 
     { "source": "/kondate", "destination": "https://kondate-nine.vercel.app/kondate" },
     { "source": "/kondate/", "destination": "https://kondate-nine.vercel.app/kondate" },
-    { "source": "/kondate/:path*", "destination": "https://kondate-nine.vercel.app/kondate/:path*" }
+    { "source": "/kondate/:path*", "destination": "https://kondate-nine.vercel.app/kondate/:path*" },
+
+    { "source": "/subsc", "destination": "https://subsc-taupe.vercel.app/subsc" },
+    { "source": "/subsc/", "destination": "https://subsc-taupe.vercel.app/subsc" },
+    { "source": "/subsc/:path*", "destination": "https://subsc-taupe.vercel.app/subsc/:path*" }
   ]
 }
