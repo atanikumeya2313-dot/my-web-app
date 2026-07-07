@@ -4,13 +4,14 @@ import { Suggestion } from '../types';
 
 interface Props {
   meal: Suggestion;
-  onSave?: () => void;      // お気に入りに保存
-  saved?: boolean;          // 保存済み表示
-  onCooked?: () => void;    // 作った（履歴へ）
-  onDelete?: () => void;    // お気に入りから削除
+  onSave?: () => void;        // お気に入りに保存
+  saved?: boolean;            // 保存済み表示
+  onCooked?: () => void;      // 作った（履歴へ・在庫を減らす）
+  onDelete?: () => void;      // お気に入りから削除
+  onAddMissing?: () => void;  // 買い足しを在庫に追加
 }
 
-export default function MealCard({ meal, onSave, saved, onCooked, onDelete }: Props) {
+export default function MealCard({ meal, onSave, saved, onCooked, onDelete, onAddMissing }: Props) {
   const [open, setOpen] = useState(false);
 
   function copyMissing() {
@@ -58,6 +59,9 @@ export default function MealCard({ meal, onSave, saved, onCooked, onDelete }: Pr
               <span key={i} className="text-[10px] bg-orange-50 text-orange-600 px-1.5 py-0.5 rounded-full">{m}</span>
             ))}
             <button onClick={copyMissing} className="text-[10px] text-orange-500 underline ml-1">コピー</button>
+            {onAddMissing && (
+              <button onClick={onAddMissing} className="text-[10px] text-orange-500 underline">📦在庫に追加</button>
+            )}
           </div>
         )}
       </div>

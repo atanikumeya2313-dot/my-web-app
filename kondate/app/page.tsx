@@ -6,6 +6,7 @@ import {
   exportData, importData, todayYMD,
 } from './lib/storage';
 import { loadInventoryFood } from './lib/inventory';
+import { inStock, decrementInventory, addMissingToInventory } from './lib/inventoryWrite';
 import MealCard from './components/MealCard';
 import PhotoModal from './components/PhotoModal';
 
@@ -113,10 +114,25 @@ export default function Home() {
   function deleteSaved(id: string) {
     const next = saved.filter(s => s.id !== id); setSaved(next); saveSaved(next);
   }
-  function markCooked(title: string) {
+  function markCooked(title: string, used: string[] = []) {
     const next = [{ id: crypto.randomUUID(), title, date: todayYMD() }, ...history];
     setHistory(next); saveHistory(next);
-    alert(`「${title}」を作った記録をつけました🍳`);
+    // 在庫連携：使った食材が在庫にあれば、確認のうえ1つずつ減らす
+    const matched = inStock(used);
+    if (matched.length > 0 &&
+        confirm(`「${title}」を作った記録をつけました🍳\n使った食材を在庫から1つずつ減らしますか？\n（${matched.join('、')}）`)) {
+      const done = decrementInventory(matched);
+      if (done.length) alert(`在庫を更新しました：${done.join('、')} を1つ減らしました`);
+    } else if (matched.length === 0) {
+      alert(`「${title}」を作った記録をつけました🍳`);
+    }
+  }
+
+  function addMissingToInv(missing: string[]) {
+    const added = addMissingToInventory(missing);
+    alert(added > 0
+      ? `在庫に${added}品を追加しました（在庫切れ＝要補充として登録）。在庫管理アプリで確認できます。`
+      : '追加する食材がありませんでした（すべて在庫に登録済みです）。');
   }
 
   function handleExport() {
@@ -262,7 +278,8 @@ export default function Home() {
                 {suggestions.map((m, i) => (
                   <MealCard key={i} meal={m}
                     onSave={() => saveMeal(m)} saved={savedTitles.has(m.title)}
-                    onCooked={() => markCooked(m.title)} />
+                    onCooked={() => markCooked(m.title, m.used)}
+                    onAddMissing={m.missing.length > 0 ? () => addMissingToInv(m.missing) : undefined} />
                 ))}
                 <button onClick={generate} disabled={loading}
                   className="w-full py-2 rounded-xl text-xs font-medium text-orange-600 border border-orange-200">
@@ -279,7 +296,9 @@ export default function Home() {
           ) : (
             <div className="space-y-3">
               {saved.map(m => (
-                <MealCard key={m.id} meal={m} onDelete={() => deleteSaved(m.id)} onCooked={() => markCooked(m.title)} />
+                <MealCard key={m.id} meal={m} onDelete={() => deleteSaved(m.id)}
+                  onCooked={() => markCooked(m.title, m.used)}
+                  onAddMissing={m.missing.length > 0 ? () => addMissingToInv(m.missing) : undefined} />
               ))}
             </div>
           )

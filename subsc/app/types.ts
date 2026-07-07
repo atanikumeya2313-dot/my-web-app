@@ -10,6 +10,7 @@ export interface Sub {
   memo?: string;
   trial?: boolean;      // 無料トライアル中（nextDate＝課金開始日）
   active: boolean;      // 稼働中 / 停止（停止は合計に含めない）
+  kakeiboLinked?: boolean; // 家計簿の固定費に登録する
   createdAt: string;
 }
 

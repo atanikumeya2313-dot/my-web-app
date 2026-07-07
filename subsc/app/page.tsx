@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Sub, CYCLE_LABEL, catIcon, monthlyEquiv } from './types';
 import { loadSubs, saveSubs, rollForward, daysUntil, exportData, importData, todayYMD } from './lib/storage';
+import { applyKakeiboLink, removeSubFromKakeibo } from './lib/kakeibo';
 import SubForm from './components/SubForm';
 
 type StatusFilter = 'all' | 'active' | 'paused';
@@ -30,14 +31,19 @@ export default function Home() {
   function handleSave(s: Sub) {
     const exists = subs.some(x => x.id === s.id);
     persist(exists ? subs.map(x => x.id === s.id ? s : x) : [s, ...subs]);
+    applyKakeiboLink(s);   // 家計簿の固定費を追加/更新/解除
     setShowForm(false); setEditing(undefined);
   }
   function handleDelete(id: string) {
     persist(subs.filter(s => s.id !== id));
+    removeSubFromKakeibo(id);
     setShowForm(false); setEditing(undefined);
   }
   function toggleActive(id: string) {
-    persist(subs.map(s => s.id === id ? { ...s, active: !s.active } : s));
+    const next = subs.map(s => s.id === id ? { ...s, active: !s.active } : s);
+    persist(next);
+    const changed = next.find(s => s.id === id);
+    if (changed) applyKakeiboLink(changed);  // 停止/再開を家計簿にも反映
   }
 
   function handleExport() {
@@ -181,6 +187,7 @@ export default function Home() {
                       </div>
                       <p className="text-xs text-gray-400 mt-0.5">
                         {catIcon(s.category)} {s.category}　次回 {s.nextDate.slice(5).replace('-', '/')}
+                        {s.kakeiboLinked && s.cycle === 'month' && <span className="text-violet-500">　🧾家計簿</span>}
                       </p>
                     </button>
                     <div className="text-right shrink-0">

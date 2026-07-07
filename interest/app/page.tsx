@@ -7,6 +7,7 @@ import {
 import SavingsSimulator from './components/SavingsSimulator';
 import AiExplain from './components/AiExplain';
 import { SavingsSeed } from './lib/calc';
+import { kakeiboAssetTotal } from './lib/kakeibo';
 
 type Mode = 'compound' | 'savings';
 
@@ -154,6 +155,8 @@ export default function Home() {
   const [revMonthly,       setRevMonthly]       = useState('');       // principal/years モード用
   const [revInitPrincipal, setRevInitPrincipal] = useState('');       // monthly/years モード用
   const [revMode,          setRevMode]          = useState<'principal' | 'monthly' | 'years'>('principal');
+  // 家計簿の総資産（連携用）
+  const [kakeiboAsset,     setKakeiboAsset]     = useState<number | null>(null);
 
   // localStorage はマウント後にのみ読めるため、ここでの同期的な setState は意図的。
   // lazy初期化に変えると SSR とハイドレーションが食い違うため effect で初期化する。
@@ -165,6 +168,7 @@ export default function Home() {
     const s = loadSettings();
     setInflation(String(s.inflation));
     setMode(s.mode);
+    setKakeiboAsset(kakeiboAssetTotal());
   }, []);
   /* eslint-enable react-hooks/set-state-in-effect */
 
@@ -652,6 +656,12 @@ export default function Home() {
                   onChange={e => setPrincipal(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && canAdd && addItem()}
                   className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300" />
+                {kakeiboAsset !== null && kakeiboAsset > 0 && (
+                  <button type="button" onClick={() => setPrincipal(String(kakeiboAsset))}
+                    className="mt-1 text-[11px] text-blue-500 hover:underline">
+                    🏦 家計簿の総資産（{fmtFull(kakeiboAsset)}）を使う
+                  </button>
+                )}
               </div>
               <div className="w-28">
                 <p className="text-[10px] text-gray-400 mb-1">年利（%）</p>

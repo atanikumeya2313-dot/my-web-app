@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { Sub, Cycle, CATEGORIES, CYCLE_LABEL, catIcon } from '../types';
 import { todayYMD } from '../lib/storage';
+import { canLinkToKakeibo } from '../lib/kakeibo';
 
 interface Props {
   editing?: Sub;
@@ -18,7 +19,10 @@ export default function SubForm({ editing, onSave, onDelete, onClose }: Props) {
   const [category, setCategory] = useState(editing?.category ?? CATEGORIES[0]);
   const [trial,    setTrial]    = useState(editing?.trial ?? false);
   const [active,   setActive]   = useState(editing?.active ?? true);
+  const [kakeiboLinked, setKakeiboLinked] = useState(editing?.kakeiboLinked ?? false);
   const [memo,     setMemo]     = useState(editing?.memo ?? '');
+
+  const linkable = cycle === 'month';   // 家計簿の固定費は月額のみ対象
 
   const amountNum = parseInt(amount) || 0;
   const valid = name.trim() && amountNum > 0 && nextDate;
@@ -34,6 +38,7 @@ export default function SubForm({ editing, onSave, onDelete, onClose }: Props) {
       category,
       trial,
       active,
+      ...(kakeiboLinked && linkable ? { kakeiboLinked: true } : {}),
       ...(memo.trim() ? { memo: memo.trim() } : {}),
       createdAt: editing?.createdAt ?? new Date().toISOString(),
     });
@@ -121,6 +126,22 @@ export default function SubForm({ editing, onSave, onDelete, onClose }: Props) {
               <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full transition-all ${active ? 'left-[22px]' : 'left-0.5'}`} />
             </button>
           </label>
+
+          {/* 家計簿連携（月額のみ） */}
+          <div>
+            <label className="flex items-center justify-between">
+              <span className="text-xs text-gray-600">🧾 家計簿の固定費に登録</span>
+              <button onClick={() => linkable && setKakeiboLinked(v => !v)} disabled={!linkable}
+                className={`w-11 h-6 rounded-full transition-colors relative ${kakeiboLinked && linkable ? 'bg-violet-600' : 'bg-gray-200'} ${!linkable ? 'opacity-40' : ''}`}>
+                <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full transition-all ${kakeiboLinked && linkable ? 'left-[22px]' : 'left-0.5'}`} />
+              </button>
+            </label>
+            <p className="text-[11px] text-gray-400 mt-1">
+              {linkable
+                ? 'オンにすると家計簿の固定費に追加され、毎月の支出に自動計上されます（停止中・トライアル中は計上しません）。'
+                : '家計簿への登録は月額のサブスクのみ対応しています。'}
+            </p>
+          </div>
 
           {/* メモ */}
           <div>
