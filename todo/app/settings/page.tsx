@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Task, TimeSlot } from '../types';
 import { rollOverPastOnceTasks, saveTasks, loadCategories, saveCategories, exportData, importData, toYMD } from '../lib/storage';
+import CloudSync from '../components/CloudSync';
 
 const PRIORITY_STYLE = {
   high:   { label: '高', cls: 'bg-red-100 text-red-600' },
@@ -32,6 +33,7 @@ export default function Settings() {
   const [editing,    setEditing]    = useState<Task | undefined>();
   const [showForm,   setShowForm]   = useState(false);
   const [newCat,     setNewCat]     = useState('');
+  const [showCloud,  setShowCloud]  = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   // localStorage はマウント後にのみ読めるため、ここでの同期的な setState は意図的。
@@ -224,8 +226,19 @@ export default function Settings() {
             </button>
           </div>
           <input ref={fileRef} type="file" accept="application/json,.json" onChange={handleImportFile} className="hidden" />
+          <button onClick={() => setShowCloud(true)}
+            className="w-full mt-2 py-2 bg-blue-50 text-blue-600 rounded-lg text-sm font-medium hover:bg-blue-100 transition-colors">
+            ☁️ クラウド同期
+          </button>
         </section>
       </main>
+
+      {showCloud && (
+        <CloudSync bucket="todo"
+          serialize={() => JSON.stringify(exportData())}
+          apply={(j) => { try { return importData(JSON.parse(j)); } catch { return false; } }}
+          onClose={() => setShowCloud(false)} />
+      )}
 
       <button onClick={openAdd}
         className="fixed bottom-20 right-4 w-14 h-14 bg-blue-500 text-white rounded-full text-2xl shadow-lg hover:bg-blue-600 active:scale-90 transition-transform flex items-center justify-center z-40">

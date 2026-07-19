@@ -8,6 +8,7 @@ import SavingsSimulator from './components/SavingsSimulator';
 import AiExplain from './components/AiExplain';
 import { SavingsSeed } from './lib/calc';
 import { kakeiboAssetTotal } from './lib/kakeibo';
+import CloudSync from './components/CloudSync';
 
 type Mode = 'compound' | 'savings';
 
@@ -26,6 +27,24 @@ const STORAGE_KEY = 'interest_calc_v1';
 const SETTINGS_KEY = 'interest_settings_v1';
 // バックアップ対象（複利比較・設定・積み立てシミュレーターの全状態）
 const BACKUP_KEYS = ['interest_calc_v1', 'interest_settings_v1', 'interest_savings_v1'];
+
+// クラウド同期用（BACKUP_KEYS をまとめて文字列化 / 復元）
+function cloudSerialize(): string {
+  const data: Record<string, unknown> = { app: 'shisan-sim', version: 1, exportedAt: new Date().toISOString() };
+  for (const k of BACKUP_KEYS) {
+    const v = localStorage.getItem(k);
+    if (v != null) { try { data[k] = JSON.parse(v); } catch {} }
+  }
+  return JSON.stringify(data);
+}
+function cloudApply(json: string): boolean {
+  try {
+    const d = JSON.parse(json) as Record<string, unknown>;
+    if (!BACKUP_KEYS.some(k => d[k] !== undefined)) return false;
+    for (const k of BACKUP_KEYS) if (d[k] !== undefined) localStorage.setItem(k, JSON.stringify(d[k]));
+    return true;
+  } catch { return false; }
+}
 const TAX_RATE = 0.20315; // 特定口座の譲渡益課税（所得税・復興特別所得税・住民税の合計）
 const NISA_LIFETIME = 18_000_000; // NISA生涯非課税枠（簡易反映：超過拠出分の利益は課税扱い）
 
@@ -157,6 +176,7 @@ export default function Home() {
   const [revMode,          setRevMode]          = useState<'principal' | 'monthly' | 'years'>('principal');
   // 家計簿の総資産（連携用）
   const [kakeiboAsset,     setKakeiboAsset]     = useState<number | null>(null);
+  const [showCloud,        setShowCloud]        = useState(false);
 
   // localStorage はマウント後にのみ読めるため、ここでの同期的な setState は意図的。
   // lazy初期化に変えると SSR とハイドレーションが食い違うため effect で初期化する。
@@ -1090,6 +1110,10 @@ export default function Home() {
               インポート
             </button>
           </div>
+          <button onClick={() => setShowCloud(true)}
+            className="w-full mt-2 py-2 bg-blue-50 text-blue-600 rounded-lg text-sm font-medium hover:bg-blue-100 transition-colors">
+            ☁️ クラウド同期
+          </button>
           <input ref={fileRef} type="file" accept="application/json,.json" onChange={handleImportFile} className="hidden" />
         </section>
 
@@ -1103,6 +1127,8 @@ export default function Home() {
         )}
       </main>
       )}
+
+      {showCloud && <CloudSync bucket="interest" serialize={cloudSerialize} apply={cloudApply} onClose={() => setShowCloud(false)} />}
     </div>
   );
 }

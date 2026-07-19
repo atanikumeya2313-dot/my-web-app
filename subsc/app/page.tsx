@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Sub, CYCLE_LABEL, catIcon, monthlyEquiv } from './types';
 import { loadSubs, saveSubs, rollForward, daysUntil, exportData, importData, todayYMD } from './lib/storage';
 import { applyKakeiboLink, removeSubFromKakeibo } from './lib/kakeibo';
+import CloudSync from './components/CloudSync';
 import SubForm from './components/SubForm';
 
 type StatusFilter = 'all' | 'active' | 'paused';
@@ -16,6 +17,7 @@ export default function Home() {
   const [sortKey, setSortKey] = useState<SortKey>('soon');
   const [showForm, setShowForm] = useState(false);
   const [editing,  setEditing]  = useState<Sub | undefined>();
+  const [showCloud, setShowCloud] = useState(false);
   const importRef = useRef<HTMLInputElement>(null);
 
   /* eslint-disable react-hooks/set-state-in-effect */
@@ -102,6 +104,7 @@ export default function Home() {
         <div className="max-w-lg mx-auto px-4 py-3 flex items-center justify-between">
           <h1 className="text-base font-bold text-gray-800">📆 サブスク管理</h1>
           <div className="flex items-center gap-1.5">
+            <button onClick={() => setShowCloud(true)} className="text-xs px-2.5 py-1 rounded-full bg-blue-50 text-blue-600 font-medium">☁️同期</button>
             <button onClick={handleExport} className="text-xs px-2.5 py-1 rounded-full bg-gray-100 text-gray-500">書出</button>
             <button onClick={() => importRef.current?.click()} className="text-xs px-2.5 py-1 rounded-full bg-gray-100 text-gray-500">読込</button>
             <input ref={importRef} type="file" accept=".json" className="hidden" onChange={handleImport} />
@@ -212,6 +215,7 @@ export default function Home() {
         ＋
       </button>
 
+      {showCloud && <CloudSync bucket="subsc" serialize={exportData} apply={importData} onClose={() => setShowCloud(false)} />}
       {showForm && (
         <SubForm editing={editing} onSave={handleSave}
           onDelete={editing ? () => handleDelete(editing.id) : undefined}

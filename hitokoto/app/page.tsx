@@ -4,6 +4,7 @@ import {
   Entry, loadEntries, saveEntries, todayYMD, fmtDate,
   exportEntries, importEntries,
 } from './lib/storage';
+import CloudSync from './components/CloudSync';
 import CalendarView from './components/CalendarView';
 import Reflection from './components/Reflection';
 import VoiceInput from './components/VoiceInput';
@@ -16,6 +17,7 @@ export default function Home() {
   const [view, setView] = useState<'home' | 'calendar' | 'reflect'>('home');
   const [query, setQuery] = useState('');
   const [selDate, setSelDate] = useState(todayYMD()); // 記録・編集する対象日（既定は今日／過去も選べる）
+  const [showCloud, setShowCloud] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   // localStorage はマウント後にのみ読めるため、ここでの setState は意図的
@@ -261,12 +263,16 @@ export default function Home() {
       {/* バックアップ */}
       <section className="mt-10 text-center">
         <div className="inline-flex gap-4 text-[11px] text-amber-700/50">
+          <button onClick={() => setShowCloud(true)} className="text-blue-500 hover:text-blue-600 font-medium">☁️ クラウド同期</button>
+          <span className="text-amber-200">|</span>
           <button onClick={handleExport} className="hover:text-amber-700">エクスポート</button>
           <span className="text-amber-200">|</span>
           <button onClick={() => fileRef.current?.click()} className="hover:text-amber-700">インポート</button>
         </div>
         <input ref={fileRef} type="file" accept="application/json,.json" onChange={handleImportFile} className="hidden" />
       </section>
+
+      {showCloud && <CloudSync bucket="diary" serialize={exportEntries} apply={importEntries} onClose={() => setShowCloud(false)} />}
     </div>
   );
 }

@@ -6,6 +6,7 @@ import {
   dueCards, deckStats, schedule, toYMD, exportData, importData,
 } from './lib/storage';
 import GenerateModal from './components/GenerateModal';
+import CloudSync from './components/CloudSync';
 import StudyView from './components/StudyView';
 
 export default function Home() {
@@ -16,6 +17,7 @@ export default function Home() {
   const [showGen,    setShowGen]    = useState(false);
   const [studying,   setStudying]   = useState(false);
   const [editing,    setEditing]    = useState<Card | null>(null);
+  const [showCloud, setShowCloud] = useState(false);
   const importRef = useRef<HTMLInputElement>(null);
 
   const today = toYMD(new Date());
@@ -137,9 +139,11 @@ export default function Home() {
             <div className="max-w-lg mx-auto px-4 py-3 flex items-center justify-between">
               <h1 className="text-base font-bold text-gray-800">📇 暗記カード</h1>
               <div className="flex items-center gap-1.5">
+                <button onClick={() => setShowCloud(true)} className="text-xs px-2.5 py-1 rounded-full bg-blue-50 text-blue-600 font-medium">☁️同期</button>
                 <button onClick={handleExport} className="text-xs px-2.5 py-1 rounded-full bg-gray-100 text-gray-500">書き出し</button>
                 <button onClick={() => importRef.current?.click()} className="text-xs px-2.5 py-1 rounded-full bg-gray-100 text-gray-500">読み込み</button>
                 <input ref={importRef} type="file" accept=".json" className="hidden" onChange={handleImport} />
+                {showCloud && <CloudSync bucket="cards" serialize={() => JSON.stringify(exportData())} apply={(j) => { try { return importData(JSON.parse(j)); } catch { return false; } }} onClose={() => setShowCloud(false)} />}
               </div>
             </div>
           </header>

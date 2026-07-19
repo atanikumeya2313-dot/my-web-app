@@ -7,6 +7,7 @@ import {
 import {
   loadNotes, saveNotes, loadLastApp, saveLastApp, fmtDate, exportData, importData,
 } from './lib/storage';
+import CloudSync from './components/CloudSync';
 import NoteForm from './components/NoteForm';
 
 type Filter = 'open' | 'weekend' | 'done' | 'all';
@@ -21,6 +22,7 @@ export default function Home() {
   const [filter,  setFilter]  = useState<Filter>('open');
   const [appF,    setAppF]    = useState('');
   const [editing, setEditing] = useState<Note | null>(null);
+  const [showCloud, setShowCloud] = useState(false);
   const importRef = useRef<HTMLInputElement>(null);
 
   /* eslint-disable react-hooks/set-state-in-effect */
@@ -100,9 +102,11 @@ export default function Home() {
         <div className="max-w-lg mx-auto px-4 py-3 flex items-center justify-between">
           <h1 className="text-base font-bold text-gray-800">🔧 アプリ改善メモ</h1>
           <div className="flex items-center gap-1.5">
+            <button onClick={() => setShowCloud(true)} className="text-xs px-2.5 py-1 rounded-full bg-blue-50 text-blue-600 font-medium">☁️同期</button>
             <button onClick={handleExport} className="text-xs px-2.5 py-1 rounded-full bg-gray-100 text-gray-500">書出</button>
             <button onClick={() => importRef.current?.click()} className="text-xs px-2.5 py-1 rounded-full bg-gray-100 text-gray-500">読込</button>
             <input ref={importRef} type="file" accept=".json" className="hidden" onChange={handleImport} />
+            {showCloud && <CloudSync bucket="appnotes" serialize={() => JSON.stringify(exportData())} apply={(j) => { try { return importData(JSON.parse(j)); } catch { return false; } }} onClose={() => setShowCloud(false)} />}
           </div>
         </div>
       </header>

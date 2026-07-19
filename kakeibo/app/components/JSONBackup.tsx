@@ -1,5 +1,6 @@
 'use client';
 import { useRef, useState } from 'react';
+import CloudSync from './CloudSync';
 
 const KEYS = [
   'kakeibo_transactions',
@@ -10,9 +11,30 @@ const KEYS = [
   'kakeibo_assets',
 ];
 
+// クラウド同期用：全キーを1つのJSON文字列に（doExportと同じ形）
+function serialize(): string {
+  const data: Record<string, unknown> = {};
+  for (const key of KEYS) {
+    const raw = localStorage.getItem(key);
+    if (raw) { try { data[key] = JSON.parse(raw); } catch {} }
+  }
+  return JSON.stringify({ version: 1, exportedAt: new Date().toISOString(), data });
+}
+function applyData(json: string): boolean {
+  try {
+    const parsed = JSON.parse(json);
+    if (!parsed?.data || typeof parsed.data !== 'object') return false;
+    for (const key of KEYS) {
+      if (parsed.data[key] !== undefined) localStorage.setItem(key, JSON.stringify(parsed.data[key]));
+    }
+    return true;
+  } catch { return false; }
+}
+
 export default function JSONBackup() {
   const [status, setStatus] = useState<'idle' | 'ok' | 'error'>('idle');
   const [msg, setMsg]       = useState('');
+  const [showCloud, setShowCloud] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   function doExport() {
@@ -76,8 +98,15 @@ export default function JSONBackup() {
 
       <input ref={fileRef} type="file" accept=".json" onChange={doImport} className="hidden" />
 
-      {status === 'ok'    && <p className="text-xs text-green-600 font-medium">{msg}</p>}
-      {status === 'error' && <p className="text-xs text-red-500">{msg}</p>}
+      <button onClick={() => setShowCloud(true)}
+        className="w-full py-2 bg-blue-50 text-blue-600 rounded-lg text-sm font-medium hover:bg-blue-100 transition-colors">
+        ☁️ クラウド同期
+      </button>
+
+      {status === 'ok'    && <p className="text-xs text-green-600 font-medium mt-2">{msg}</p>}
+      {status === 'error' && <p className="text-xs text-red-500 mt-2">{msg}</p>}
+
+      {showCloud && <CloudSync bucket="kakeibo" serialize={serialize} apply={applyData} onClose={() => setShowCloud(false)} />}
     </div>
   );
 }
