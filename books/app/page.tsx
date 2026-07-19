@@ -127,7 +127,10 @@ export default function Home() {
     <div className="min-h-screen pb-28">
       <header className="bg-white border-b border-gray-100 sticky top-0 z-10">
         <div className="max-w-lg mx-auto px-4 py-3 flex items-center justify-between">
-          <h1 className="text-base font-bold text-gray-800">📚 AI本だな</h1>
+          <div className="flex items-center gap-2 min-w-0">
+            <a href="/" aria-label="入口（ハブ）に戻る" className="text-gray-300 hover:text-gray-600 text-lg leading-none shrink-0">🏠</a>
+            <h1 className="text-base font-bold text-gray-800">📚 AI本だな</h1>
+          </div>
           <div className="flex items-center gap-1.5">
             <button onClick={() => setShowCloud(true)} className="text-xs px-2.5 py-1 rounded-full bg-blue-50 text-blue-600 font-medium">☁️同期</button>
             <button onClick={handleExport} className="text-xs px-2.5 py-1 rounded-full bg-gray-100 text-gray-500">書出</button>

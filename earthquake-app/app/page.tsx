@@ -218,7 +218,10 @@ export default function Home() {
       <header className="bg-white border-b border-gray-100 sticky top-0 z-10 shadow-sm">
         <div className="max-w-lg mx-auto px-4 py-3 flex items-center justify-between">
           <div>
-            <h1 className="text-base font-bold text-gray-800">🗾 防災情報</h1>
+            <div className="flex items-center gap-2 min-w-0">
+              <a href="/" aria-label="入口（ハブ）に戻る" className="text-gray-300 hover:text-gray-600 text-lg leading-none shrink-0">🏠</a>
+              <h1 className="text-base font-bold text-gray-800">🗾 防災情報</h1>
+            </div>
             <p className="text-[10px] text-gray-400">
               {updatedAt ? `最終更新 ${fmtUpdated(updatedAt)}` : '取得中…'}
             </p>

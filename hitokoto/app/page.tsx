@@ -126,7 +126,8 @@ export default function Home() {
 
   return (
     <div className="max-w-lg mx-auto px-4 pb-16">
-      <header className="pt-8 pb-4 text-center">
+      <header className="relative pt-8 pb-4 text-center">
+        <a href="/" aria-label="入口（ハブ）に戻る" className="absolute left-0 top-8 text-amber-300 hover:text-amber-600 text-lg leading-none">🏠</a>
         <h1 className="text-xl font-bold text-amber-800">ひとこと日記</h1>
         <p className="text-xs text-amber-700/60 mt-1">今日のひとことに、そっと一言かえします</p>
       </header>

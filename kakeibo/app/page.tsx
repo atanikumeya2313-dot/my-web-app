@@ -156,7 +156,10 @@ export default function Home() {
     <div className="min-h-screen">
       <header className="bg-white border-b border-gray-100 sticky top-0 z-10">
         <div className="px-4 py-3 flex items-center justify-between">
-          <h1 className="text-base font-bold text-gray-800">家計簿</h1>
+          <div className="flex items-center gap-2 min-w-0">
+            <a href="/" aria-label="入口（ハブ）に戻る" className="text-gray-300 hover:text-gray-600 text-lg leading-none shrink-0">🏠</a>
+            <h1 className="text-base font-bold text-gray-800">家計簿</h1>
+          </div>
           <div className="flex items-center gap-2">
             <button onClick={() => setMonth(m => shiftMonth(m,-1))} className="text-gray-400 hover:text-gray-600 w-8 h-8 flex items-center justify-center text-lg">‹</button>
             <span className="text-sm font-semibold text-gray-700 w-24 text-center">{fmtYM(month)}</span>

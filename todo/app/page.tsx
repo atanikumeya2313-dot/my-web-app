@@ -253,11 +253,14 @@ export default function Home() {
     <div className="min-h-screen bg-gray-50 pb-20">
       <header className="bg-white border-b border-gray-100 sticky top-0 z-10">
         <div className="max-w-lg mx-auto px-4 py-3 flex items-center justify-between">
-          <div>
-            <h1 className="text-base font-bold text-gray-800">
-              {viewDate === 'today' ? '今日のタスク' : '明日のタスク'}
-            </h1>
-            <p className="text-xs text-gray-400">{dateLabel(viewDate === 'today' ? 0 : 1)}</p>
+          <div className="flex items-center gap-2 min-w-0">
+            <a href="/" aria-label="入口（ハブ）に戻る" className="text-gray-300 hover:text-gray-600 text-lg leading-none shrink-0">🏠</a>
+            <div>
+              <h1 className="text-base font-bold text-gray-800">
+                {viewDate === 'today' ? '今日のタスク' : '明日のタスク'}
+              </h1>
+              <p className="text-xs text-gray-400">{dateLabel(viewDate === 'today' ? 0 : 1)}</p>
+            </div>
           </div>
           <div className="flex items-center gap-1">
             <button onClick={() => setViewDate('today')}

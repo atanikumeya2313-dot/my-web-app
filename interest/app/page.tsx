@@ -456,7 +456,10 @@ export default function Home() {
     <div className="min-h-screen bg-gray-50 pb-10">
       <header className="bg-white border-b border-gray-100 sticky top-0 z-10">
         <div className="max-w-lg mx-auto px-4 py-3">
-          <h1 className="text-base font-bold text-gray-800">資産形成シミュレーター</h1>
+          <div className="flex items-center gap-2 min-w-0">
+            <a href="/" aria-label="入口（ハブ）に戻る" className="text-gray-300 hover:text-gray-600 text-lg leading-none shrink-0">🏠</a>
+            <h1 className="text-base font-bold text-gray-800">資産形成シミュレーター</h1>
+          </div>
           <p className="text-xs text-gray-400">
             {mode === 'compound' ? '複利計算・複数シナリオの比較' : '積み立て・NISA・取り崩しシミュレーション'}
           </p>
