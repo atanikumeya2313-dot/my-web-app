@@ -5,6 +5,7 @@ import {
   exportEntries, importEntries,
 } from './lib/storage';
 import CloudSync from './components/CloudSync';
+import { useAutoSync } from './lib/autoSync';
 import CalendarView from './components/CalendarView';
 import Reflection from './components/Reflection';
 import VoiceInput from './components/VoiceInput';
@@ -23,6 +24,7 @@ export default function Home() {
   // localStorage はマウント後にのみ読めるため、ここでの setState は意図的
   /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => { setEntries(loadEntries()); }, []);
+  useAutoSync({ bucket: 'diary', serialize: exportEntries, apply: importEntries, hasData: () => { try { return loadEntries().length > 0; } catch { return false; } } });
   /* eslint-enable react-hooks/set-state-in-effect */
 
   const today = todayYMD();

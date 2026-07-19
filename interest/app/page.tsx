@@ -9,6 +9,7 @@ import AiExplain from './components/AiExplain';
 import { SavingsSeed } from './lib/calc';
 import { kakeiboAssetTotal } from './lib/kakeibo';
 import CloudSync from './components/CloudSync';
+import { useAutoSync } from './lib/autoSync';
 
 type Mode = 'compound' | 'savings';
 
@@ -190,6 +191,19 @@ export default function Home() {
     setMode(s.mode);
     setKakeiboAsset(kakeiboAssetTotal());
   }, []);
+
+  useAutoSync({
+    bucket: 'interest',
+    serialize: cloudSerialize,
+    apply: cloudApply,
+    hasData: () => {
+      try {
+        const c = localStorage.getItem('interest_calc_v1');
+        const items = c ? (JSON.parse(c).items || []) : [];
+        return items.length > 0 || !!localStorage.getItem('interest_savings_v1');
+      } catch { return false; }
+    },
+  });
   /* eslint-enable react-hooks/set-state-in-effect */
 
   function changeInflation(v: string)  { setInflation(v); saveSettings(parseFloat(v) || 0, mode); }

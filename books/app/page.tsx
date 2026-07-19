@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Book, BookCandidate, Recommendation, Shelf, coverColors } from './types';
 import { loadBooks, saveBooks, exportData, importData, todayYMD } from './lib/storage';
 import CloudSync from './components/CloudSync';
+import { useAutoSync } from './lib/autoSync';
 import BookForm from './components/BookForm';
 import SearchModal from './components/SearchModal';
 import RecommendModal from './components/RecommendModal';
@@ -26,6 +27,7 @@ export default function Home() {
 
   /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => { setBooks(loadBooks()); }, []);
+  useAutoSync({ bucket: 'books', serialize: exportData, apply: (j) => importData(j), hasData: () => { try { return loadBooks().length > 0; } catch { return false; } } });
   /* eslint-enable react-hooks/set-state-in-effect */
 
   function persist(next: Book[]) { setBooks(next); saveBooks(next); }

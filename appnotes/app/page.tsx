@@ -8,6 +8,7 @@ import {
   loadNotes, saveNotes, loadLastApp, saveLastApp, fmtDate, exportData, importData,
 } from './lib/storage';
 import CloudSync from './components/CloudSync';
+import { useAutoSync } from './lib/autoSync';
 import NoteForm from './components/NoteForm';
 
 type Filter = 'open' | 'weekend' | 'done' | 'all';
@@ -32,6 +33,8 @@ export default function Home() {
     if (last && APPS.includes(last)) setApp(last);
   }, []);
   /* eslint-enable react-hooks/set-state-in-effect */
+
+  useAutoSync({ bucket: 'appnotes', serialize: () => JSON.stringify(exportData()), apply: (j) => { try { return importData(JSON.parse(j)); } catch { return false; } }, hasData: () => { try { return loadNotes().length > 0; } catch { return false; } } });
 
   function persist(next: Note[]) { setNotes(next); saveNotes(next); }
 

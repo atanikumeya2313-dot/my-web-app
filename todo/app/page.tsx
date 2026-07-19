@@ -5,10 +5,12 @@ import {
   saveTasks, rollOverPastOnceTasks, loadCompleted, saveCompleted, loadCategories,
   loadCompletedLog, addToLog, saveLog,
   getTodayTasks, getTomorrowTasks, completeOnce, completeRepeat, nextOccurrenceAfter, toYMD,
+  exportData, importData,
 } from './lib/storage';
 import TaskItem from './components/TaskItem';
 import TaskForm from './components/TaskForm';
 import AiAddModal from './components/AiAddModal';
+import { useAutoSync } from './lib/autoSync';
 
 const DOW = ['日','月','火','水','木','金','土'];
 
@@ -73,6 +75,13 @@ export default function Home() {
     setCategories(loadCategories());
   }, []);
   /* eslint-enable react-hooks/set-state-in-effect */
+
+  useAutoSync({
+    bucket: 'todo',
+    serialize: () => JSON.stringify(exportData()),
+    apply: (j) => { try { return importData(JSON.parse(j)); } catch { return false; } },
+    hasData: () => { try { const d = exportData(); return Array.isArray(d.tasks) && d.tasks.length > 0; } catch { return false; } },
+  });
 
   const todayTasks   = viewDate === 'today'
     ? getTodayTasks(tasks, completed)

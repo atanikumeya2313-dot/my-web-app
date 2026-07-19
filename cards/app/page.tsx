@@ -7,6 +7,7 @@ import {
 } from './lib/storage';
 import GenerateModal from './components/GenerateModal';
 import CloudSync from './components/CloudSync';
+import { useAutoSync } from './lib/autoSync';
 import StudyView from './components/StudyView';
 
 export default function Home() {
@@ -28,6 +29,8 @@ export default function Home() {
     setCards(loadCards());
   }, []);
   /* eslint-enable react-hooks/set-state-in-effect */
+
+  useAutoSync({ bucket: 'cards', serialize: () => JSON.stringify(exportData()), apply: (j) => { try { return importData(JSON.parse(j)); } catch { return false; } }, hasData: () => { try { return loadCards().length > 0 || loadDecks().length > 0; } catch { return false; } } });
 
   const deck = decks.find(d => d.id === deckId) ?? null;
   const deckCards = cards.filter(c => c.deckId === deckId);

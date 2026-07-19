@@ -4,6 +4,7 @@ import { Sub, CYCLE_LABEL, catIcon, monthlyEquiv } from './types';
 import { loadSubs, saveSubs, rollForward, daysUntil, exportData, importData, todayYMD } from './lib/storage';
 import { applyKakeiboLink, removeSubFromKakeibo } from './lib/kakeibo';
 import CloudSync from './components/CloudSync';
+import { useAutoSync } from './lib/autoSync';
 import SubForm from './components/SubForm';
 
 type StatusFilter = 'all' | 'active' | 'paused';
@@ -27,6 +28,8 @@ export default function Home() {
     setSubs(rolled);
   }, []);
   /* eslint-enable react-hooks/set-state-in-effect */
+
+  useAutoSync({ bucket: 'subsc', serialize: exportData, apply: (j) => importData(j), hasData: () => { try { return loadSubs().length > 0; } catch { return false; } } });
 
   function persist(next: Sub[]) { setSubs(next); saveSubs(next); }
 

@@ -58,8 +58,9 @@ async function apiCall(action: 'push' | 'pull', key: string, blob?: string) {
   return data ?? {};
 }
 
-export async function cloudPush(code: string, bucket: string, json: string): Promise<void> {
-  await apiCall('push', await storeId(code, bucket), await encryptStr(json, code));
+export async function cloudPush(code: string, bucket: string, json: string): Promise<{ at: string | null }> {
+  const data = await apiCall('push', await storeId(code, bucket), await encryptStr(json, code));
+  return { at: data.at ?? null };
 }
 export async function cloudPull(code: string, bucket: string): Promise<{ json: string | null; at: string | null }> {
   const data = await apiCall('pull', await storeId(code, bucket));

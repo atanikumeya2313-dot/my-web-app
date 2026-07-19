@@ -23,6 +23,23 @@ import GoalProgress from './components/GoalProgress';
 import MonthlyReport from './components/MonthlyReport';
 import MonthEndForecast from './components/MonthEndForecast';
 import AiInsight from './components/AiInsight';
+import { useAutoSync } from './lib/autoSync';
+
+// クラウド同期（全キーをまとめて文字列化 / 復元）
+const KK_KEYS = ['kakeibo_transactions', 'kakeibo_categories', 'kakeibo_budgets', 'kakeibo_fixed', 'kakeibo_applied_months', 'kakeibo_assets'];
+function kkSerialize(): string {
+  const data: Record<string, unknown> = {};
+  for (const k of KK_KEYS) { const raw = localStorage.getItem(k); if (raw) { try { data[k] = JSON.parse(raw); } catch {} } }
+  return JSON.stringify({ version: 1, exportedAt: new Date().toISOString(), data });
+}
+function kkApply(json: string): boolean {
+  try {
+    const p = JSON.parse(json);
+    if (!p?.data || typeof p.data !== 'object') return false;
+    for (const k of KK_KEYS) if (p.data[k] !== undefined) localStorage.setItem(k, JSON.stringify(p.data[k]));
+    return true;
+  } catch { return false; }
+}
 
 type Tab = '一覧' | 'カレンダー' | 'グラフ' | 'レポート' | '年間' | '推移' | '残高';
 
@@ -79,6 +96,8 @@ export default function Home() {
     setTxs(initial);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useAutoSync({ bucket: 'kakeibo', serialize: kkSerialize, apply: kkApply, hasData: () => { try { return loadTransactions().length > 0; } catch { return false; } } });
 
   const monthTxs  = txs.filter(t => t.date.startsWith(month));
   const prevMonth = shiftMonth(month, -1);
