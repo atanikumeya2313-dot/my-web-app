@@ -107,8 +107,15 @@ export default function Home() {
       return;
     }
 
-    addMany(res.food.filter(f => f.soon).map(f => f.name), true);
-    addMany(res.food.filter(f => !f.soon).map(f => f.name), false);
+    // 期限が近い(soon)ものと通常を「一度にまとめて」追加する。
+    // 2回に分けて呼ぶと、状態更新の都合で後の追加が前の追加を打ち消し、🔥の食材が消えるため。
+    const cur = [...pantry];
+    for (const f of res.food) {
+      const idx = cur.findIndex(p => p.name === f.name);
+      if (idx >= 0) { if (f.soon) cur[idx] = { ...cur[idx], soon: true }; }
+      else cur.push({ name: f.name, soon: f.soon });
+    }
+    persistPantry(cur);
   }
 
   async function generate() {
