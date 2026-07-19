@@ -5,7 +5,7 @@ import {
   loadPantry, savePantry, loadSaved, saveSaved, loadHistory, saveHistory,
   exportData, importData, todayYMD,
 } from './lib/storage';
-import { loadInventoryFood } from './lib/inventory';
+import { readInventoryFood } from './lib/inventory';
 import { inStock, decrementInventory, addMissingToInventory } from './lib/inventoryWrite';
 import MealCard from './components/MealCard';
 import PhotoModal from './components/PhotoModal';
@@ -59,10 +59,31 @@ export default function Home() {
   function removeIngredient(name: string) { persistPantry(pantry.filter(p => p.name !== name)); }
 
   function importFromInventory() {
-    const food = loadInventoryFood();
-    if (food.length === 0) { alert('在庫アプリに食材が見つかりませんでした。\n（在庫管理アプリの「食品・飲料」に在庫があると取り込めます）'); return; }
-    addMany(food.filter(f => f.soon).map(f => f.name), true);
-    addMany(food.filter(f => !f.soon).map(f => f.name), false);
+    const res = readInventoryFood();
+
+    // 在庫データそのものが見つからない＝別のURL（オリジン）で入力している可能性
+    if (!res.keyPresent) {
+      alert(
+        '在庫アプリのデータが見つかりませんでした。\n\n' +
+        '在庫アプリを、この献立アプリと同じ入口から開いているか確認してください：\n' +
+        'https://myapps-jet.vercel.app/inventory\n\n' +
+        '※ 別のURLやホーム画面アイコン（旧リンク）で入力した在庫は、ここからは読めません。' +
+        'その場合は在庫アプリで「書出」→ 上記URLの在庫アプリで「読込」してください。'
+      );
+      return;
+    }
+
+    // データはあるが取り込める食材が無い＝在庫0 or 日用品/薬のみ
+    if (res.food.length === 0) {
+      alert(
+        `在庫は読み込めましたが（全${res.totalItems}件・在庫あり${res.inStock}件）、取り込める食材がありませんでした。\n\n` +
+        '・数量が1以上あるか\n・カテゴリが「日用品・消耗品」「薬・医療品」以外か\nをご確認ください。'
+      );
+      return;
+    }
+
+    addMany(res.food.filter(f => f.soon).map(f => f.name), true);
+    addMany(res.food.filter(f => !f.soon).map(f => f.name), false);
   }
 
   async function generate() {

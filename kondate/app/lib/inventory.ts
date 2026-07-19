@@ -21,25 +21,39 @@ function isSoon(expiry?: string): boolean {
 
 export interface InvFood { name: string; soon: boolean }
 
-// 在庫のうち「食材とみなせるもの」（在庫あり・非食品カテゴリ以外）を返す
-export function loadInventoryFood(): InvFood[] {
-  try {
-    const raw = localStorage.getItem('inventory_items');
-    const items: InvItem[] = raw ? JSON.parse(raw) : [];
-    if (!Array.isArray(items)) return [];
-    const seen = new Set<string>();
-    const out: InvFood[] = [];
-    for (const it of items) {
-      const name = String(it?.name ?? '').trim();
-      if (!name) continue;
-      if ((it?.quantity ?? 0) <= 0) continue;               // 在庫切れは除外
-      if (NON_FOOD.includes(String(it?.category ?? ''))) continue; // 日用品・薬は除外
-      if (seen.has(name)) continue;
-      seen.add(name);
-      out.push({ name, soon: isSoon(it?.expiryDate) });
-    }
-    return out;
-  } catch {
-    return [];
+export interface InvReadResult {
+  keyPresent: boolean;  // inventory_items が存在したか（＝同一オリジンに在庫データがあるか）
+  totalItems: number;   // 在庫の生の件数
+  inStock: number;      // 在庫あり(数量>0)の件数
+  food: InvFood[];      // 取り込み対象（在庫あり・非食品カテゴリ以外）
+}
+
+// 在庫データを読み、取り込み対象と診断情報をまとめて返す
+export function readInventoryFood(): InvReadResult {
+  let raw: string | null = null;
+  try { raw = localStorage.getItem('inventory_items'); } catch { raw = null; }
+  if (raw == null) return { keyPresent: false, totalItems: 0, inStock: 0, food: [] };
+
+  let items: InvItem[] = [];
+  try { const p = JSON.parse(raw); items = Array.isArray(p) ? p : []; } catch { items = []; }
+
+  const seen = new Set<string>();
+  const food: InvFood[] = [];
+  let inStock = 0;
+  for (const it of items) {
+    const name = String(it?.name ?? '').trim();
+    if (!name) continue;
+    if ((it?.quantity ?? 0) <= 0) continue;               // 在庫切れは除外
+    inStock++;
+    if (NON_FOOD.includes(String(it?.category ?? ''))) continue; // 日用品・薬は除外
+    if (seen.has(name)) continue;
+    seen.add(name);
+    food.push({ name, soon: isSoon(it?.expiryDate) });
   }
+  return { keyPresent: true, totalItems: items.length, inStock, food };
+}
+
+// 互換用（従来の取り込み対象のみ）
+export function loadInventoryFood(): InvFood[] {
+  return readInventoryFood().food;
 }
