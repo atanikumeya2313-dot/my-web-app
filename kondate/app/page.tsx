@@ -11,6 +11,7 @@ import { cloudPull, CODE_KEY } from './lib/cloud';
 import MealCard from './components/MealCard';
 import PhotoModal from './components/PhotoModal';
 import CloudSync from './components/CloudSync';
+import { useAutoSync } from './lib/autoSync';
 
 type Tab = 'make' | 'saved' | 'history';
 
@@ -40,6 +41,14 @@ export default function Home() {
     setHistory(loadHistory());
   }, []);
   /* eslint-enable react-hooks/set-state-in-effect */
+
+  // 自動同期（安全設計・オン時のみ動作）
+  useAutoSync({
+    bucket: 'kondate',
+    serialize: exportData,
+    apply: (j) => importData(j),
+    hasData: () => { try { return loadPantry().length + loadSaved().length + loadHistory().length > 0; } catch { return false; } },
+  });
 
   function persistPantry(list: Ingredient[]) { setPantry(list); savePantry(list); }
 

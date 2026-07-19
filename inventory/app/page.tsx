@@ -13,6 +13,7 @@ import ItemCard from './components/ItemCard';
 import ItemForm from './components/ItemForm';
 import AiAddModal, { ParsedItem } from './components/AiAddModal';
 import CloudSync from './components/CloudSync';
+import { useAutoSync } from './lib/autoSync';
 
 type Tab = 'inventory' | 'shopping' | 'history';
 
@@ -54,6 +55,14 @@ export default function Home() {
     setCategories(loadCategories());
     setCustomIcons(loadCustomIcons());
   }, []);
+
+  // 自動同期（安全設計・オン時のみ動作）
+  useAutoSync({
+    bucket: 'inventory',
+    serialize: serializeData,
+    apply: (j) => importData(j) !== null,
+    hasData: () => { try { return loadItems().length > 0; } catch { return false; } },
+  });
 
   const handleCategoryAdd = (cat: string, icon?: string) => {
     const next = [...categories, cat];
@@ -481,6 +490,7 @@ export default function Home() {
 
       {showCloud && (
         <CloudSync
+          bucket="inventory"
           serialize={serializeData}
           apply={(json) => importData(json) !== null}
           onClose={() => setShowCloud(false)}

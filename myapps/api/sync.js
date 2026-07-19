@@ -44,9 +44,10 @@ module.exports = async (req, res) => {
       if (blob.length > 1_500_000) {
         res.status(413).json({ error: 'データが大きすぎます' }); return;
       }
+      const at = new Date().toISOString();
       await call(['SET', storeKey, blob]);
-      await call(['SET', `${storeKey}:at`, new Date().toISOString()]);
-      res.status(200).json({ ok: true });
+      await call(['SET', `${storeKey}:at`, at]);
+      res.status(200).json({ ok: true, at });
       return;
     }
     if (action === 'pull') {
