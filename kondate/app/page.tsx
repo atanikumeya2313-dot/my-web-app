@@ -5,10 +5,12 @@ import {
   loadPantry, savePantry, loadSaved, saveSaved, loadHistory, saveHistory,
   exportData, importData, todayYMD,
 } from './lib/storage';
-import { readInventoryFood } from './lib/inventory';
+import { readInventoryFood, writeInventoryFromBackup } from './lib/inventory';
 import { inStock, decrementInventory, addMissingToInventory } from './lib/inventoryWrite';
+import { cloudPull, CODE_KEY } from './lib/cloud';
 import MealCard from './components/MealCard';
 import PhotoModal from './components/PhotoModal';
+import CloudSync from './components/CloudSync';
 
 type Tab = 'make' | 'saved' | 'history';
 
@@ -28,6 +30,7 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [error,   setError]   = useState('');
   const [showPhoto, setShowPhoto] = useState(false);
+  const [showCloud, setShowCloud] = useState(false);
   const importRef = useRef<HTMLInputElement>(null);
 
   /* eslint-disable react-hooks/set-state-in-effect */
@@ -58,19 +61,32 @@ export default function Home() {
   }
   function removeIngredient(name: string) { persistPantry(pantry.filter(p => p.name !== name)); }
 
-  function importFromInventory() {
-    const res = readInventoryFood();
+  async function importFromInventory() {
+    let res = readInventoryFood();
 
-    // 在庫データそのものが見つからない＝別のURL（オリジン）で入力している可能性
+    // この端末に在庫データが無い場合は、クラウド（同じ同期コード）から在庫を取得して再試行
     if (!res.keyPresent) {
-      alert(
-        '在庫アプリのデータが見つかりませんでした。\n\n' +
-        '在庫アプリを、この献立アプリと同じ入口から開いているか確認してください：\n' +
-        'https://myapps-jet.vercel.app/inventory\n\n' +
-        '※ 別のURLやホーム画面アイコン（旧リンク）で入力した在庫は、ここからは読めません。' +
-        'その場合は在庫アプリで「書出」→ 上記URLの在庫アプリで「読込」してください。'
-      );
-      return;
+      let code = '';
+      try { code = (localStorage.getItem(CODE_KEY) ?? '').trim(); } catch {}
+      if (!code) {
+        alert(
+          '在庫データがこの端末に見つかりませんでした。\n\n' +
+          '「☁️同期」を開き、在庫アプリと同じ同期コードを設定してください。\n' +
+          '（在庫アプリ側で「クラウドに保存」しておくと、ここから取得できます）'
+        );
+        return;
+      }
+      if (!confirm('在庫データがこの端末にありません。\nクラウドから在庫を取得しますか？（在庫アプリと同じ同期コードを使用）')) return;
+      try {
+        const { json } = await cloudPull(code, 'inventory');
+        if (!json) { alert('クラウドにこのコードの在庫データがありません。\n先に在庫アプリで「☁️同期 → クラウドに保存」してください。'); return; }
+        if (!writeInventoryFromBackup(json)) { alert('取得した在庫データを読み込めませんでした。'); return; }
+        res = readInventoryFood();
+      } catch (e) {
+        const m = (e as Error).message || '';
+        alert(/decrypt|復号|OperationError/i.test(m) ? '同期コードが違うため復号できませんでした。' : ('クラウドからの取得に失敗しました：' + m));
+        return;
+      }
     }
 
     // データはあるが取り込める食材が無い＝在庫0 or 日用品/薬のみ
@@ -183,6 +199,7 @@ export default function Home() {
         <div className="max-w-lg mx-auto px-4 py-3 flex items-center justify-between">
           <h1 className="text-base font-bold text-gray-800">🍳 献立アシスタント</h1>
           <div className="flex items-center gap-1.5">
+            <button onClick={() => setShowCloud(true)} className="text-xs px-2.5 py-1 rounded-full bg-orange-50 text-orange-600 font-medium">☁️同期</button>
             <button onClick={handleExport} className="text-xs px-2.5 py-1 rounded-full bg-gray-100 text-gray-500">書出</button>
             <button onClick={() => importRef.current?.click()} className="text-xs px-2.5 py-1 rounded-full bg-gray-100 text-gray-500">読込</button>
             <input ref={importRef} type="file" accept=".json" className="hidden" onChange={handleImport} />
@@ -346,6 +363,12 @@ export default function Home() {
       </main>
 
       {showPhoto && <PhotoModal onAdd={(names) => addMany(names)} onClose={() => setShowPhoto(false)} />}
+      {showCloud && (
+        <CloudSync bucket="kondate"
+          serialize={exportData}
+          apply={(json) => importData(json)}
+          onClose={() => setShowCloud(false)} />
+      )}
     </div>
   );
 }

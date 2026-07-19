@@ -57,3 +57,17 @@ export function readInventoryFood(): InvReadResult {
 export function loadInventoryFood(): InvFood[] {
   return readInventoryFood().food;
 }
+
+// クラウドから取得した在庫バックアップ(JSON文字列)を、この端末の在庫キーに書き込む。
+// 在庫アプリの serializeData と同じ形（items/history/categories/customIcons）を想定。
+export function writeInventoryFromBackup(json: string): boolean {
+  try {
+    const d = JSON.parse(json);
+    if (!Array.isArray(d?.items)) return false;
+    localStorage.setItem('inventory_items', JSON.stringify(d.items));
+    if (Array.isArray(d.history)) localStorage.setItem('inventory_history', JSON.stringify(d.history));
+    if (Array.isArray(d.categories)) localStorage.setItem('inventory_categories', JSON.stringify(d.categories));
+    if (d.customIcons && typeof d.customIcons === 'object') localStorage.setItem('inventory_custom_icons', JSON.stringify(d.customIcons));
+    return true;
+  } catch { return false; }
+}
