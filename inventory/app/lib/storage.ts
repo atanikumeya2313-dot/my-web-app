@@ -99,6 +99,17 @@ export function calcDaysRemaining(item: StockItem, history: HistoryEntry[]): num
 
 // ── Export / Import ────────────────────────────────────
 
+// クラウド同期用：ダウンロードせず、バックアップJSON文字列を返す
+export function serializeData(): string {
+  return JSON.stringify({
+    exportedAt:  new Date().toISOString(),
+    items:       loadItems(),
+    history:     loadHistory(),
+    categories:  loadCategories(),
+    customIcons: loadCustomIcons(),
+  });
+}
+
 export function exportData(): void {
   const data = {
     exportedAt:  new Date().toISOString(),

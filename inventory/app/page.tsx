@@ -7,11 +7,12 @@ import {
   loadCategories, saveCategories,
   loadCustomIcons, saveCustomIcons,
   calcDaysRemaining,
-  exportData, importData,
+  exportData, importData, serializeData,
 } from './lib/storage';
 import ItemCard from './components/ItemCard';
 import ItemForm from './components/ItemForm';
 import AiAddModal, { ParsedItem } from './components/AiAddModal';
+import CloudSync from './components/CloudSync';
 
 type Tab = 'inventory' | 'shopping' | 'history';
 
@@ -44,6 +45,7 @@ export default function Home() {
   const [categories,   setCategories]   = useState<string[]>([]);
   const [customIcons,  setCustomIcons]  = useState<Record<string, string>>({});
   const [historyQuery, setHistoryQuery] = useState('');
+  const [showCloud, setShowCloud] = useState(false);
   const importRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -244,6 +246,10 @@ export default function Home() {
           <h1 className="text-base font-bold text-gray-800">🏠 在庫管理</h1>
           <div className="flex items-center gap-2">
             <span className="text-xs text-gray-400">{items.length}件</span>
+            <button onClick={() => setShowCloud(true)}
+              className="text-xs px-2.5 py-1 rounded-full bg-blue-50 text-blue-600 hover:bg-blue-100 font-medium">
+              ☁️同期
+            </button>
             <button onClick={() => exportData()}
               className="text-xs px-2.5 py-1 rounded-full bg-gray-100 text-gray-500 hover:bg-gray-200">
               書き出し
@@ -472,6 +478,14 @@ export default function Home() {
           +
         </button>
       </div>
+
+      {showCloud && (
+        <CloudSync
+          serialize={serializeData}
+          apply={(json) => importData(json) !== null}
+          onClose={() => setShowCloud(false)}
+        />
+      )}
 
       {showAi && (
         <AiAddModal
