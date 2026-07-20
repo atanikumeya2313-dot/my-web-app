@@ -42,6 +42,26 @@ function saveHistory(list: HistoryEntry[]) { localStorage.setItem(HISTORY_KEY, J
 
 const norm = (s: string) => s.trim().toLowerCase();
 
+// 調味料・少量しか使わないもの（作った時に自動で減らす対象から外す既定）
+const SEASONING_INCLUDES = [
+  '醤油', 'しょうゆ', '味噌', 'みそ', '砂糖', 'みりん', 'だし', '出汁', 'つゆ', 'めんつゆ', '白だし',
+  'ケチャップ', 'マヨ', 'ソース', 'タレ', 'たれ', 'ドレッシング', 'ぽん酢', 'ポン酢', 'オイスター',
+  'こしょう', '胡椒', 'コショウ', 'にんにく', 'ニンニク', '生姜', 'しょうが', 'ショウガ',
+  'バター', 'マーガリン', '片栗粉', '小麦粉', '薄力粉', '強力粉', 'パン粉', 'はちみつ', '蜂蜜', 'ジャム',
+  '七味', '一味', '山椒', 'カレー粉', 'コンソメ', '鶏がら', 'がらスープ', 'だしの素', '和風だし',
+  'コチュジャン', '豆板醤', '甜麺醤', 'ウスター', 'ナンプラー', 'わさび', 'からし', 'マスタード', 'ラー油',
+];
+// 末尾一致（「油揚げ」を油と誤判定しないよう、油/酒/塩/酢は末尾でのみ調味料扱い）
+const SEASONING_SUFFIX = ['油', '酒', '塩', '酢'];
+
+export function isSeasoning(name: string): boolean {
+  const n = name.trim();
+  if (!n) return false;
+  if (SEASONING_INCLUDES.some(k => n.includes(k))) return true;
+  if (SEASONING_SUFFIX.some(suf => n.endsWith(suf))) return true;
+  return false;
+}
+
 // 名前が在庫（数量>0）にあるものだけ返す（作った時の確認用）
 export function inStock(names: string[]): string[] {
   const items = loadItems();

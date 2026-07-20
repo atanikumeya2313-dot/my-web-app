@@ -11,6 +11,7 @@ import { cloudPull, CODE_KEY } from './lib/cloud';
 import MealCard from './components/MealCard';
 import PhotoModal from './components/PhotoModal';
 import CloudSync from './components/CloudSync';
+import CookedModal from './components/CookedModal';
 import { useAutoSync } from './lib/autoSync';
 
 type Tab = 'make' | 'saved' | 'history';
@@ -32,6 +33,7 @@ export default function Home() {
   const [error,   setError]   = useState('');
   const [showPhoto, setShowPhoto] = useState(false);
   const [showCloud, setShowCloud] = useState(false);
+  const [cookPrompt, setCookPrompt] = useState<{ title: string; items: string[] } | null>(null);
   const importRef = useRef<HTMLInputElement>(null);
 
   /* eslint-disable react-hooks/set-state-in-effect */
@@ -171,15 +173,16 @@ export default function Home() {
   function markCooked(title: string, used: string[] = []) {
     const next = [{ id: crypto.randomUUID(), title, date: todayYMD() }, ...history];
     setHistory(next); saveHistory(next);
-    // 在庫連携：使った食材が在庫にあれば、確認のうえ1つずつ減らす
+    // 在庫連携：使った食材が在庫にあれば、どれを減らすか選ぶモーダルを開く
     const matched = inStock(used);
-    if (matched.length > 0 &&
-        confirm(`「${title}」を作った記録をつけました🍳\n使った食材を在庫から1つずつ減らしますか？\n（${matched.join('、')}）`)) {
-      const done = decrementInventory(matched);
-      if (done.length) alert(`在庫を更新しました：${done.join('、')} を1つ減らしました`);
-    } else if (matched.length === 0) {
-      alert(`「${title}」を作った記録をつけました🍳`);
-    }
+    if (matched.length > 0) setCookPrompt({ title, items: matched });
+    else alert(`「${title}」を作った記録をつけました🍳`);
+  }
+
+  function confirmCooked(selected: string[]) {
+    const done = decrementInventory(selected);
+    setCookPrompt(null);
+    if (done.length) alert(`在庫を更新しました：${done.join('、')} を1つ減らしました`);
   }
 
   function addMissingToInv(missing: string[]) {
@@ -384,6 +387,10 @@ export default function Home() {
       </main>
 
       {showPhoto && <PhotoModal onAdd={(names) => addMany(names)} onClose={() => setShowPhoto(false)} />}
+      {cookPrompt && (
+        <CookedModal title={cookPrompt.title} items={cookPrompt.items}
+          onConfirm={confirmCooked} onClose={() => setCookPrompt(null)} />
+      )}
       {showCloud && (
         <CloudSync bucket="kondate"
           serialize={exportData}
