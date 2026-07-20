@@ -4,6 +4,7 @@ export interface Ingredient {
   soon?: boolean;   // 消費期限が近い＝使い切りたい
   qty?: number;     // 在庫の数量（在庫取り込み時）
   unit?: string;    // 単位（個・本・g など）
+  fromInv?: boolean; // 在庫アプリから取り込んだ食材（再取り込みで入れ替える目印）
 }
 
 // AIの献立提案

@@ -26,24 +26,27 @@ export interface InvReadResult {
   totalItems: number;   // 在庫の生の件数
   inStock: number;      // 在庫あり(数量>0)の件数
   food: InvFood[];      // 取り込み対象（在庫あり・非食品カテゴリ以外）
+  outOfStock: string[]; // 在庫にあるが数量0以下の食材名（パントリー掃除用）
 }
 
 // 在庫データを読み、取り込み対象と診断情報をまとめて返す
 export function readInventoryFood(): InvReadResult {
   let raw: string | null = null;
   try { raw = localStorage.getItem('inventory_items'); } catch { raw = null; }
-  if (raw == null) return { keyPresent: false, totalItems: 0, inStock: 0, food: [] };
+  if (raw == null) return { keyPresent: false, totalItems: 0, inStock: 0, food: [], outOfStock: [] };
 
   let items: InvItem[] = [];
   try { const p = JSON.parse(raw); items = Array.isArray(p) ? p : []; } catch { items = []; }
 
   const seen = new Set<string>();
   const food: InvFood[] = [];
+  const outOfStock: string[] = [];
   let inStock = 0;
   for (const it of items) {
     const name = String(it?.name ?? '').trim();
     if (!name) continue;
-    if ((it?.quantity ?? 0) <= 0) continue;               // 在庫切れは除外
+    const q = Number(it?.quantity);
+    if (!(q > 0)) { outOfStock.push(name); continue; }    // 在庫切れ(0以下・数値でない)は除外
     inStock++;
     if (NON_FOOD.includes(String(it?.category ?? ''))) continue; // 日用品・薬は除外
     if (seen.has(name)) continue;
@@ -51,11 +54,11 @@ export function readInventoryFood(): InvReadResult {
     food.push({
       name,
       soon: isSoon(it?.expiryDate),
-      qty: typeof it?.quantity === 'number' ? it.quantity : undefined,
+      qty: q,
       unit: it?.unit ? String(it.unit) : undefined,
     });
   }
-  return { keyPresent: true, totalItems: items.length, inStock, food };
+  return { keyPresent: true, totalItems: items.length, inStock, food, outOfStock };
 }
 
 // 互換用（従来の取り込み対象のみ）

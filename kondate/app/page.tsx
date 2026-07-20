@@ -111,12 +111,15 @@ export default function Home() {
 
     // 期限が近い(soon)ものと通常を「一度にまとめて」追加する。
     // 2回に分けて呼ぶと、状態更新の都合で後の追加が前の追加を打ち消し、🔥の食材が消えるため。
-    const cur = [...pantry];
+    // 在庫由来の食材を「今の在庫」で入れ替える（在庫にもう無い＝0のものは消える）。
+    // 手動・写真で足した食材（fromInvでない）は残すが、在庫で0になっている名前は掃除する。
+    const outSet = new Set(res.outOfStock);
+    const cur = pantry.filter(p => !p.fromInv && !outSet.has(p.name));
     for (const f of res.food) {
       const extra = { ...(f.qty != null ? { qty: f.qty } : {}), ...(f.unit ? { unit: f.unit } : {}) };
       const idx = cur.findIndex(p => p.name === f.name);
-      if (idx >= 0) cur[idx] = { ...cur[idx], soon: cur[idx].soon || f.soon, ...extra };
-      else cur.push({ name: f.name, soon: f.soon, ...extra });
+      if (idx >= 0) cur[idx] = { ...cur[idx], soon: cur[idx].soon || f.soon, fromInv: true, ...extra };
+      else cur.push({ name: f.name, soon: f.soon, fromInv: true, ...extra });
     }
     persistPantry(cur);
   }
