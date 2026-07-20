@@ -2,6 +2,8 @@
 export interface Ingredient {
   name: string;
   soon?: boolean;   // 消費期限が近い＝使い切りたい
+  qty?: number;     // 在庫の数量（在庫取り込み時）
+  unit?: string;    // 単位（個・本・g など）
 }
 
 // AIの献立提案
@@ -10,6 +12,8 @@ export interface Suggestion {
   description: string;
   cuisine?: string;
   timeMin?: number;    // 調理時間の目安（分）
+  servings?: number;   // 何人分の分量か
+  ingredients?: { name: string; amount: string }[]; // 材料と分量
   used: string[];      // 手持ちから使う食材
   missing: string[];   // 買い足しが必要な主な食材
   steps: string[];     // 作り方の手順

@@ -66,6 +66,21 @@ export default function MealCard({ meal, onSave, saved, onCooked, onDelete, onAd
         )}
       </div>
 
+      {/* 材料と分量 */}
+      {meal.ingredients && meal.ingredients.length > 0 && (
+        <div className="mt-2.5 pt-2.5 border-t border-gray-100">
+          <p className="text-[11px] text-gray-400 mb-1">材料{meal.servings ? `（${meal.servings}人分）` : ''}</p>
+          <ul className="space-y-0.5">
+            {meal.ingredients.map((ing, i) => (
+              <li key={i} className="flex items-baseline justify-between gap-2 text-xs">
+                <span className="text-gray-700">{ing.name}</span>
+                <span className="text-gray-400 shrink-0">{ing.amount}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       {/* 手順 */}
       {meal.steps.length > 0 && (
         <div className="mt-2">

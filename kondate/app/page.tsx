@@ -111,9 +111,10 @@ export default function Home() {
     // 2回に分けて呼ぶと、状態更新の都合で後の追加が前の追加を打ち消し、🔥の食材が消えるため。
     const cur = [...pantry];
     for (const f of res.food) {
+      const extra = { ...(f.qty != null ? { qty: f.qty } : {}), ...(f.unit ? { unit: f.unit } : {}) };
       const idx = cur.findIndex(p => p.name === f.name);
-      if (idx >= 0) { if (f.soon) cur[idx] = { ...cur[idx], soon: true }; }
-      else cur.push({ name: f.name, soon: f.soon });
+      if (idx >= 0) cur[idx] = { ...cur[idx], soon: cur[idx].soon || f.soon, ...extra };
+      else cur.push({ name: f.name, soon: f.soon, ...extra });
     }
     persistPantry(cur);
   }
@@ -272,6 +273,7 @@ export default function Home() {
                         p.soon ? 'bg-red-50 text-red-600 border-red-200' : 'bg-gray-50 text-gray-600 border-gray-200'
                       }`}>
                       {p.soon && <span title="期限が近い">🔥</span>}{p.name}
+                      {p.qty != null && <span className="text-gray-400">{p.qty}{p.unit ?? ''}</span>}
                       <button onClick={() => removeIngredient(p.name)} className="text-gray-300 hover:text-red-400 leading-none">✕</button>
                     </span>
                   ))}

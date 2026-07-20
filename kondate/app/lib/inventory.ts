@@ -19,7 +19,7 @@ function isSoon(expiry?: string): boolean {
   return days <= 5;
 }
 
-export interface InvFood { name: string; soon: boolean }
+export interface InvFood { name: string; soon: boolean; qty?: number; unit?: string }
 
 export interface InvReadResult {
   keyPresent: boolean;  // inventory_items が存在したか（＝同一オリジンに在庫データがあるか）
@@ -48,7 +48,12 @@ export function readInventoryFood(): InvReadResult {
     if (NON_FOOD.includes(String(it?.category ?? ''))) continue; // 日用品・薬は除外
     if (seen.has(name)) continue;
     seen.add(name);
-    food.push({ name, soon: isSoon(it?.expiryDate) });
+    food.push({
+      name,
+      soon: isSoon(it?.expiryDate),
+      qty: typeof it?.quantity === 'number' ? it.quantity : undefined,
+      unit: it?.unit ? String(it.unit) : undefined,
+    });
   }
   return { keyPresent: true, totalItems: items.length, inStock, food };
 }
