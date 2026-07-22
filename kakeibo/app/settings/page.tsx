@@ -1,5 +1,5 @@
 'use client';
-import { Category, Budget, FixedItem, Asset, Template, Goal } from '../types';
+import { Category, Budget, FixedItem, Asset, Template, Goal, Transaction } from '../types';
 import {
   saveCategories, saveBudgets, saveFixed, saveAssets, saveTemplates,
   loadCategories, loadBudgets, loadFixed, loadAssets, loadTemplates,
@@ -21,6 +21,7 @@ export default function Settings() {
   const [budgets,   setBudgets]   = useStored<Budget[]>(loadBudgets, []);
   const [fixed,     setFixed]     = useStored<FixedItem[]>(loadFixed, []);
   const [assets,    setAssets]    = useStored<Asset[]>(loadAssets, []);
+  const [txs]                     = useStored<Transaction[]>(loadTransactions, []);
   const [templates, setTemplates] = useStored<Template[]>(loadTemplates, []);
   const [goal,      setGoal]      = useStored<Goal | null>(loadGoal, null);
 
@@ -91,7 +92,7 @@ export default function Settings() {
         </div>
       </header>
       <main className="px-4 py-4 space-y-4">
-        <AssetManager assets={assets} onChange={handleAssets} />
+        <AssetManager assets={assets} transactions={txs} onChange={handleAssets} />
         <GoalManager goal={goal} onChange={handleGoal} />
         <FixedManager items={fixed} categories={cats} onChange={handleFixed} onDelete={handleFixedDelete} onEdited={handleFixedEdited} />
         <TemplateManager templates={templates} categories={cats} onChange={handleTemplates} />
