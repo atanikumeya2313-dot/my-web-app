@@ -46,6 +46,10 @@
 
     { "source": "/subsc", "destination": "https://subsc-taupe.vercel.app/subsc" },
     { "source": "/subsc/", "destination": "https://subsc-taupe.vercel.app/subsc" },
-    { "source": "/subsc/:path*", "destination": "https://subsc-taupe.vercel.app/subsc/:path*" }
+    { "source": "/subsc/:path*", "destination": "https://subsc-taupe.vercel.app/subsc/:path*" },
+
+    { "source": "/gym", "destination": "https://gym-ten-topaz.vercel.app/gym" },
+    { "source": "/gym/", "destination": "https://gym-ten-topaz.vercel.app/gym" },
+    { "source": "/gym/:path*", "destination": "https://gym-ten-topaz.vercel.app/gym/:path*" }
   ]
 }
