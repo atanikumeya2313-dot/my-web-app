@@ -1,15 +1,20 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
-import { Session, Entry, Exercise, WeightLog, Template, Part, PARTS, PART_ICON, estimate1RM } from './types';
+import {
+  Session, Entry, Exercise, WeightLog, Template, Profile, Plan, MenuItem,
+  Part, PARTS, PART_ICON, estimate1RM, calcAge, calcBMI, bmiLabel,
+} from './types';
 import {
   loadSessions, saveSessions, loadExercises, saveExercises,
   loadWeights, saveWeights, loadTemplates, saveTemplates,
+  loadProfile, saveProfile, loadPlan, savePlan, nextPlanDay,
   todayYMD, calcStreak, monthCount, exportData, importData, hasData,
 } from './lib/storage';
 import { useAutoSync } from './lib/autoSync';
 import CloudSync from './components/CloudSync';
 import SessionForm from './components/SessionForm';
-import MenuAI, { MenuItem } from './components/MenuAI';
+import MenuAI from './components/MenuAI';
+import ProfileForm from './components/ProfileForm';
 
 function ymOf(d: string) { return d.slice(0, 7); }
 function mdLabel(d: string) {
@@ -31,12 +36,18 @@ export default function Home() {
   const [weights,   setWeights]   = useState<WeightLog[]>([]);
   const [templates, setTemplates] = useState<Template[]>([]);
 
+  const [profile,   setProfile]   = useState<Profile>({});
+  const [plan,      setPlan]      = useState<Plan | null>(null);
+
   const [showForm, setShowForm] = useState(false);
   const [editing,  setEditing]  = useState<Session | undefined>();
   const [draft,    setDraft]    = useState<Entry[] | undefined>();
-  const [showAI,    setShowAI]    = useState(false);
-  const [showCloud, setShowCloud] = useState(false);
-  const [showBest,  setShowBest]  = useState(false);
+  const [draftDay, setDraftDay] = useState<number | undefined>();
+  const [showAI,      setShowAI]      = useState(false);
+  const [showProfile, setShowProfile] = useState(false);
+  const [showCloud,   setShowCloud]   = useState(false);
+  const [showBest,    setShowBest]    = useState(false);
+  const [dayTab, setDayTab] = useState<number | null>(null);
   const [weightInput, setWeightInput] = useState('');
   const importRef = useRef<HTMLInputElement>(null);
 
@@ -46,6 +57,8 @@ export default function Home() {
     setExercises(loadExercises());
     setWeights(loadWeights());
     setTemplates(loadTemplates());
+    setProfile(loadProfile());
+    setPlan(loadPlan());
   }, []);
   /* eslint-enable react-hooks/set-state-in-effect */
 
@@ -72,15 +85,16 @@ export default function Home() {
   function handleSave(s: Session) {
     const exists = sessions.some(x => x.id === s.id);
     persistSessions(exists ? sessions.map(x => x.id === s.id ? s : x) : [s, ...sessions]);
-    setShowForm(false); setEditing(undefined); setDraft(undefined);
+    setShowForm(false); setEditing(undefined); setDraft(undefined); setDraftDay(undefined);
+    setDayTab(null);   // 次に開いたとき、次のDayが選ばれるように
   }
   function handleDelete(id: string) {
     persistSessions(sessions.filter(s => s.id !== id));
-    setShowForm(false); setEditing(undefined); setDraft(undefined);
+    setShowForm(false); setEditing(undefined); setDraft(undefined); setDraftDay(undefined);
   }
 
-  // AIメニュー → 記録フォームの下書きに変換（無い種目はマスターにも追加）
-  function useMenu(items: MenuItem[]) {
+  // AIメニューの種目 → 記録フォームの下書き（種目マスターに無ければ追加）
+  function entriesFromItems(items: MenuItem[]): Entry[] {
     const master = [...exercises];
     const entries: Entry[] = items.map(it => {
       const name = it.name.trim();
@@ -92,16 +106,34 @@ export default function Home() {
       }
       const reps = Number((it.reps.match(/\d+/) ?? ['10'])[0]) || 10;
       const setCount = Math.min(Math.max(it.sets ?? 3, 1), 8);
+      // その種目の前回の重量を引き継ぐ（AIは重量までは決められないため）
+      const prev = sessions.flatMap(s => s.entries).find(e => e.exerciseId === ex!.id);
       return {
         exerciseId: ex.id, name: ex.name, part: ex.part, kind: ex.kind,
         ...(ex.kind === 'strength'
-          ? { sets: Array.from({ length: setCount }, () => ({ weight: 0, reps })) }
+          ? { sets: Array.from({ length: setCount }, (_, i) => ({ weight: prev?.sets?.[i]?.weight ?? prev?.sets?.[0]?.weight ?? 0, reps })) }
           : { durationMin: /分/.test(it.reps) ? reps : 20 }),
       };
     });
     if (master.length !== exercises.length) { setExercises(master); saveExercises(master); }
-    setShowAI(false);
-    setEditing(undefined); setDraft(entries); setShowForm(true);
+    return entries;
+  }
+
+  function startFromPlanDay(dayIndex: number) {
+    if (!plan?.days[dayIndex]) return;
+    setEditing(undefined);
+    setDraft(entriesFromItems(plan.days[dayIndex].items));
+    setDraftDay(dayIndex);
+    setShowForm(true);
+  }
+
+  function handleSavePlan(p: Plan) {
+    setPlan(p); savePlan(p);
+    setShowAI(false); setDayTab(null);
+  }
+  function handleSaveProfile(p: Profile) {
+    setProfile(p); saveProfile(p);
+    setShowProfile(false);
   }
 
   function saveWeight() {
@@ -138,6 +170,13 @@ export default function Home() {
   const streak = calcStreak(sessions);
   const thisMonth = monthCount(sessions, ymOf(todayYMD()));
   const wentToday = sessions.some(s => s.date === todayYMD());
+
+  const currentWeight = weights[weights.length - 1]?.weight;
+  const age = calcAge(profile.birthday);
+  const bmi = calcBMI(profile.height, currentWeight);
+  const hasProfile = !!(profile.height || profile.goal || profile.freq);
+  const suggestedDay = plan ? nextPlanDay(sessions, plan.days.length) : 0;
+  const activeDay = plan ? Math.min(dayTab ?? suggestedDay, plan.days.length - 1) : 0;
 
   const recent = sessions.filter(s => s.date >= daysAgo(29));
   const partCount: Record<string, number> = {};
@@ -205,11 +244,78 @@ export default function Home() {
           </p>
         </section>
 
-        {/* AIメニュー */}
-        <button onClick={() => setShowAI(true)}
-          className="w-full py-2.5 rounded-full bg-gradient-to-r from-purple-500 to-blue-500 text-white text-sm font-bold shadow-sm active:scale-[.98] transition-transform">
-          ✨ AIに今日のメニューを提案してもらう
-        </button>
+        {/* プロフィール */}
+        {hasProfile ? (
+          <button onClick={() => setShowProfile(true)} className="w-full bg-white rounded-xl shadow-sm px-4 py-3 flex items-center gap-3 text-left">
+            <span className="text-lg shrink-0">👤</span>
+            <div className="min-w-0 flex-1">
+              <p className="text-xs text-gray-700 truncate">
+                {[
+                  profile.height ? `${profile.height}cm` : '',
+                  currentWeight ? `${currentWeight}kg` : '',
+                  bmi ? `BMI ${bmi}（${bmiLabel(bmi)}）` : '',
+                  age !== undefined ? `${age}歳` : '',
+                ].filter(Boolean).join('　')}
+              </p>
+              <p className="text-[11px] text-gray-400 truncate mt-0.5">
+                {[profile.goal, profile.freq, profile.level].filter(Boolean).join('・') || '目的・頻度が未設定'}
+                {profile.targetWeight && currentWeight && (
+                  <span className="text-rose-400">　目標まで {(currentWeight - profile.targetWeight).toFixed(1)}kg</span>
+                )}
+              </p>
+            </div>
+            <span className="text-xs text-gray-300 shrink-0">編集</span>
+          </button>
+        ) : (
+          <button onClick={() => setShowProfile(true)}
+            className="w-full bg-white rounded-xl shadow-sm px-4 py-3 text-left">
+            <p className="text-sm font-semibold text-gray-700">👤 プロフィールを登録する</p>
+            <p className="text-[11px] text-gray-400 mt-0.5">身長・目的・頻度を入れると、AIが体格に合わせたメニューを作れます</p>
+          </button>
+        )}
+
+        {/* メニュー（分割プラン） */}
+        {plan ? (
+          <section className="bg-white rounded-xl shadow-sm p-4">
+            <div className="flex items-center justify-between mb-2">
+              <h2 className="text-sm font-semibold text-gray-700">📋 メニュー（{plan.days.length}分割）</h2>
+              <button onClick={() => setShowAI(true)} className="text-[11px] text-purple-600 font-medium">✨ 作り直す</button>
+            </div>
+
+            <div className="flex gap-1.5 overflow-x-auto pb-1.5">
+              {plan.days.map((d, i) => (
+                <button key={i} onClick={() => setDayTab(i)}
+                  className={`shrink-0 text-xs px-3 py-1.5 rounded-full font-medium ${activeDay === i ? 'bg-rose-500 text-white' : 'bg-gray-100 text-gray-500'}`}>
+                  Day{i + 1}{i === suggestedDay && <span className={activeDay === i ? 'text-white/70' : 'text-rose-400'}> ●</span>}
+                </button>
+              ))}
+            </div>
+
+            <p className="text-sm font-bold text-gray-800 mt-1 mb-1.5">
+              Day{activeDay + 1}　{plan.days[activeDay].title}
+              {activeDay === suggestedDay && <span className="text-[10px] font-medium text-rose-500 ml-1.5">次はこれ</span>}
+            </p>
+            <div className="space-y-1">
+              {plan.days[activeDay].items.map((it, i) => (
+                <div key={i} className="flex items-center gap-2 text-xs">
+                  <span className="shrink-0">{PART_ICON[it.part as Part] ?? '🏋️'}</span>
+                  <span className="text-gray-700 truncate flex-1">{it.name}</span>
+                  <span className="text-gray-400 shrink-0">{it.sets ? `${it.sets}×` : ''}{it.reps}</span>
+                </div>
+              ))}
+            </div>
+
+            <button onClick={() => startFromPlanDay(activeDay)}
+              className="w-full mt-3 py-2.5 rounded-xl bg-rose-500 text-white text-sm font-bold active:scale-[.98] transition-transform">
+              このメニューで記録する
+            </button>
+          </section>
+        ) : (
+          <button onClick={() => setShowAI(true)}
+            className="w-full py-2.5 rounded-full bg-gradient-to-r from-purple-500 to-blue-500 text-white text-sm font-bold shadow-sm active:scale-[.98] transition-transform">
+            ✨ AIに分割メニューを作ってもらう
+          </button>
+        )}
 
         {/* 体重 */}
         <section className="bg-white rounded-xl shadow-sm p-4">
@@ -309,6 +415,9 @@ export default function Home() {
                     className="w-full text-left bg-white rounded-xl shadow-sm p-3">
                     <div className="flex items-center gap-2">
                       <p className="text-sm font-semibold text-gray-800 shrink-0">{mdLabel(s.date)}</p>
+                      {typeof s.planDay === 'number' && (
+                        <span className="text-[10px] bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded-full shrink-0">Day{s.planDay + 1}</span>
+                      )}
                       <div className="flex gap-1 flex-wrap min-w-0">
                         {parts.map(p => (
                           <span key={p} className="text-[10px] bg-rose-50 text-rose-500 px-1.5 py-0.5 rounded-full">{PART_ICON[p]} {p}</span>
@@ -338,16 +447,25 @@ export default function Home() {
       </button>
 
       {showCloud && <CloudSync bucket="gym" serialize={exportData} apply={importData} onClose={() => setShowCloud(false)} />}
-      {showAI && <MenuAI onUse={useMenu} onClose={() => setShowAI(false)} />}
+      {showAI && (
+        <MenuAI profile={profile} currentWeight={currentWeight}
+          onSavePlan={handleSavePlan}
+          onEditProfile={() => { setShowAI(false); setShowProfile(true); }}
+          onClose={() => setShowAI(false)} />
+      )}
+      {showProfile && (
+        <ProfileForm profile={profile} currentWeight={currentWeight}
+          onSave={handleSaveProfile} onClose={() => setShowProfile(false)} />
+      )}
       {showForm && (
         <SessionForm
-          editing={editing} initialEntries={draft}
+          editing={editing} initialEntries={draft} planDay={draftDay}
           exercises={exercises} sessions={sessions} templates={templates}
           onSave={handleSave}
           onDelete={editing ? () => handleDelete(editing.id) : undefined}
           onAddExercise={addExercise}
           onSaveTemplate={addTemplate}
-          onClose={() => { setShowForm(false); setEditing(undefined); setDraft(undefined); }}
+          onClose={() => { setShowForm(false); setEditing(undefined); setDraft(undefined); setDraftDay(undefined); }}
         />
       )}
     </div>

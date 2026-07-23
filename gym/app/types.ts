@@ -37,6 +37,54 @@ export interface Session {
   entries: Entry[];
   memo?: string;
   createdAt: string;
+  planDay?: number;  // 分割メニューの何日目をやったか（ローテーション判定用）
+}
+
+// 体格・条件のプロフィール（AIメニューの前提になる）
+export interface Profile {
+  height?: number;        // cm
+  birthday?: string;      // YYYY-MM-DD
+  gender?: 'male' | 'female' | 'other';
+  targetWeight?: number;  // kg
+  goal?: string;
+  freq?: string;
+  level?: string;
+  equip?: string;
+}
+
+// AIが返す1種目
+export interface MenuItem { name: string; part: string; sets?: number; reps: string; tip: string }
+
+// 分割メニューの1日分（例: Day1 胸・三頭）
+export interface PlanDay { title: string; items: MenuItem[] }
+
+// 分割メニュー全体（週の回数ぶんの days を持つ）
+export interface Plan { id: string; createdAt: string; advice: string; days: PlanDay[] }
+
+export function calcAge(birthday?: string): number | undefined {
+  if (!birthday) return undefined;
+  const b = new Date(birthday);
+  if (isNaN(b.getTime())) return undefined;
+  const now = new Date();
+  let age = now.getFullYear() - b.getFullYear();
+  const m = now.getMonth() - b.getMonth();
+  if (m < 0 || (m === 0 && now.getDate() < b.getDate())) age--;
+  return age >= 0 && age < 120 ? age : undefined;
+}
+
+export function calcBMI(heightCm?: number, weightKg?: number): number | undefined {
+  if (!heightCm || !weightKg) return undefined;
+  const m = heightCm / 100;
+  return Math.round((weightKg / (m * m)) * 10) / 10;
+}
+
+// BMIの区分（日本肥満学会の基準・目安として表示するだけ）
+export function bmiLabel(bmi?: number): string {
+  if (!bmi) return '';
+  if (bmi < 18.5) return 'やせ型';
+  if (bmi < 25)   return '標準';
+  if (bmi < 30)   return 'やや高め';
+  return '高め';
 }
 
 // 体重（1日1件）

@@ -1,60 +1,46 @@
 'use client';
 import { useState } from 'react';
-
-export interface MenuItem { name: string; part: string; sets?: number; reps: string; tip: string }
+import { Profile, Plan, PlanDay, PART_ICON, Part, calcAge, calcBMI } from '../types';
 
 interface Props {
-  onUse: (items: MenuItem[]) => void;   // 選んだ種目で記録を作る
+  profile: Profile;
+  currentWeight?: number;
+  onSavePlan: (plan: Plan) => void;
+  onEditProfile: () => void;
   onClose: () => void;
 }
 
-const GOALS = ['筋肉をつけたい', 'ダイエット・減量', '健康維持', '体力アップ'];
-const FREQS = ['週1回', '週2回', '週3回', '週4回以上'];
-const LEVELS = ['はじめて', '数ヶ月', '1年以上'];
-const EQUIPS = ['ジムのマシン中心', 'フリーウェイトも使う', '自宅・自重のみ'];
 const PARTS_OPT = ['おまかせ', '胸', '背中', '脚', '肩', '腕', '腹', '有酸素'];
 
-function Chips({ label, options, value, onChange }: { label: string; options: string[]; value: string; onChange: (v: string) => void }) {
-  return (
-    <div>
-      <label className="text-xs font-medium text-gray-600 mb-1 block">{label}</label>
-      <div className="flex flex-wrap gap-1.5">
-        {options.map(o => (
-          <button key={o} onClick={() => onChange(o)}
-            className={`text-xs px-2.5 py-1.5 rounded-full font-medium ${value === o ? 'bg-rose-500 text-white' : 'bg-gray-100 text-gray-500'}`}>
-            {o}
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-export default function MenuAI({ onUse, onClose }: Props) {
-  const [goal, setGoal]   = useState(GOALS[0]);
-  const [freq, setFreq]   = useState(FREQS[1]);
-  const [level, setLevel] = useState(LEVELS[0]);
-  const [equip, setEquip] = useState(EQUIPS[0]);
-  const [part, setPart]   = useState(PARTS_OPT[0]);
-
+export default function MenuAI({ profile, currentWeight, onSavePlan, onEditProfile, onClose }: Props) {
+  const [part, setPart] = useState(PARTS_OPT[0]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [advice, setAdvice] = useState('');
-  const [items, setItems] = useState<MenuItem[]>([]);
-  const [picked, setPicked] = useState<Set<number>>(new Set());
+  const [days, setDays] = useState<PlanDay[]>([]);
+  const [openDay, setOpenDay] = useState(0);
+
+  const age = calcAge(profile.birthday);
+  const bmi = calcBMI(profile.height, currentWeight);
+  const hasProfile = !!(profile.height || profile.goal || profile.freq);
 
   async function suggest() {
-    setLoading(true); setError(''); setAdvice(''); setItems([]); setPicked(new Set());
+    setLoading(true); setError(''); setAdvice(''); setDays([]);
     try {
       let res!: Response;
       for (let attempt = 0; attempt < 3; attempt++) {
         const ctrl = new AbortController();
-        const timer = setTimeout(() => ctrl.abort(), 60000);
+        const timer = setTimeout(() => ctrl.abort(), 70000);
         try {
           res = await fetch('/gym/api/menu', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ goal, freq, level, equip, part: part === 'おまかせ' ? '' : part }),
+            body: JSON.stringify({
+              goal: profile.goal, freq: profile.freq, level: profile.level, equip: profile.equip,
+              part: part === 'おまかせ' ? '' : part,
+              age, gender: profile.gender, height: profile.height,
+              weight: currentWeight, targetWeight: profile.targetWeight, bmi,
+            }),
             signal: ctrl.signal,
           });
         } catch (e) {
@@ -63,16 +49,16 @@ export default function MenuAI({ onUse, onClose }: Props) {
         } finally { clearTimeout(timer); }
         break;
       }
-      let data: { advice?: string; items?: MenuItem[]; error?: string } | null = null;
+      let data: { advice?: string; days?: PlanDay[]; error?: string } | null = null;
       try { data = await res.json(); } catch { data = null; }
-      if (!res.ok || !Array.isArray(data?.items)) {
+      if (!res.ok || !Array.isArray(data?.days)) {
         setError(res.status === 503 ? 'AI機能はまだ準備中です（APIキー未設定）' : (data?.error ?? 'メニューの提案に失敗しました'));
         return;
       }
       setAdvice(data.advice ?? '');
-      setItems(data.items);
-      setPicked(new Set(data.items.map((_, i) => i)));
-      if (data.items.length === 0) setError('提案を作れませんでした。条件を変えてお試しください。');
+      setDays(data.days);
+      setOpenDay(0);
+      if (data.days.length === 0) setError('提案を作れませんでした。条件を変えてお試しください。');
     } catch (e) {
       setError((e as Error)?.name === 'AbortError'
         ? 'AIの応答に時間がかかっています。少し待ってからお試しください。'
@@ -82,12 +68,8 @@ export default function MenuAI({ onUse, onClose }: Props) {
     }
   }
 
-  function toggle(i: number) {
-    setPicked(prev => {
-      const next = new Set(prev);
-      if (next.has(i)) next.delete(i); else next.add(i);
-      return next;
-    });
+  function save() {
+    onSavePlan({ id: `plan_${Date.now()}`, createdAt: new Date().toISOString(), advice, days });
   }
 
   return (
@@ -95,21 +77,47 @@ export default function MenuAI({ onUse, onClose }: Props) {
       <div className="absolute inset-0 bg-black/30" onClick={onClose} />
       <div className="relative bg-white rounded-t-2xl shadow-xl max-h-[92vh] flex flex-col">
         <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
-          <h2 className="font-bold text-gray-800">✨ AIメニュー提案</h2>
+          <h2 className="font-bold text-gray-800">✨ AIメニュー作成</h2>
           <button onClick={onClose} className="text-gray-400 text-xl w-8 h-8 flex items-center justify-center">✕</button>
         </div>
 
         <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3">
-          <Chips label="目的" options={GOALS} value={goal} onChange={setGoal} />
-          <Chips label="通う頻度" options={FREQS} value={freq} onChange={setFreq} />
-          <Chips label="トレーニング歴" options={LEVELS} value={level} onChange={setLevel} />
-          <Chips label="使える器具" options={EQUIPS} value={equip} onChange={setEquip} />
-          <Chips label="特に鍛えたい部位" options={PARTS_OPT} value={part} onChange={setPart} />
+          {/* いまの前提（プロフィール） */}
+          <div className="bg-gray-50 rounded-xl px-3 py-2.5">
+            <div className="flex items-center justify-between mb-1">
+              <p className="text-xs font-semibold text-gray-700">この内容で作ります</p>
+              <button onClick={onEditProfile} className="text-[11px] text-rose-500 font-medium">プロフィールを編集</button>
+            </div>
+            {hasProfile ? (
+              <p className="text-[11px] text-gray-500 leading-relaxed">
+                {[
+                  profile.goal, profile.freq, profile.level, profile.equip,
+                  profile.height ? `${profile.height}cm` : '',
+                  currentWeight ? `${currentWeight}kg` : '',
+                  bmi ? `BMI${bmi}` : '',
+                  age !== undefined ? `${age}歳` : '',
+                  profile.targetWeight ? `目標${profile.targetWeight}kg` : '',
+                ].filter(Boolean).join('・')}
+              </p>
+            ) : (
+              <p className="text-[11px] text-gray-400">未登録です。プロフィールを登録すると、体格や目的に合わせた内容になります。</p>
+            )}
+          </div>
+
+          <div>
+            <label className="text-xs font-medium text-gray-600 mb-1 block">特に鍛えたい部位</label>
+            <div className="flex flex-wrap gap-1.5">
+              {PARTS_OPT.map(o => (
+                <button key={o} onClick={() => setPart(o)}
+                  className={`text-xs px-2.5 py-1.5 rounded-full font-medium ${part === o ? 'bg-rose-500 text-white' : 'bg-gray-100 text-gray-500'}`}>{o}</button>
+              ))}
+            </div>
+          </div>
 
           <button onClick={suggest} disabled={loading}
             className="w-full py-3 rounded-xl bg-gradient-to-r from-purple-500 to-blue-500 text-white text-sm font-bold disabled:opacity-50 flex items-center justify-center gap-2">
             {loading && <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />}
-            {loading ? '考えています…' : 'メニューを提案してもらう'}
+            {loading ? '考えています…' : days.length ? 'もう一度作り直す' : `${profile.freq ?? '週3回'}の分割メニューを作る`}
           </button>
 
           {error && <p className="text-xs bg-red-50 text-red-500 rounded-lg px-3 py-2">{error}</p>}
@@ -120,23 +128,33 @@ export default function MenuAI({ onUse, onClose }: Props) {
             </div>
           )}
 
-          {items.length > 0 && (
+          {days.length > 0 && (
             <div className="space-y-2">
-              {items.map((it, i) => (
-                <button key={i} onClick={() => toggle(i)}
-                  className={`w-full text-left rounded-xl px-3 py-2.5 border ${picked.has(i) ? 'border-rose-300 bg-rose-50/50' : 'border-gray-200 bg-white'}`}>
-                  <div className="flex items-center gap-2">
-                    <span className={`w-4 h-4 rounded shrink-0 flex items-center justify-center text-[10px] ${picked.has(i) ? 'bg-rose-500 text-white' : 'border border-gray-300'}`}>
-                      {picked.has(i) ? '✓' : ''}
-                    </span>
-                    <p className="text-sm font-semibold text-gray-800 flex-1 min-w-0 truncate">{it.name}</p>
-                    <span className="text-[11px] text-gray-400 shrink-0">
-                      {it.sets ? `${it.sets}セット × ` : ''}{it.reps}
-                    </span>
-                  </div>
-                  <p className="text-[11px] text-gray-400 mt-1 pl-6">{it.part}{it.tip ? `　${it.tip}` : ''}</p>
-                </button>
-              ))}
+              <div className="flex gap-1.5 overflow-x-auto pb-1">
+                {days.map((d, i) => (
+                  <button key={i} onClick={() => setOpenDay(i)}
+                    className={`shrink-0 text-xs px-3 py-1.5 rounded-full font-medium ${openDay === i ? 'bg-rose-500 text-white' : 'bg-gray-100 text-gray-500'}`}>
+                    Day{i + 1}
+                  </button>
+                ))}
+              </div>
+              <div className="bg-white border border-gray-200 rounded-xl p-3">
+                <p className="text-sm font-bold text-gray-800 mb-2">Day{openDay + 1}　{days[openDay].title}</p>
+                <div className="space-y-2">
+                  {days[openDay].items.map((it, i) => (
+                    <div key={i} className="flex items-start gap-2">
+                      <span className="text-xs shrink-0 mt-0.5">{PART_ICON[it.part as Part] ?? '🏋️'}</span>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm text-gray-800 leading-tight">
+                          {it.name}
+                          <span className="text-[11px] text-gray-400 ml-1.5">{it.sets ? `${it.sets}set × ` : ''}{it.reps}</span>
+                        </p>
+                        {it.tip && <p className="text-[11px] text-gray-400 mt-0.5">{it.tip}</p>}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
               <p className="text-[11px] text-gray-400 leading-relaxed">
                 ※ 提案は一般的な目安です。痛みがあるときは無理をせず、必要ならジムのスタッフに相談してください。
               </p>
@@ -144,11 +162,11 @@ export default function MenuAI({ onUse, onClose }: Props) {
           )}
         </div>
 
-        {items.length > 0 && (
+        {days.length > 0 && (
           <div className="px-4 py-3 border-t border-gray-100">
-            <button onClick={() => onUse(items.filter((_, i) => picked.has(i)))} disabled={picked.size === 0}
-              className="w-full py-3 rounded-xl bg-rose-500 text-white text-sm font-bold disabled:opacity-40">
-              選んだ{picked.size}種目で記録を作る
+            <button onClick={save}
+              className="w-full py-3 rounded-xl bg-rose-500 text-white text-sm font-bold">
+              この{days.length}分割メニューを保存する
             </button>
           </div>
         )}

@@ -7,6 +7,7 @@ import ExercisePicker from './ExercisePicker';
 interface Props {
   editing?: Session;
   initialEntries?: Entry[];        // AIメニューから始めるとき
+  planDay?: number;                // 分割メニューの何日目から始めたか
   exercises: Exercise[];
   sessions: Session[];             // 前回の記録を出すため
   templates: Template[];
@@ -32,7 +33,7 @@ function entryVolume(e: Entry): number {
 }
 
 export default function SessionForm({
-  editing, initialEntries, exercises, sessions, templates,
+  editing, initialEntries, planDay, exercises, sessions, templates,
   onSave, onDelete, onAddExercise, onSaveTemplate, onClose,
 }: Props) {
   const [date, setDate] = useState(editing?.date ?? todayYMD());
@@ -113,6 +114,7 @@ export default function SessionForm({
       entries,
       memo: memo.trim() || undefined,
       createdAt: editing?.createdAt ?? new Date().toISOString(),
+      planDay: editing?.planDay ?? planDay,
     });
   }
 

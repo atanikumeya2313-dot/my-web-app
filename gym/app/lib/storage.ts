@@ -1,10 +1,12 @@
-import { Session, Exercise, WeightLog, Template, DEFAULT_EXERCISES } from '../types';
+import { Session, Exercise, WeightLog, Template, Profile, Plan, DEFAULT_EXERCISES } from '../types';
 
 const K = {
   sessions:  'gym_sessions',
   exercises: 'gym_exercises',
   weights:   'gym_weights',
   templates: 'gym_templates',
+  profile:   'gym_profile',
+  plan:      'gym_plan',
 };
 
 export function todayYMD(): string {
@@ -43,6 +45,25 @@ export function saveWeights(list: WeightLog[]) { localStorage.setItem(K.weights,
 export function loadTemplates(): Template[] { return load<Template[]>(K.templates, []); }
 export function saveTemplates(list: Template[]) { localStorage.setItem(K.templates, JSON.stringify(list)); }
 
+// ── Profile ──
+export function loadProfile(): Profile { return load<Profile>(K.profile, {}); }
+export function saveProfile(p: Profile) { localStorage.setItem(K.profile, JSON.stringify(p)); }
+
+// ── Plan（分割メニュー） ──
+export function loadPlan(): Plan | null { return load<Plan | null>(K.plan, null); }
+export function savePlan(p: Plan | null) {
+  if (p) localStorage.setItem(K.plan, JSON.stringify(p));
+  else localStorage.removeItem(K.plan);
+}
+
+// 次にやる日（直近でやったDayの次へローテーション）
+export function nextPlanDay(sessions: Session[], dayCount: number): number {
+  if (dayCount <= 0) return 0;
+  const last = sessions.find(s => typeof s.planDay === 'number');
+  if (!last || typeof last.planDay !== 'number') return 0;
+  return (last.planDay + 1) % dayCount;
+}
+
 // ── 連続記録・回数 ──
 // 直近の「連続して通っている週数」ではなく、日ベースのストリーク（今日/昨日から遡って連続した“通った日”）
 export function calcStreak(sessions: Session[]): number {
@@ -64,8 +85,9 @@ export function monthCount(sessions: Session[], ym: string): number {
 // ── バックアップ / クラウド同期 ──
 export function exportData(): string {
   return JSON.stringify({
-    app: 'gym', version: 1,
+    app: 'gym', version: 2,
     sessions: loadSessions(), exercises: loadExercises(), weights: loadWeights(), templates: loadTemplates(),
+    profile: loadProfile(), plan: loadPlan(),
   });
 }
 export function importData(raw: string): boolean {
@@ -76,6 +98,8 @@ export function importData(raw: string): boolean {
     if (Array.isArray(d.exercises)) saveExercises(d.exercises);
     if (Array.isArray(d.weights))   saveWeights(d.weights);
     if (Array.isArray(d.templates)) saveTemplates(d.templates);
+    if (d.profile && typeof d.profile === 'object') saveProfile(d.profile);
+    if (d.plan && Array.isArray(d.plan.days)) savePlan(d.plan);
     return true;
   } catch { return false; }
 }
