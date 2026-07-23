@@ -1,0 +1,15 @@
+{
+  "name": "ジム記録",
+  "short_name": "ジム記録",
+  "description": "筋トレ・有酸素を記録して、連続記録と進捗を見える化。AIメニュー提案つき",
+  "start_url": "/gym/",
+  "scope": "/gym/",
+  "display": "standalone",
+  "background_color": "#fff1f2",
+  "theme_color": "#e11d48",
+  "lang": "ja",
+  "icons": [
+    { "src": "/gym/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/gym/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
