@@ -40,7 +40,7 @@ export default function ProfileForm({ profile, currentWeight, onSave, onClose }:
   return (
     <div className="fixed inset-0 z-[70] flex flex-col justify-end">
       <div className="absolute inset-0 bg-black/30" onClick={onClose} />
-      <div className="relative bg-white rounded-t-2xl shadow-xl max-h-[92vh] flex flex-col">
+      <div className="relative bg-white rounded-t-2xl shadow-xl max-h-[90vh] flex flex-col">
         <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
           <h2 className="font-bold text-gray-800">👤 プロフィール</h2>
           <button onClick={onClose} className="text-gray-400 text-xl w-8 h-8 flex items-center justify-center">✕</button>
@@ -107,7 +107,7 @@ export default function ProfileForm({ profile, currentWeight, onSave, onClose }:
           </div>
         </div>
 
-        <div className="px-4 py-3 border-t border-gray-100">
+        <div className="px-4 pt-3 pb-safe border-t border-gray-100">
           <button onClick={() => onSave(p)}
             className="w-full py-3 rounded-xl bg-rose-500 text-white text-sm font-bold active:scale-[.98] transition-transform">
             保存する

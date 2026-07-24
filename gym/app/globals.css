@@ -1,1 +1,10 @@
 @import "tailwindcss";
+
+/* iOSのPWA（viewportFit: cover）で、下部のホームバーにボタンが被らないようにする余白 */
+@utility pb-safe {
+  padding-bottom: max(env(safe-area-inset-bottom), 0.75rem);
+}
+/* 上部のノッチ/ステータスバー分の余白（standalone以外では0） */
+@utility pt-notch {
+  padding-top: env(safe-area-inset-top);
+}

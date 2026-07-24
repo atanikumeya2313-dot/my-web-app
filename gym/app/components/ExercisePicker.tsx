@@ -39,14 +39,14 @@ export default function ExercisePicker({ exercises, onPick, onCreate, onClose }:
   return (
     <div className="fixed inset-0 z-[80] flex flex-col justify-end">
       <div className="absolute inset-0 bg-black/30" onClick={onClose} />
-      <div className="relative bg-white rounded-t-2xl shadow-xl max-h-[85vh] flex flex-col">
+      <div className="relative bg-white rounded-t-2xl shadow-xl max-h-[90vh] flex flex-col">
         <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
           <h2 className="font-bold text-gray-800">種目を選ぶ</h2>
           <button onClick={onClose} className="text-gray-400 text-xl w-8 h-8 flex items-center justify-center">✕</button>
         </div>
 
         {creating ? (
-          <div className="p-4 space-y-3">
+          <div className="px-4 pt-4 pb-safe space-y-3">
             <div>
               <label className="text-xs font-medium text-gray-600 mb-1 block">種目名</label>
               <input value={newName} onChange={e => setNewName(e.target.value)} placeholder="例: インクラインベンチプレス"
@@ -95,7 +95,7 @@ export default function ExercisePicker({ exercises, onPick, onCreate, onClose }:
               </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto px-4 pb-4">
+            <div className="flex-1 overflow-y-auto px-4 pb-safe">
               {shown.length === 0 ? (
                 <p className="text-center text-gray-400 text-sm py-8">見つかりません。下の「新しい種目を作る」から追加できます。</p>
               ) : (

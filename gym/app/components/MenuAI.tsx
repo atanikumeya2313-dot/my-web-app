@@ -78,7 +78,7 @@ export default function MenuAI({ profile, currentWeight, onSavePlan, onEditProfi
   return (
     <div className="fixed inset-0 z-[70] flex flex-col justify-end">
       <div className="absolute inset-0 bg-black/30" onClick={onClose} />
-      <div className="relative bg-white rounded-t-2xl shadow-xl max-h-[92vh] flex flex-col">
+      <div className="relative bg-white rounded-t-2xl shadow-xl max-h-[90vh] flex flex-col">
         <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
           <h2 className="font-bold text-gray-800">✨ AIメニュー作成</h2>
           <button onClick={onClose} className="text-gray-400 text-xl w-8 h-8 flex items-center justify-center">✕</button>
@@ -177,7 +177,7 @@ export default function MenuAI({ profile, currentWeight, onSavePlan, onEditProfi
         </div>
 
         {days.length > 0 && (
-          <div className="px-4 py-3 border-t border-gray-100">
+          <div className="px-4 pt-3 pb-safe border-t border-gray-100">
             <button onClick={save}
               className="w-full py-3 rounded-xl bg-rose-500 text-white text-sm font-bold">
               この{days.length}分割メニューを保存する

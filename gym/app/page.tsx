@@ -214,7 +214,7 @@ export default function Home() {
 
   return (
     <div className="min-h-screen pb-24">
-      <header className="bg-white border-b border-gray-100 sticky top-0 z-10">
+      <header className="bg-white border-b border-gray-100 sticky top-0 z-10 pt-notch">
         <div className="max-w-lg mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-2 min-w-0">
             <a href="/" aria-label="入口（ハブ）に戻る" className="text-gray-300 hover:text-gray-600 text-lg leading-none shrink-0">🏠</a>
@@ -496,7 +496,8 @@ export default function Home() {
       </main>
 
       <button onClick={() => { setEditing(undefined); setFormInit(savedDraft ?? undefined); setShowForm(true); }} aria-label="トレーニングを記録"
-        className="fixed bottom-6 right-4 w-14 h-14 bg-rose-500 text-white rounded-full text-2xl shadow-lg active:scale-90 transition-transform flex items-center justify-center z-40">
+        style={{ bottom: 'max(1.5rem, calc(env(safe-area-inset-bottom) + 0.5rem))' }}
+        className="fixed right-4 w-14 h-14 bg-rose-500 text-white rounded-full text-2xl shadow-lg active:scale-90 transition-transform flex items-center justify-center z-40">
         ＋
       </button>
 

@@ -152,7 +152,7 @@ export default function SessionForm({
   return (
     <div className="fixed inset-0 z-[60] flex flex-col justify-end">
       <div className="absolute inset-0 bg-black/30" onClick={onClose} />
-      <div className="relative bg-white rounded-t-2xl shadow-xl max-h-[92vh] flex flex-col">
+      <div className="relative bg-white rounded-t-2xl shadow-xl max-h-[90vh] flex flex-col">
         <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
           <h2 className="font-bold text-gray-800">
             {editing ? '記録を編集' : '今日のトレーニング'}
@@ -299,7 +299,7 @@ export default function SessionForm({
             onStop={() => setRestEndAt(null)} />
         )}
 
-        <div className="px-4 py-3 border-t border-gray-100 flex gap-2">
+        <div className="px-4 pt-3 pb-safe border-t border-gray-100 flex gap-2">
           {onDelete && (
             <button onClick={() => { if (confirm('この記録を削除しますか？')) onDelete(); }}
               className="px-4 py-3 rounded-xl border border-red-200 text-red-500 text-sm font-bold">削除</button>
