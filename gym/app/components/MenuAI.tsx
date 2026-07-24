@@ -1,6 +1,7 @@
 'use client';
 import { useState } from 'react';
-import { Profile, Plan, PlanDay, PART_ICON, Part, calcAge, calcBMI } from '../types';
+import { Profile, Plan, PlanDay, MenuItem, PART_ICON, Part, calcAge, calcBMI } from '../types';
+import ExerciseHowto from './ExerciseHowto';
 
 interface Props {
   profile: Profile;
@@ -19,6 +20,7 @@ export default function MenuAI({ profile, currentWeight, onSavePlan, onEditProfi
   const [advice, setAdvice] = useState('');
   const [days, setDays] = useState<PlanDay[]>([]);
   const [openDay, setOpenDay] = useState(0);
+  const [howtoFor, setHowtoFor] = useState<MenuItem | null>(null);
 
   const age = calcAge(profile.birthday);
   const bmi = calcBMI(profile.height, currentWeight);
@@ -151,6 +153,8 @@ export default function MenuAI({ profile, currentWeight, onSavePlan, onEditProfi
                         </p>
                         {it.tip && <p className="text-[11px] text-gray-400 mt-0.5">{it.tip}</p>}
                       </div>
+                      <button onClick={() => setHowtoFor(it)} title="やり方を見る"
+                        className="shrink-0 w-6 h-6 rounded-full bg-gray-100 text-gray-400 text-[11px] flex items-center justify-center">ⓘ</button>
                     </div>
                   ))}
                 </div>
@@ -171,6 +175,10 @@ export default function MenuAI({ profile, currentWeight, onSavePlan, onEditProfi
           </div>
         )}
       </div>
+
+      {howtoFor && (
+        <ExerciseHowto name={howtoFor.name} part={howtoFor.part} onClose={() => setHowtoFor(null)} />
+      )}
     </div>
   );
 }

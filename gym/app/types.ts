@@ -40,6 +40,16 @@ export interface Session {
   planDay?: number;  // 分割メニューの何日目をやったか（ローテーション判定用）
 }
 
+// 種目の説明（AIが作り、端末にキャッシュする）
+export interface Howto {
+  summary: string;
+  target: string;
+  steps: string[];
+  tips: string[];
+  mistakes: string[];
+  beginner: string;
+}
+
 // 入力途中の記録（ジムでは少しずつ入力するので、閉じても消えないように保持する）
 export interface SessionDraft { date: string; entries: Entry[]; memo?: string; planDay?: number }
 

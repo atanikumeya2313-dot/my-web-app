@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { Session, SessionDraft, Entry, Exercise, Template, PART_ICON, StrengthSet } from '../types';
 import { todayYMD, saveDraft, clearDraft, loadRestSec, saveRestSec } from '../lib/storage';
 import ExercisePicker from './ExercisePicker';
+import ExerciseHowto from './ExerciseHowto';
 import RestTimer, { primeAudio } from './RestTimer';
 
 interface Props {
@@ -43,6 +44,7 @@ export default function SessionForm({
   const [memo, setMemo] = useState(editing?.memo ?? initial?.memo ?? '');
   const [planDay] = useState<number | undefined>(editing?.planDay ?? initial?.planDay);
   const [picking, setPicking] = useState(false);
+  const [howtoFor, setHowtoFor] = useState<Entry | null>(null);
 
   // 休憩タイマー
   const [restSec, setRestSec] = useState(90);
@@ -202,6 +204,8 @@ export default function SessionForm({
                   <p className="text-sm font-semibold text-gray-800 flex-1 min-w-0 truncate">
                     {PART_ICON[e.part]} {e.name}
                   </p>
+                  <button onClick={() => setHowtoFor(e)} title="やり方を見る"
+                    className="shrink-0 w-7 h-7 rounded-full bg-white text-gray-400 text-xs flex items-center justify-center">ⓘ</button>
                   <button onClick={() => removeEntry(i)} className="text-gray-300 text-sm w-7 h-7 flex items-center justify-center">✕</button>
                 </div>
 
@@ -309,6 +313,9 @@ export default function SessionForm({
       {picking && (
         <ExercisePicker exercises={exercises} onPick={addExerciseToSession}
           onCreate={onAddExercise} onClose={() => setPicking(false)} />
+      )}
+      {howtoFor && (
+        <ExerciseHowto name={howtoFor.name} part={howtoFor.part} onClose={() => setHowtoFor(null)} />
       )}
     </div>
   );

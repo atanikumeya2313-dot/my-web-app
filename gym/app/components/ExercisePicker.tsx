@@ -1,6 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { Exercise, Part, PARTS, PART_ICON, ExKind } from '../types';
+import ExerciseHowto from './ExerciseHowto';
 
 interface Props {
   exercises: Exercise[];
@@ -13,6 +14,7 @@ export default function ExercisePicker({ exercises, onPick, onCreate, onClose }:
   const [part, setPart] = useState<Part | 'all'>('all');
   const [q, setQ] = useState('');
   const [creating, setCreating] = useState(false);
+  const [howtoFor, setHowtoFor] = useState<Exercise | null>(null);
   const [newName, setNewName] = useState('');
   const [newPart, setNewPart] = useState<Part>('胸');
   const [newKind, setNewKind] = useState<ExKind>('strength');
@@ -99,11 +101,14 @@ export default function ExercisePicker({ exercises, onPick, onCreate, onClose }:
               ) : (
                 <div className="grid grid-cols-2 gap-2">
                   {shown.map(ex => (
-                    <button key={ex.id} onClick={() => onPick(ex)}
-                      className="text-left bg-gray-50 rounded-xl px-3 py-2.5 active:bg-rose-50">
-                      <p className="text-sm font-semibold text-gray-800 leading-tight">{ex.name}</p>
-                      <p className="text-[11px] text-gray-400 mt-0.5">{PART_ICON[ex.part]} {ex.part}</p>
-                    </button>
+                    <div key={ex.id} className="relative bg-gray-50 rounded-xl">
+                      <button onClick={() => onPick(ex)} className="w-full text-left px-3 py-2.5 pr-8 active:bg-rose-50 rounded-xl">
+                        <p className="text-sm font-semibold text-gray-800 leading-tight">{ex.name}</p>
+                        <p className="text-[11px] text-gray-400 mt-0.5">{PART_ICON[ex.part]} {ex.part}</p>
+                      </button>
+                      <button onClick={() => setHowtoFor(ex)} title="やり方を見る"
+                        className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-white text-gray-400 text-[11px] flex items-center justify-center">ⓘ</button>
+                    </div>
                   ))}
                 </div>
               )}
@@ -115,6 +120,10 @@ export default function ExercisePicker({ exercises, onPick, onCreate, onClose }:
           </>
         )}
       </div>
+
+      {howtoFor && (
+        <ExerciseHowto name={howtoFor.name} part={howtoFor.part} onClose={() => setHowtoFor(null)} />
+      )}
     </div>
   );
 }

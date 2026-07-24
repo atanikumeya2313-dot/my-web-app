@@ -1,4 +1,4 @@
-import { Session, Exercise, WeightLog, Template, Profile, Plan, SessionDraft, DEFAULT_EXERCISES, estimate1RM } from '../types';
+import { Session, Exercise, WeightLog, Template, Profile, Plan, SessionDraft, Howto, DEFAULT_EXERCISES, estimate1RM } from '../types';
 
 const K = {
   sessions:  'gym_sessions',
@@ -9,6 +9,7 @@ const K = {
   plan:      'gym_plan',
   draft:     'gym_draft',
   rest:      'gym_rest_sec',
+  howto:     'gym_howto',
 };
 
 export function todayYMD(): string {
@@ -65,6 +66,18 @@ export function loadDraft(): SessionDraft | null {
 }
 export function saveDraft(d: SessionDraft) { localStorage.setItem(K.draft, JSON.stringify(d)); }
 export function clearDraft() { localStorage.removeItem(K.draft); }
+
+// ── 種目の説明キャッシュ（種目名がキー。一度作れば以降はAIを呼ばない） ──
+export function loadHowto(name: string): Howto | null {
+  const all = load<Record<string, Howto>>(K.howto, {});
+  const h = all?.[name];
+  return h && (h.summary || h.steps?.length) ? h : null;
+}
+export function saveHowto(name: string, h: Howto) {
+  const all = load<Record<string, Howto>>(K.howto, {});
+  all[name] = h;
+  try { localStorage.setItem(K.howto, JSON.stringify(all)); } catch { /* 容量超過時は諦める */ }
+}
 
 // ── 休憩タイマーの既定秒数 ──
 export function loadRestSec(): number {

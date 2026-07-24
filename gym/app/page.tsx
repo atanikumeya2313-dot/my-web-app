@@ -17,6 +17,7 @@ import SessionForm from './components/SessionForm';
 import MenuAI from './components/MenuAI';
 import ProfileForm from './components/ProfileForm';
 import ExerciseChart from './components/ExerciseChart';
+import ExerciseHowto from './components/ExerciseHowto';
 
 function ymOf(d: string) { return d.slice(0, 7); }
 function mdLabel(d: string) {
@@ -47,6 +48,7 @@ export default function Home() {
   const [savedDraft, setSavedDraft] = useState<SessionDraft | null>(null);
   const [prs, setPrs] = useState<Best[]>([]);
   const [chartEx, setChartEx] = useState<{ id: string; name: string } | null>(null);
+  const [howtoFor, setHowtoFor] = useState<{ name: string; part?: string } | null>(null);
   const [showAI,      setShowAI]      = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const [showCloud,   setShowCloud]   = useState(false);
@@ -349,6 +351,8 @@ export default function Home() {
                   <span className="shrink-0">{PART_ICON[it.part as Part] ?? '🏋️'}</span>
                   <span className="text-gray-700 truncate flex-1">{it.name}</span>
                   <span className="text-gray-400 shrink-0">{it.sets ? `${it.sets}×` : ''}{it.reps}</span>
+                  <button onClick={() => setHowtoFor({ name: it.name, part: it.part })} title="やり方を見る"
+                    className="shrink-0 w-6 h-6 rounded-full bg-gray-100 text-gray-400 text-[11px] flex items-center justify-center">ⓘ</button>
                 </div>
               ))}
             </div>
@@ -509,6 +513,9 @@ export default function Home() {
       )}
       {chartEx && (
         <ExerciseChart exerciseId={chartEx.id} name={chartEx.name} sessions={sessions} onClose={() => setChartEx(null)} />
+      )}
+      {howtoFor && (
+        <ExerciseHowto name={howtoFor.name} part={howtoFor.part} onClose={() => setHowtoFor(null)} />
       )}
       {showForm && (
         <SessionForm

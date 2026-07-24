@@ -1,6 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { Session, PART_ICON, Part, estimate1RM } from '../types';
+import ExerciseHowto from './ExerciseHowto';
 
 interface Props {
   exerciseId: string;
@@ -17,6 +18,7 @@ interface Point { date: string; rm: number; weight: number; volume: number; dura
 
 export default function ExerciseChart({ exerciseId, name, sessions, onClose }: Props) {
   const [metric, setMetric] = useState<Metric>('rm');
+  const [showHowto, setShowHowto] = useState(false);
 
   // 古い順に並べて、直近12回ぶんを見る
   const points: Point[] = sessions
@@ -55,7 +57,11 @@ export default function ExerciseChart({ exerciseId, name, sessions, onClose }: P
           <h2 className="font-bold text-gray-800 min-w-0 truncate">
             {part ? `${PART_ICON[part as Part] ?? '🏋️'} ` : ''}{name}
           </h2>
-          <button onClick={onClose} className="text-gray-400 text-xl w-8 h-8 flex items-center justify-center shrink-0">✕</button>
+          <div className="flex items-center gap-1 shrink-0">
+            <button onClick={() => setShowHowto(true)}
+              className="text-[11px] px-2.5 py-1 rounded-full bg-gray-100 text-gray-500 font-medium">ⓘ やり方</button>
+            <button onClick={onClose} className="text-gray-400 text-xl w-8 h-8 flex items-center justify-center">✕</button>
+          </div>
         </div>
 
         <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3">
@@ -132,6 +138,10 @@ export default function ExerciseChart({ exerciseId, name, sessions, onClose }: P
           )}
         </div>
       </div>
+
+      {showHowto && (
+        <ExerciseHowto name={name} part={part} onClose={() => setShowHowto(false)} />
+      )}
     </div>
   );
 }
