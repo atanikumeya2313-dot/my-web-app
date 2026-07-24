@@ -1,13 +1,13 @@
 'use client';
-import { useState } from 'react';
-import { Session, Entry, Exercise, Template, PART_ICON, StrengthSet } from '../types';
-import { todayYMD } from '../lib/storage';
+import { useEffect, useState } from 'react';
+import { Session, SessionDraft, Entry, Exercise, Template, PART_ICON, StrengthSet } from '../types';
+import { todayYMD, saveDraft, clearDraft, loadRestSec, saveRestSec } from '../lib/storage';
 import ExercisePicker from './ExercisePicker';
+import RestTimer, { primeAudio } from './RestTimer';
 
 interface Props {
   editing?: Session;
-  initialEntries?: Entry[];        // AIメニューから始めるとき
-  planDay?: number;                // 分割メニューの何日目から始めたか
+  initial?: SessionDraft;          // AIメニューから始めるとき／下書きの再開
   exercises: Exercise[];
   sessions: Session[];             // 前回の記録を出すため
   templates: Template[];
@@ -17,6 +17,8 @@ interface Props {
   onSaveTemplate: (t: Template) => void;
   onClose: () => void;
 }
+
+const REST_PRESETS = [60, 90, 120, 180];
 
 // その種目の直近の記録（今編集中のセッションは除く）
 function lastRecord(sessions: Session[], exerciseId: string, excludeId?: string): Entry | undefined {
@@ -33,13 +35,38 @@ function entryVolume(e: Entry): number {
 }
 
 export default function SessionForm({
-  editing, initialEntries, planDay, exercises, sessions, templates,
+  editing, initial, exercises, sessions, templates,
   onSave, onDelete, onAddExercise, onSaveTemplate, onClose,
 }: Props) {
-  const [date, setDate] = useState(editing?.date ?? todayYMD());
-  const [entries, setEntries] = useState<Entry[]>(editing?.entries ?? initialEntries ?? []);
-  const [memo, setMemo] = useState(editing?.memo ?? '');
+  const [date, setDate] = useState(editing?.date ?? initial?.date ?? todayYMD());
+  const [entries, setEntries] = useState<Entry[]>(editing?.entries ?? initial?.entries ?? []);
+  const [memo, setMemo] = useState(editing?.memo ?? initial?.memo ?? '');
+  const [planDay] = useState<number | undefined>(editing?.planDay ?? initial?.planDay);
   const [picking, setPicking] = useState(false);
+
+  // 休憩タイマー
+  const [restSec, setRestSec] = useState(90);
+  const [restEndAt, setRestEndAt] = useState<number | null>(null);
+  const [restTotal, setRestTotal] = useState(90);
+  const [showRestSetting, setShowRestSetting] = useState(false);
+
+  /* eslint-disable react-hooks/set-state-in-effect */
+  useEffect(() => { setRestSec(loadRestSec()); }, []);
+  /* eslint-enable react-hooks/set-state-in-effect */
+
+  // 入力途中で閉じても消えないよう、変更のたびに下書きを保存する（新規記録のときだけ）
+  useEffect(() => {
+    if (editing) return;
+    if (entries.length === 0 && !memo.trim()) { clearDraft(); return; }
+    saveDraft({ date, entries, memo: memo.trim() || undefined, planDay });
+  }, [editing, date, entries, memo, planDay]);
+
+  function startRest(sec: number) {
+    primeAudio();                       // タップの瞬間に音を出せる状態にしておく
+    setRestTotal(sec);
+    // eslint-disable-next-line react-hooks/purity -- タップ時のみ呼ばれるハンドラ（レンダー中ではない）
+    setRestEndAt(Date.now() + sec * 1000);
+  }
 
   function addExerciseToSession(ex: Exercise) {
     const prev = lastRecord(sessions, ex.id, editing?.id);
@@ -114,7 +141,7 @@ export default function SessionForm({
       entries,
       memo: memo.trim() || undefined,
       createdAt: editing?.createdAt ?? new Date().toISOString(),
-      planDay: editing?.planDay ?? planDay,
+      planDay,
     });
   }
 
@@ -125,9 +152,30 @@ export default function SessionForm({
       <div className="absolute inset-0 bg-black/30" onClick={onClose} />
       <div className="relative bg-white rounded-t-2xl shadow-xl max-h-[92vh] flex flex-col">
         <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
-          <h2 className="font-bold text-gray-800">{editing ? '記録を編集' : '今日のトレーニング'}</h2>
-          <button onClick={onClose} className="text-gray-400 text-xl w-8 h-8 flex items-center justify-center">✕</button>
+          <h2 className="font-bold text-gray-800">
+            {editing ? '記録を編集' : '今日のトレーニング'}
+            {planDay !== undefined && <span className="text-xs font-medium text-gray-400 ml-1.5">Day{planDay + 1}</span>}
+          </h2>
+          <div className="flex items-center gap-1">
+            <button onClick={() => setShowRestSetting(v => !v)}
+              className="text-[11px] px-2.5 py-1 rounded-full bg-rose-50 text-rose-500 font-medium">⏱{restSec}秒</button>
+            <button onClick={onClose} className="text-gray-400 text-xl w-8 h-8 flex items-center justify-center">✕</button>
+          </div>
         </div>
+
+        {showRestSetting && (
+          <div className="px-4 py-2.5 bg-rose-50/60 border-b border-rose-100">
+            <p className="text-[11px] text-gray-500 mb-1.5">休憩の長さ（セット横の⏱で開始）</p>
+            <div className="flex gap-1.5">
+              {REST_PRESETS.map(s => (
+                <button key={s} onClick={() => { setRestSec(s); saveRestSec(s); setShowRestSetting(false); }}
+                  className={`text-xs px-3 py-1.5 rounded-full font-medium ${restSec === s ? 'bg-rose-500 text-white' : 'bg-white text-gray-500'}`}>
+                  {s < 60 ? `${s}秒` : `${s / 60}分`}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3">
           <div className="flex items-center gap-2">
@@ -170,14 +218,18 @@ export default function SessionForm({
                           <span className="text-[11px] text-gray-400 w-8 shrink-0">{si + 1}set</span>
                           <input type="number" inputMode="decimal" step="2.5" value={s.weight || ''}
                             onChange={ev => updateSet(i, si, { weight: Number(ev.target.value) || 0 })}
-                            className="w-20 px-2 py-1.5 text-sm text-right border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-rose-300" />
+                            className="w-16 px-2 py-1.5 text-sm text-right border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-rose-300" />
                           <span className="text-xs text-gray-400">kg ×</span>
                           <input type="number" inputMode="numeric" value={s.reps || ''}
                             onChange={ev => updateSet(i, si, { reps: Number(ev.target.value) || 0 })}
-                            className="w-16 px-2 py-1.5 text-sm text-right border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-rose-300" />
+                            className="w-14 px-2 py-1.5 text-sm text-right border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-rose-300" />
                           <span className="text-xs text-gray-400">回</span>
+                          <button onClick={() => startRest(restSec)} title="休憩タイマーを開始"
+                            className="ml-auto shrink-0 w-8 h-8 rounded-full bg-white text-rose-500 text-sm flex items-center justify-center active:scale-90 transition-transform">
+                            ⏱
+                          </button>
                           {(e.sets ?? []).length > 1 && (
-                            <button onClick={() => removeSet(i, si)} className="ml-auto text-gray-300 text-xs w-6 h-6 flex items-center justify-center">✕</button>
+                            <button onClick={() => removeSet(i, si)} className="shrink-0 text-gray-300 text-xs w-5 h-5 flex items-center justify-center">✕</button>
                           )}
                         </div>
                       ))}
@@ -231,7 +283,17 @@ export default function SessionForm({
               <button onClick={saveAsTemplate} className="text-rose-500 font-medium">この構成をテンプレに保存</button>
             </div>
           )}
+
+          {!editing && entries.length > 0 && (
+            <p className="text-[11px] text-gray-400 text-center">入力は自動で保存されます。閉じても続きから再開できます。</p>
+          )}
         </div>
+
+        {restEndAt !== null && (
+          <RestTimer endAt={restEndAt} total={restTotal}
+            onExtend={sec => setRestEndAt(at => (at ?? Date.now()) + sec * 1000)}
+            onStop={() => setRestEndAt(null)} />
+        )}
 
         <div className="px-4 py-3 border-t border-gray-100 flex gap-2">
           {onDelete && (

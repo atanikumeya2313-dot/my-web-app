@@ -40,6 +40,9 @@ export interface Session {
   planDay?: number;  // 分割メニューの何日目をやったか（ローテーション判定用）
 }
 
+// 入力途中の記録（ジムでは少しずつ入力するので、閉じても消えないように保持する）
+export interface SessionDraft { date: string; entries: Entry[]; memo?: string; planDay?: number }
+
 // 体格・条件のプロフィール（AIメニューの前提になる）
 export interface Profile {
   height?: number;        // cm

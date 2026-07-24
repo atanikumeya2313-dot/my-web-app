@@ -1,13 +1,14 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import {
-  Session, Entry, Exercise, WeightLog, Template, Profile, Plan, MenuItem,
-  Part, PARTS, PART_ICON, estimate1RM, calcAge, calcBMI, bmiLabel,
+  Session, SessionDraft, Entry, Exercise, WeightLog, Template, Profile, Plan, MenuItem,
+  Part, PARTS, PART_ICON, calcAge, calcBMI, bmiLabel,
 } from './types';
 import {
   loadSessions, saveSessions, loadExercises, saveExercises,
   loadWeights, saveWeights, loadTemplates, saveTemplates,
   loadProfile, saveProfile, loadPlan, savePlan, nextPlanDay,
+  loadDraft, clearDraft, bestByExercise, findPRs, Best,
   todayYMD, calcStreak, monthCount, exportData, importData, hasData,
 } from './lib/storage';
 import { useAutoSync } from './lib/autoSync';
@@ -15,6 +16,7 @@ import CloudSync from './components/CloudSync';
 import SessionForm from './components/SessionForm';
 import MenuAI from './components/MenuAI';
 import ProfileForm from './components/ProfileForm';
+import ExerciseChart from './components/ExerciseChart';
 
 function ymOf(d: string) { return d.slice(0, 7); }
 function mdLabel(d: string) {
@@ -41,8 +43,10 @@ export default function Home() {
 
   const [showForm, setShowForm] = useState(false);
   const [editing,  setEditing]  = useState<Session | undefined>();
-  const [draft,    setDraft]    = useState<Entry[] | undefined>();
-  const [draftDay, setDraftDay] = useState<number | undefined>();
+  const [formInit, setFormInit] = useState<SessionDraft | undefined>();
+  const [savedDraft, setSavedDraft] = useState<SessionDraft | null>(null);
+  const [prs, setPrs] = useState<Best[]>([]);
+  const [chartEx, setChartEx] = useState<{ id: string; name: string } | null>(null);
   const [showAI,      setShowAI]      = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const [showCloud,   setShowCloud]   = useState(false);
@@ -59,6 +63,7 @@ export default function Home() {
     setTemplates(loadTemplates());
     setProfile(loadProfile());
     setPlan(loadPlan());
+    setSavedDraft(loadDraft());
   }, []);
   /* eslint-enable react-hooks/set-state-in-effect */
 
@@ -82,15 +87,26 @@ export default function Home() {
     setTemplates(next); saveTemplates(next);
   }
 
+  function closeForm() {
+    setShowForm(false); setEditing(undefined); setFormInit(undefined);
+    setSavedDraft(loadDraft());
+  }
+
   function handleSave(s: Session) {
     const exists = sessions.some(x => x.id === s.id);
+    setPrs(findPRs(s, sessions));   // 保存前の記録と比べて自己ベスト更新を判定
     persistSessions(exists ? sessions.map(x => x.id === s.id ? s : x) : [s, ...sessions]);
-    setShowForm(false); setEditing(undefined); setDraft(undefined); setDraftDay(undefined);
+    clearDraft(); setSavedDraft(null);
+    setShowForm(false); setEditing(undefined); setFormInit(undefined);
     setDayTab(null);   // 次に開いたとき、次のDayが選ばれるように
   }
   function handleDelete(id: string) {
     persistSessions(sessions.filter(s => s.id !== id));
-    setShowForm(false); setEditing(undefined); setDraft(undefined); setDraftDay(undefined);
+    setShowForm(false); setEditing(undefined); setFormInit(undefined);
+  }
+  function discardDraft() {
+    if (!confirm('作りかけの記録を破棄しますか？')) return;
+    clearDraft(); setSavedDraft(null);
   }
 
   // AIメニューの種目 → 記録フォームの下書き（種目マスターに無ければ追加）
@@ -121,9 +137,9 @@ export default function Home() {
 
   function startFromPlanDay(dayIndex: number) {
     if (!plan?.days[dayIndex]) return;
+    if (savedDraft && !confirm('作りかけの記録があります。破棄してこのメニューで始めますか？')) return;
     setEditing(undefined);
-    setDraft(entriesFromItems(plan.days[dayIndex].items));
-    setDraftDay(dayIndex);
+    setFormInit({ date: todayYMD(), entries: entriesFromItems(plan.days[dayIndex].items), planDay: dayIndex });
     setShowForm(true);
   }
 
@@ -185,16 +201,7 @@ export default function Home() {
   const partMax = Math.max(...partRows.map(r => r[1]), 1);
 
   // 自己ベスト（推定1RM）
-  const bestMap = new Map<string, { name: string; rm: number; weight: number; reps: number }>();
-  sessions.forEach(s => s.entries.forEach(e => {
-    (e.sets ?? []).forEach(st => {
-      const rm = estimate1RM(st.weight, st.reps);
-      if (rm <= 0) return;
-      const cur = bestMap.get(e.exerciseId);
-      if (!cur || rm > cur.rm) bestMap.set(e.exerciseId, { name: e.name, rm, weight: st.weight, reps: st.reps });
-    });
-  }));
-  const bests = [...bestMap.values()].sort((a, b) => b.rm - a.rm);
+  const bests = [...bestByExercise(sessions).values()].sort((a, b) => b.rm - a.rm);
 
   const latestW = weights[weights.length - 1];
   const prevW   = weights[weights.length - 2];
@@ -221,6 +228,47 @@ export default function Home() {
       </header>
 
       <main className="max-w-lg mx-auto px-4 py-4 space-y-4">
+        {/* 自己ベスト更新 */}
+        {prs.length > 0 && (
+          <section className="bg-amber-50 border border-amber-200 rounded-xl p-3">
+            <div className="flex items-start gap-2">
+              <span className="text-lg shrink-0">🏅</span>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-bold text-amber-700">自己ベスト更新！</p>
+                <div className="mt-1 space-y-0.5">
+                  {prs.map(p => (
+                    <p key={p.exerciseId} className="text-xs text-amber-700/80">
+                      {p.name}　{p.weight}kg×{p.reps} → 推定1RM <b>{p.rm}kg</b>
+                    </p>
+                  ))}
+                </div>
+              </div>
+              <button onClick={() => setPrs([])} className="text-amber-400 text-sm w-6 h-6 flex items-center justify-center shrink-0">✕</button>
+            </div>
+          </section>
+        )}
+
+        {/* 作りかけの記録 */}
+        {savedDraft && !showForm && (
+          <section className="bg-white border border-rose-200 rounded-xl p-3">
+            <div className="flex items-center gap-2">
+              <span className="text-lg shrink-0">📝</span>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-bold text-gray-700">作りかけの記録があります</p>
+                <p className="text-[11px] text-gray-400 truncate">
+                  {savedDraft.date.slice(5).replace('-', '/')}　{savedDraft.entries.length}種目
+                  {savedDraft.entries.length > 0 && `（${savedDraft.entries.map(e => e.name).join('・')}）`}
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-2 mt-2">
+              <button onClick={() => { setEditing(undefined); setFormInit(savedDraft); setShowForm(true); }}
+                className="flex-1 py-2 rounded-xl bg-rose-500 text-white text-xs font-bold">続きから記録する</button>
+              <button onClick={discardDraft} className="px-4 py-2 rounded-xl border border-gray-200 text-gray-500 text-xs font-bold">破棄</button>
+            </div>
+          </section>
+        )}
+
         {/* サマリー */}
         <section className="bg-gradient-to-br from-rose-500 to-orange-500 rounded-2xl shadow-sm p-4 text-white">
           <div className="flex items-end justify-around text-center">
@@ -385,14 +433,16 @@ export default function Home() {
             </button>
             <div className="mt-2.5 space-y-1.5">
               {(showBest ? bests : bests.slice(0, 3)).map(b => (
-                <div key={b.name} className="flex items-center justify-between text-xs">
-                  <span className="text-gray-600 truncate">{b.name}</span>
+                <button key={b.exerciseId} onClick={() => setChartEx({ id: b.exerciseId, name: b.name })}
+                  className="w-full flex items-center justify-between text-xs active:opacity-60">
+                  <span className="text-gray-600 truncate">📈 {b.name}</span>
                   <span className="text-gray-400 shrink-0 ml-2">
                     {b.weight}kg×{b.reps} → <b className="text-gray-700">{b.rm}kg</b>
                   </span>
-                </div>
+                </button>
               ))}
             </div>
+            <p className="text-[10px] text-gray-400 mt-2">種目をタップすると、重量の推移が見られます</p>
           </section>
         )}
 
@@ -411,7 +461,7 @@ export default function Home() {
                 const vol = sessionVolume(s);
                 const cardio = s.entries.filter(e => e.kind === 'cardio');
                 return (
-                  <button key={s.id} onClick={() => { setEditing(s); setDraft(undefined); setShowForm(true); }}
+                  <button key={s.id} onClick={() => { setEditing(s); setFormInit(undefined); setShowForm(true); }}
                     className="w-full text-left bg-white rounded-xl shadow-sm p-3">
                     <div className="flex items-center gap-2">
                       <p className="text-sm font-semibold text-gray-800 shrink-0">{mdLabel(s.date)}</p>
@@ -441,7 +491,7 @@ export default function Home() {
         </section>
       </main>
 
-      <button onClick={() => { setEditing(undefined); setDraft(undefined); setShowForm(true); }} aria-label="トレーニングを記録"
+      <button onClick={() => { setEditing(undefined); setFormInit(savedDraft ?? undefined); setShowForm(true); }} aria-label="トレーニングを記録"
         className="fixed bottom-6 right-4 w-14 h-14 bg-rose-500 text-white rounded-full text-2xl shadow-lg active:scale-90 transition-transform flex items-center justify-center z-40">
         ＋
       </button>
@@ -457,15 +507,18 @@ export default function Home() {
         <ProfileForm profile={profile} currentWeight={currentWeight}
           onSave={handleSaveProfile} onClose={() => setShowProfile(false)} />
       )}
+      {chartEx && (
+        <ExerciseChart exerciseId={chartEx.id} name={chartEx.name} sessions={sessions} onClose={() => setChartEx(null)} />
+      )}
       {showForm && (
         <SessionForm
-          editing={editing} initialEntries={draft} planDay={draftDay}
+          editing={editing} initial={formInit}
           exercises={exercises} sessions={sessions} templates={templates}
           onSave={handleSave}
           onDelete={editing ? () => handleDelete(editing.id) : undefined}
           onAddExercise={addExercise}
           onSaveTemplate={addTemplate}
-          onClose={() => { setShowForm(false); setEditing(undefined); setDraft(undefined); setDraftDay(undefined); }}
+          onClose={closeForm}
         />
       )}
     </div>
