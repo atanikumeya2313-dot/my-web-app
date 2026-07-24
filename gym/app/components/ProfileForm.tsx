@@ -97,6 +97,14 @@ export default function ProfileForm({ profile, currentWeight, onSave, onClose }:
           <Chips label="通う頻度（分割数になります）" options={FREQS}  value={p.freq}  onChange={v => set({ freq: v })} />
           <Chips label="トレーニング歴" options={LEVELS} value={p.level} onChange={v => set({ level: v })} />
           <Chips label="使える器具"     options={EQUIPS} value={p.equip} onChange={v => set({ equip: v })} />
+
+          <div>
+            <label className="text-xs font-medium text-gray-600 mb-1 block">ジムにある設備・マシン（任意）</label>
+            <textarea value={p.equipNote ?? ''} onChange={e => set({ equipNote: e.target.value || undefined })} rows={3}
+              placeholder="例: スミスマシン、ダンベル最大30kg、ケーブルマシン、ラットプル、レッグプレスは無し、有酸素はバイクのみ"
+              className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-rose-300" />
+            <p className="text-[10px] text-gray-400 mt-1">書いておくと、AIメニューが<b>ここにある器具だけ</b>で組まれます（無いマシンの種目が出なくなります）。</p>
+          </div>
         </div>
 
         <div className="px-4 py-3 border-t border-gray-100">

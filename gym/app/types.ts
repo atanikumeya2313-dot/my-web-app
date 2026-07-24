@@ -63,6 +63,7 @@ export interface Profile {
   freq?: string;
   level?: string;
   equip?: string;
+  equipNote?: string;   // ジムにある設備・マシンの自由メモ（AIメニューをこの範囲に限定する）
 }
 
 // AIが返す1種目

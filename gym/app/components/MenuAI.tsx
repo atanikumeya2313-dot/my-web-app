@@ -39,6 +39,7 @@ export default function MenuAI({ profile, currentWeight, onSavePlan, onEditProfi
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               goal: profile.goal, freq: profile.freq, level: profile.level, equip: profile.equip,
+              equipNote: profile.equipNote,
               part: part === 'おまかせ' ? '' : part,
               age, gender: profile.gender, height: profile.height,
               weight: currentWeight, targetWeight: profile.targetWeight, bmi,
@@ -103,6 +104,15 @@ export default function MenuAI({ profile, currentWeight, onSavePlan, onEditProfi
               </p>
             ) : (
               <p className="text-[11px] text-gray-400">未登録です。プロフィールを登録すると、体格や目的に合わせた内容になります。</p>
+            )}
+            {profile.equipNote?.trim() ? (
+              <p className="text-[11px] text-green-600 mt-1">✓ ジムの設備メモに合わせて作ります</p>
+            ) : (
+              <p className="text-[11px] text-gray-400 mt-1">
+                ジムに無いマシンが出るときは、
+                <button onClick={onEditProfile} className="text-rose-500 font-medium underline">設備メモ</button>
+                を書くとその範囲だけで作れます。
+              </p>
             )}
           </div>
 
