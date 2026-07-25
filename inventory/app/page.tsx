@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
-import { StockItem, HistoryEntry, SortKey, getCategoryIcon, DEFAULT_CATEGORIES } from './types';
+import { StockItem, HistoryEntry, SortKey, getCategoryIcon, DEFAULT_CATEGORIES, isFoodCategory } from './types';
 import {
   loadItems, addItem, updateItem, deleteItem, replaceItems,
   loadHistory, addHistoryEntry, clearHistory,
@@ -123,6 +123,12 @@ export default function Home() {
     const newQty = Math.max(0, roundQty(item.quantity + delta));
     const actualDelta = roundQty(newQty - item.quantity);
     if (actualDelta === 0) return;
+    // 食材（非食品カテゴリ以外）を使い切ったら在庫から削除する。日用品・薬は0でも要補充として残す。
+    if (newQty === 0 && isFoodCategory(item.category)) {
+      recordHistory(item, actualDelta, 0);
+      setItems(deleteItem(item.id));
+      return;
+    }
     setItems(updateItem({ ...item, quantity: newQty }));
     recordHistory(item, actualDelta, newQty);
   };

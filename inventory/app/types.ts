@@ -2,6 +2,13 @@ export type Category = string;
 
 export const DEFAULT_CATEGORIES: Category[] = ['食品・飲料', '日用品・消耗品', '薬・医療品', 'その他'];
 
+// 食材とみなさないカテゴリ（0になっても在庫に残す＝要補充リスト用）。
+// これ以外（食品・飲料／その他／自作カテゴリ）は食材扱いで、0になったら在庫から削除する。
+export const NON_FOOD_CATEGORIES: Category[] = ['日用品・消耗品', '薬・医療品'];
+export function isFoodCategory(category: string): boolean {
+  return !NON_FOOD_CATEGORIES.includes(category);
+}
+
 export const CATEGORY_ICONS: Record<string, string> = {
   '食品・飲料': '🥫',
   '日用品・消耗品': '🧴',

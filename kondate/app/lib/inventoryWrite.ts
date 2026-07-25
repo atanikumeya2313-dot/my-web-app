@@ -70,14 +70,20 @@ export function inStock(names: string[]): string[] {
 
 const roundQty = (n: number) => Math.round(n * 100) / 100;
 
+// 食材とみなさないカテゴリ（0でも在庫に残す）。inventory アプリの isFoodCategory と揃える。
+const NON_FOOD_CATEGORIES = ['日用品・消耗品', '薬・医療品'];
+const isFood = (category?: string) => !NON_FOOD_CATEGORIES.includes(String(category ?? ''));
+
 // 指定した食材の在庫を、指定量ずつ減らして履歴を残す。実際に減らせた名前を返す。
 // 後方互換：文字列配列（名前のみ）を渡した場合は各1つ減らす。
+// 食材を使い切って0になったら在庫から削除する（日用品・薬は0でも残す）。
 export function decrementInventory(picks: { name: string; amount: number }[] | string[]): string[] {
   const list: { name: string; amount: number }[] = picks.map(p =>
     typeof p === 'string' ? { name: p, amount: 1 } : p);
-  const items = loadItems();
+  let items = loadItems();
   const history = loadHistory();
   const done: string[] = [];
+  const removeIds = new Set<string>();
   const now = new Date().toISOString();
   for (const { name, amount } of list) {
     if (!(amount > 0)) continue;
@@ -87,9 +93,13 @@ export function decrementInventory(picks: { name: string; amount: number }[] | s
     const delta = roundQty(after - it.quantity);
     it.quantity = after;
     history.unshift({ id: crypto.randomUUID(), itemId: it.id, itemName: it.name, delta, quantityAfter: after, date: now });
+    if (after === 0 && isFood(it.category)) removeIds.add(it.id);
     done.push(it.name);
   }
-  if (done.length) { saveItems(items); saveHistory(history); }
+  if (done.length) {
+    if (removeIds.size) items = items.filter(i => !removeIds.has(i.id));
+    saveItems(items); saveHistory(history);
+  }
   return done;
 }
 
