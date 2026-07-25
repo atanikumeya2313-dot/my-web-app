@@ -14,6 +14,7 @@ import ItemForm from './components/ItemForm';
 import AiAddModal, { ParsedItem } from './components/AiAddModal';
 import CloudSync from './components/CloudSync';
 import { useAutoSync } from './lib/autoSync';
+import { roundQty, formatQty } from './lib/qty';
 
 type Tab = 'inventory' | 'shopping' | 'history';
 
@@ -119,8 +120,8 @@ export default function Home() {
   const handleQuantityChange = (id: string, delta: number) => {
     const item = items.find(i => i.id === id);
     if (!item) return;
-    const newQty = Math.max(0, item.quantity + delta);
-    const actualDelta = newQty - item.quantity;
+    const newQty = Math.max(0, roundQty(item.quantity + delta));
+    const actualDelta = roundQty(newQty - item.quantity);
     if (actualDelta === 0) return;
     setItems(updateItem({ ...item, quantity: newQty }));
     recordHistory(item, actualDelta, newQty);
@@ -241,7 +242,7 @@ export default function Home() {
 
   const handleCopyShoppingList = () => {
     const text = shoppingItems
-      .map(i => `・${i.name}（残${i.quantity}${i.unit}、最低${i.minQuantity}${i.unit}）`)
+      .map(i => `・${i.name}（残${formatQty(i.quantity)}${i.unit}、最低${formatQty(i.minQuantity)}${i.unit}）`)
       .join('\n');
     navigator.clipboard.writeText(text).then(() => alert('コピーしました'));
   };
@@ -388,10 +389,10 @@ export default function Home() {
                         </button>
                         <div className="text-right shrink-0 mr-1">
                           <p className={`text-sm font-bold ${item.quantity === 0 ? 'text-red-500' : 'text-orange-500'}`}>
-                            {item.quantity}
+                            {formatQty(item.quantity)}
                             <span className="text-xs font-normal text-gray-400 ml-0.5">{item.unit}</span>
                           </p>
-                          <p className="text-[10px] text-gray-400">最低 {item.minQuantity}{item.unit}</p>
+                          <p className="text-[10px] text-gray-400">最低 {formatQty(item.minQuantity)}{item.unit}</p>
                         </div>
                         <div className="flex flex-col gap-1 shrink-0">
                           <button onClick={() => handleQuantityChange(item.id, 1)}
@@ -467,9 +468,9 @@ export default function Home() {
                   </div>
                   <div className="text-right shrink-0">
                     <p className={`text-sm font-bold ${h.delta > 0 ? 'text-green-600' : 'text-red-500'}`}>
-                      {h.delta > 0 ? `+${h.delta}` : h.delta}
+                      {h.delta > 0 ? `+${formatQty(h.delta)}` : `-${formatQty(Math.abs(h.delta))}`}
                     </p>
-                    <p className="text-[10px] text-gray-400">→ {h.quantityAfter}</p>
+                    <p className="text-[10px] text-gray-400">→ {formatQty(h.quantityAfter)}</p>
                   </div>
                 </div>
               ))}

@@ -68,17 +68,25 @@ export function inStock(names: string[]): string[] {
   return names.filter(n => items.some(it => norm(it.name) === norm(n) && it.quantity > 0));
 }
 
-// 指定した食材の在庫を1つずつ減らし、履歴を残す。実際に減らせた名前を返す。
-export function decrementInventory(names: string[]): string[] {
+const roundQty = (n: number) => Math.round(n * 100) / 100;
+
+// 指定した食材の在庫を、指定量ずつ減らして履歴を残す。実際に減らせた名前を返す。
+// 後方互換：文字列配列（名前のみ）を渡した場合は各1つ減らす。
+export function decrementInventory(picks: { name: string; amount: number }[] | string[]): string[] {
+  const list: { name: string; amount: number }[] = picks.map(p =>
+    typeof p === 'string' ? { name: p, amount: 1 } : p);
   const items = loadItems();
   const history = loadHistory();
   const done: string[] = [];
   const now = new Date().toISOString();
-  for (const name of names) {
+  for (const { name, amount } of list) {
+    if (!(amount > 0)) continue;
     const it = items.find(i => norm(i.name) === norm(name) && i.quantity > 0);
     if (!it) continue;
-    it.quantity = Math.max(0, it.quantity - 1);
-    history.unshift({ id: crypto.randomUUID(), itemId: it.id, itemName: it.name, delta: -1, quantityAfter: it.quantity, date: now });
+    const after = Math.max(0, roundQty(it.quantity - amount));
+    const delta = roundQty(after - it.quantity);
+    it.quantity = after;
+    history.unshift({ id: crypto.randomUUID(), itemId: it.id, itemName: it.name, delta, quantityAfter: after, date: now });
     done.push(it.name);
   }
   if (done.length) { saveItems(items); saveHistory(history); }

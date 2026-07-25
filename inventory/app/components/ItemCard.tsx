@@ -1,6 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { StockItem, getCategoryIcon } from '../types';
+import { formatQty } from '../lib/qty';
 
 interface Props {
   item: StockItem;
@@ -73,7 +74,7 @@ export default function ItemCard({ item, daysRemaining, onEdit, onQuantityChange
           <button onClick={() => setBulkOpen(v => !v)}
             className={`text-sm font-bold text-center ${isOut ? 'text-red-500' : isLow ? 'text-orange-500' : 'text-gray-800'}`}
             style={{ minWidth: '2.5rem' }}>
-            {item.quantity}
+            {formatQty(item.quantity)}
             <span className="text-[10px] font-normal text-gray-400 ml-0.5">{item.unit}</span>
           </button>
           <button onClick={() => onQuantityChange(1)}
@@ -119,8 +120,8 @@ export default function ItemCard({ item, daysRemaining, onEdit, onQuantityChange
             />
           </div>
           <span className="text-[10px] text-gray-300 shrink-0">
-            最低{item.minQuantity}{item.unit}
-            {item.targetQuantity ? `／目標${item.targetQuantity}${item.unit}` : ''}
+            最低{formatQty(item.minQuantity)}{item.unit}
+            {item.targetQuantity ? `／目標${formatQty(item.targetQuantity)}${item.unit}` : ''}
           </span>
         </div>
       )}

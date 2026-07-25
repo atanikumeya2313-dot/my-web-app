@@ -1,6 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { StockItem, DEFAULT_CATEGORIES, getCategoryIcon, UNITS } from '../types';
+import { formatQty, fracOf, roundQty, FRAC_OPTIONS } from '../lib/qty';
 
 interface Props {
   editing?: StockItem;
@@ -142,19 +143,33 @@ export default function ItemForm({
             </div>
           </div>
 
-          {/* Quantity */}
+          {/* Quantity（整数±と、端数の分数ボタンで「2¾」のように入力できる） */}
           <div>
             <label className="text-xs font-medium text-gray-600 mb-1 block">現在の在庫数</label>
             <div className="flex items-center gap-3">
-              <button onClick={() => setQuantity(Math.max(0, quantity - 1))}
+              <button onClick={() => setQuantity(Math.max(0, roundQty(quantity - 1)))}
                 className="w-9 h-9 rounded-full bg-gray-100 text-gray-600 font-bold text-lg flex items-center justify-center">−</button>
-              <input type="number" value={quantity} min={0}
-                onChange={e => setQuantity(Math.max(0, parseInt(e.target.value) || 0))}
-                className="flex-1 text-center text-lg font-bold border border-gray-200 rounded-xl py-2 focus:outline-none focus:ring-2 focus:ring-blue-300" />
-              <button onClick={() => setQuantity(quantity + 1)}
+              <div className="flex-1 text-center text-lg font-bold border border-gray-200 rounded-xl py-2 select-none">
+                {formatQty(quantity)}
+              </div>
+              <button onClick={() => setQuantity(roundQty(quantity + 1))}
                 className="w-9 h-9 rounded-full bg-blue-100 text-blue-600 font-bold text-lg flex items-center justify-center">＋</button>
               <span className="text-sm text-gray-400 w-8">{unit}</span>
             </div>
+            <div className="flex gap-1.5 mt-2">
+              {FRAC_OPTIONS.map(({ value, label }) => {
+                const active = Math.abs(fracOf(quantity) - value) < 0.04;
+                return (
+                  <button key={label} onClick={() => setQuantity(roundQty(Math.floor(quantity + 1e-9) + value))}
+                    className={`flex-1 text-xs py-1.5 rounded-lg border transition-colors ${
+                      active ? 'bg-blue-500 text-white border-blue-500' : 'bg-gray-50 text-gray-500 border-gray-200'
+                    }`}>
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
+            <p className="text-[11px] text-gray-400 mt-1">端数は上のボタンで（例: ＋で「2」→ ¾ を押すと「2¾」）</p>
           </div>
 
           {/* Min Quantity */}

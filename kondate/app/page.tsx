@@ -11,8 +11,9 @@ import { cloudPull, CODE_KEY } from './lib/cloud';
 import MealCard from './components/MealCard';
 import PhotoModal from './components/PhotoModal';
 import CloudSync from './components/CloudSync';
-import CookedModal from './components/CookedModal';
+import CookedModal, { CookedPick } from './components/CookedModal';
 import { useAutoSync } from './lib/autoSync';
+import { formatQty } from './lib/qty';
 
 type Tab = 'make' | 'saved' | 'history';
 
@@ -182,10 +183,10 @@ export default function Home() {
     else alert(`「${title}」を作った記録をつけました🍳`);
   }
 
-  function confirmCooked(selected: string[]) {
+  function confirmCooked(selected: CookedPick[]) {
     const done = decrementInventory(selected);
     setCookPrompt(null);
-    if (done.length) alert(`在庫を更新しました：${done.join('、')} を1つ減らしました`);
+    if (done.length) alert(`在庫を更新しました：${done.join('、')} を減らしました`);
   }
 
   function addMissingToInv(missing: string[]) {
@@ -279,7 +280,7 @@ export default function Home() {
                         p.soon ? 'bg-red-50 text-red-600 border-red-200' : 'bg-gray-50 text-gray-600 border-gray-200'
                       }`}>
                       {p.soon && <span title="期限が近い">🔥</span>}{p.name}
-                      {p.qty != null && <span className="text-gray-400">{p.qty}{p.unit ?? ''}</span>}
+                      {p.qty != null && <span className="text-gray-400">{formatQty(p.qty)}{p.unit ?? ''}</span>}
                       <button onClick={() => removeIngredient(p.name)} className="text-gray-300 hover:text-red-400 leading-none">✕</button>
                     </span>
                   ))}
