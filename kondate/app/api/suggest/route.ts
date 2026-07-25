@@ -1,5 +1,6 @@
 import { GoogleGenAI } from "@google/genai";
 import { NextRequest } from "next/server";
+import { formatQty } from "../../lib/qty";
 
 export const runtime = "nodejs";
 export const maxDuration = 45;
@@ -23,9 +24,13 @@ const asList = (v: unknown): string[] =>
   Array.isArray(v) ? v.map(x => String(x).trim()).filter(Boolean) : [];
 
 function buildPrompt(b: Body): string {
-  // 手持ち食材（数量が分かるものは数量付きで渡す）
+  // 手持ち食材（数量が分かるものは分数表記付きで渡す。例: 玉ねぎ（¾個））
   const items = (b.ingredients ?? []).map(i =>
-    i.qty != null ? `${i.name}（${i.qty}${i.unit ?? ""}）` : i.name);
+    i.qty != null ? `${i.name}（${formatQty(i.qty)}${i.unit ?? ""}）` : i.name);
+  // 1未満・半端な数量の食材（使い切ると無駄がない）
+  const partial = (b.ingredients ?? [])
+    .filter(i => i.qty != null && i.qty > 0 && Math.abs(i.qty - Math.round(i.qty)) > 0.04)
+    .map(i => `${i.name}（${formatQty(i.qty)}${i.unit ?? ""}）`);
   const soon  = (b.ingredients ?? []).filter(i => i.soon).map(i => i.name);
   const servings = b.servings && b.servings > 0 ? b.servings : 2;
   const cond: string[] = [`${servings}人分`];
@@ -37,17 +42,22 @@ function buildPrompt(b: Body): string {
   const recentLine = (b.recent ?? []).length
     ? `最近作った「${(b.recent ?? []).slice(0, 8).join("、")}」とは違うものを提案してください。`
     : "";
+  const partialLine = partial.length
+    ? `「${partial.join("、")}」は中途半端な量（¼・½・¾など）が残っています。できればこれらを使い切れる分量の献立を優先してください。`
+    : "";
 
   return `あなたは家庭料理の献立アシスタントです。次の手持ち食材で作れる、現実的で作りやすい家庭料理を提案してください。
 手持ち食材: ${items.join("、") || "（指定なし）"}
 条件: ${cond.join(" / ")}
 ${useUpLine}
+${partialLine}
 ${recentLine}
 前提:
 - 塩・こしょう・砂糖・醤油・味噌・みりん・酒・油・だし・にんにく・生姜などの基本調味料は家にある前提にしてよい。
 - 手持ちにない主要な食材だけを missing に入れる（調味料は入れない）。
 - 手持ち食材をなるべく活用し、無理な食材の組み合わせは避ける。
-- 手持ち食材の数量が分かる場合は、その量で無理なく作れる分量にする。
+- 手持ち食材の数量（¼・½・¾などの半端も含む）を尊重し、その量で無理なく作れる分量にする。手持ちより多い量を前提にしない。
+- 材料の分量（amount）は「½個」「大さじ1」「100g」のように具体的に。1未満のときは分数（¼・½・¾）で書く。
 
 出力は次のJSON配列だけを返してください（前後に説明文やコードフェンスは付けない）:
 [{"title":"料理名","description":"どんな料理か一言(40字程度)","cuisine":"和食/洋食/中華/エスニック等","timeMin":30,"servings":${servings},"ingredients":[{"name":"材料名","amount":"分量(例: 2個 / 100g / 大さじ1)"}],"used":["使う手持ち食材",...],"missing":["買い足す食材",...],"steps":["手順1","手順2",...]}]
