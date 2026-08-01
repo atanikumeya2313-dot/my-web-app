@@ -229,7 +229,7 @@ export default function Home() {
       {menuOpen && (
         <div className="fixed inset-0 z-30" onClick={() => setMenuOpen(false)} />
       )}
-      <div className="fixed bottom-6 right-4 flex flex-col items-end gap-2.5 z-40">
+      <div className="fixed bottom-[calc(1.5rem+env(safe-area-inset-bottom))] right-4 flex flex-col items-end gap-2.5 z-40">
         {menuOpen && (
           <>
             <button onClick={() => { setShowGoogle(true); setMenuOpen(false); }}

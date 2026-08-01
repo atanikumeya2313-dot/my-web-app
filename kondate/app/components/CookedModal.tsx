@@ -65,7 +65,7 @@ export default function CookedModal({ title, items, onConfirm, onClose }: Props)
           ))}
         </div>
 
-        <div className="sticky bottom-0 bg-white border-t border-gray-100 px-4 py-3 flex gap-2">
+        <div className="sticky bottom-0 bg-white border-t border-gray-100 px-4 pt-3 pb-[max(env(safe-area-inset-bottom),0.75rem)] flex gap-2">
           <button onClick={onClose}
             className="px-4 py-2.5 rounded-xl border border-gray-200 text-gray-600 text-sm font-medium">
             減らさない

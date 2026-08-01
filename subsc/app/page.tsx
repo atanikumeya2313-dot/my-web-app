@@ -217,7 +217,7 @@ export default function Home() {
       </main>
 
       <button onClick={() => { setEditing(undefined); setShowForm(true); }} aria-label="サブスクを追加"
-        className="fixed bottom-6 right-4 w-14 h-14 bg-violet-600 text-white rounded-full text-2xl shadow-lg active:scale-90 transition-transform flex items-center justify-center z-40">
+        className="fixed bottom-[calc(1.5rem+env(safe-area-inset-bottom))] right-4 w-14 h-14 bg-violet-600 text-white rounded-full text-2xl shadow-lg active:scale-90 transition-transform flex items-center justify-center z-40">
         ＋
       </button>
 

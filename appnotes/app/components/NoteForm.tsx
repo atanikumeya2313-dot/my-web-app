@@ -37,7 +37,7 @@ export default function NoteForm({ editing, onSave, onDelete, onClose }: Props) 
           <button onClick={onClose} className="text-gray-400 text-xl w-8 h-8 flex items-center justify-center">✕</button>
         </div>
 
-        <div className="p-4 space-y-3 pb-8">
+        <div className="p-4 space-y-3 pb-[max(env(safe-area-inset-bottom),2rem)]">
           <div>
             <label className="text-xs text-gray-500 mb-1 block">対象アプリ</label>
             <select value={app} onChange={e => setApp(e.target.value)}

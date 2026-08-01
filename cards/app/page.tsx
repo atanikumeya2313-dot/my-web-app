@@ -182,7 +182,7 @@ export default function Home() {
           </main>
 
           <button onClick={createDeck}
-            className="fixed bottom-6 right-4 h-12 pl-4 pr-5 bg-indigo-500 text-white rounded-full text-sm font-semibold shadow-lg active:scale-95 transition flex items-center gap-1.5 z-40">
+            className="fixed bottom-[calc(1.5rem+env(safe-area-inset-bottom))] right-4 h-12 pl-4 pr-5 bg-indigo-500 text-white rounded-full text-sm font-semibold shadow-lg active:scale-95 transition flex items-center gap-1.5 z-40">
             ＋ デッキ作成
           </button>
         </>
