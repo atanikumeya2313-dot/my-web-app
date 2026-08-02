@@ -71,7 +71,7 @@ export default function CloudSync({ bucket, serialize, apply, onClose }: Props) 
           <button onClick={onClose} className="text-gray-400 text-xl w-8 h-8 flex items-center justify-center">✕</button>
         </div>
 
-        <div className="p-4 space-y-3 pb-8">
+        <div className="p-4 space-y-3 pb-[max(env(safe-area-inset-bottom),2rem)]">
           <p className="text-xs text-gray-500 leading-relaxed">
             同じ<b>同期コード（合言葉）</b>を使えば、他の端末やホーム画面アイコンでも同じデータを共有できます。
             データは<b>この端末で暗号化</b>してから送るので、クラウドには暗号文しか残りません。

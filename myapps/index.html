@@ -280,6 +280,51 @@
         }
       } catch (e) {}
 
+      // 未バックアップ警告：データがあるのに、そのアプリのクラウド保存記録が無いものを集める。
+      // cloud_last_at_<bucket> は push/pull 成功時に記録される（＝一度でも同期したか）。
+      try {
+        var APPS = [
+          { name: 'TODO', href: '/todo', bucket: 'todo', keys: ['todo_tasks'] },
+          { name: 'ジム記録', href: '/gym', bucket: 'gym', keys: ['gym_sessions', 'gym_weights'] },
+          { name: '在庫管理', href: '/inventory', bucket: 'inventory', keys: ['inventory_items'] },
+          { name: '家計簿', href: '/kakeibo', bucket: 'kakeibo', keys: ['kakeibo_transactions'] },
+          { name: 'サブスク管理', href: '/subsc', bucket: 'subsc', keys: ['subsc_subs'] },
+          { name: '資産形成', href: '/interest', bucket: 'interest', keys: ['interest_calc_v1'] },
+          { name: 'AI本だな', href: '/books', bucket: 'books', keys: ['books_books'] },
+          { name: 'AI暗記カード', href: '/cards', bucket: 'cards', keys: ['cards_cards', 'cards_decks'] },
+          { name: '献立アシスタント', href: '/kondate', bucket: 'kondate', keys: ['kondate_pantry', 'kondate_saved'] },
+          { name: 'ひとこと日記', href: '/diary', bucket: 'diary', keys: ['hitokoto_entries'] },
+          { name: 'アプリ改善メモ', href: '/appnotes', bucket: 'appnotes', keys: ['appnotes_notes'] }
+        ];
+        function hasData(keys) {
+          for (var i = 0; i < keys.length; i++) {
+            var v = ls(keys[i], null);
+            if (Array.isArray(v) && v.length) return true;
+            if (v && typeof v === 'object' && Object.keys(v).length) return true;
+          }
+          return false;
+        }
+        var notBacked = APPS.filter(function (a) {
+          if (!hasData(a.keys)) return false;                 // データが無いアプリは対象外
+          var at = null;
+          try { at = localStorage.getItem('cloud_last_at_' + a.bucket); } catch (e) {}
+          return !at;                                         // 一度も同期していない
+        });
+        if (notBacked.length) {
+          var warn = document.createElement('section');
+          warn.className = 'dash';
+          var names = notBacked.map(function (a) { return '<a href="' + a.href + '" style="color:#b45309;font-weight:700;text-decoration:underline;">' + esc(a.name) + '</a>'; }).join('、');
+          warn.innerHTML =
+            '<div style="background:#fffbeb;border:1px solid #fde68a;border-radius:14px;padding:12px 14px;">' +
+            '<div style="font-size:13px;font-weight:700;color:#b45309;">⚠️ まだクラウド保存していないアプリ</div>' +
+            '<div style="font-size:12px;color:#92400e;margin-top:4px;line-height:1.6;">' + names + '</div>' +
+            '<div style="font-size:11px;color:#a16207;margin-top:6px;">この端末だけにデータがあります。各アプリの「☁️同期」でコードを入れ⚡自動同期をオンにすると、機種変更や再インストールでも復元できます。</div>' +
+            '</div>';
+          var dashEl = document.getElementById('dash');
+          dashEl.parentNode.insertBefore(warn, dashEl.nextSibling);
+        }
+      } catch (e) {}
+
       var dash = document.getElementById('dash');
       if (cards.length) {
         dash.innerHTML = '<h2>きょうの状況</h2>' + cards.join('');
