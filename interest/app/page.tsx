@@ -5,13 +5,14 @@ import {
   Tooltip, ResponsiveContainer,
 } from 'recharts';
 import SavingsSimulator from './components/SavingsSimulator';
+import ReturnsTracker from './components/ReturnsTracker';
 import AiExplain from './components/AiExplain';
 import { SavingsSeed } from './lib/calc';
 import { kakeiboAssetTotal } from './lib/kakeibo';
 import CloudSync from './components/CloudSync';
 import { useAutoSync } from './lib/autoSync';
 
-type Mode = 'compound' | 'savings';
+type Mode = 'compound' | 'savings' | 'record';
 
 interface Item {
   id:              string;
@@ -27,7 +28,7 @@ const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'
 const STORAGE_KEY = 'interest_calc_v1';
 const SETTINGS_KEY = 'interest_settings_v1';
 // バックアップ対象（複利比較・設定・積み立てシミュレーターの全状態）
-const BACKUP_KEYS = ['interest_calc_v1', 'interest_settings_v1', 'interest_savings_v1'];
+const BACKUP_KEYS = ['interest_calc_v1', 'interest_settings_v1', 'interest_savings_v1', 'interest_returns_v1'];
 
 // クラウド同期用（BACKUP_KEYS をまとめて文字列化 / 復元）
 function cloudSerialize(): string {
@@ -133,7 +134,7 @@ function loadSettings(): { inflation: number; mode: Mode } {
       const d = JSON.parse(s);
       return {
         inflation: typeof d.inflation === 'number' ? d.inflation : 2,
-        mode: d.mode === 'savings' ? 'savings' : 'compound',
+        mode: (d.mode === 'savings' || d.mode === 'record') ? d.mode : 'compound',
       };
     }
   } catch {}
@@ -461,11 +462,13 @@ export default function Home() {
             <h1 className="text-base font-bold text-gray-800">資産形成シミュレーター</h1>
           </div>
           <p className="text-xs text-gray-400">
-            {mode === 'compound' ? '複利計算・複数シナリオの比較' : '積み立て・NISA・取り崩しシミュレーション'}
+            {mode === 'compound' ? '複利計算・複数シナリオの比較'
+              : mode === 'savings' ? '積み立て・NISA・取り崩しシミュレーション'
+              : '実際の利率（損益率）を毎日記録してグラフ化'}
           </p>
         </div>
         <div className="max-w-lg mx-auto flex border-t border-gray-100">
-          {([['compound', '複利計算・比較'], ['savings', '積み立て・NISA・取り崩し']] as [Mode, string][]).map(([m, lbl]) => (
+          {([['compound', '複利計算'], ['savings', '積み立て'], ['record', '実績グラフ']] as [Mode, string][]).map(([m, lbl]) => (
             <button key={m} onClick={() => { setSavingsSeed(null); changeMode(m); }}
               className={`flex-1 py-2.5 text-xs font-medium transition-colors relative ${mode === m ? 'text-blue-500' : 'text-gray-400'}`}>
               {lbl}
@@ -484,6 +487,8 @@ export default function Home() {
           onAddToCompare={addPlanToCompare}
         />
       )}
+
+      {mode === 'record' && <ReturnsTracker />}
 
       {mode === 'compound' && (
       <main className="max-w-lg mx-auto px-4 py-4 space-y-4">
