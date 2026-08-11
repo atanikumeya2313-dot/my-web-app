@@ -75,9 +75,10 @@ export default function SessionForm({
     const entry: Entry = {
       exerciseId: ex.id, name: ex.name, part: ex.part, kind: ex.kind,
       ...(ex.kind === 'strength'
-        // 前回と同じ重量・回数を初期値に（毎回入れ直さなくていいように）
-        ? { sets: prev?.sets?.length ? prev.sets.map(s => ({ ...s })) : [{ weight: 0, reps: 10 }] }
-        : { durationMin: prev?.durationMin ?? 20, distanceKm: prev?.distanceKm }),
+        // 入力欄は空欄で始める（前回値は各セット上の「前回:」表示で確認できる）。
+        // セット数だけ前回に合わせて空セットを用意する。
+        ? { sets: prev?.sets?.length ? prev.sets.map(() => ({ weight: 0, reps: 0 })) : [{ weight: 0, reps: 0 }] }
+        : { durationMin: undefined, distanceKm: undefined }),
     };
     setEntries(list => [...list, entry]);
     setPicking(false);
@@ -120,8 +121,8 @@ export default function SessionForm({
       added.push({
         exerciseId: ex.id, name: ex.name, part: ex.part, kind: ex.kind,
         ...(ex.kind === 'strength'
-          ? { sets: prev?.sets?.length ? prev.sets.map(s => ({ ...s })) : [{ weight: 0, reps: 10 }] }
-          : { durationMin: prev?.durationMin ?? 20, distanceKm: prev?.distanceKm }),
+          ? { sets: prev?.sets?.length ? prev.sets.map(() => ({ weight: 0, reps: 0 })) : [{ weight: 0, reps: 0 }] }
+          : { durationMin: undefined, distanceKm: undefined }),
       });
     });
     if (added.length) setEntries(list => [...list, ...added]);
