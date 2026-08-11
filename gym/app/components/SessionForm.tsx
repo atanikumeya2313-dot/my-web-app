@@ -221,10 +221,12 @@ export default function SessionForm({
                         <div key={si} className="flex items-center gap-1.5">
                           <span className="text-[11px] text-gray-400 w-8 shrink-0">{si + 1}set</span>
                           <input type="number" inputMode="decimal" step="2.5" value={s.weight || ''}
+                            onFocus={ev => ev.currentTarget.select()}
                             onChange={ev => updateSet(i, si, { weight: Number(ev.target.value) || 0 })}
                             className="w-16 px-2 py-1.5 text-sm text-right border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-rose-300" />
                           <span className="text-xs text-gray-400">kg ×</span>
                           <input type="number" inputMode="numeric" value={s.reps || ''}
+                            onFocus={ev => ev.currentTarget.select()}
                             onChange={ev => updateSet(i, si, { reps: Number(ev.target.value) || 0 })}
                             className="w-14 px-2 py-1.5 text-sm text-right border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-rose-300" />
                           <span className="text-xs text-gray-400">回</span>
@@ -254,10 +256,12 @@ export default function SessionForm({
                     ) : null}
                     <div className="flex items-center gap-1.5">
                       <input type="number" inputMode="numeric" value={e.durationMin ?? ''}
+                        onFocus={ev => ev.currentTarget.select()}
                         onChange={ev => updateEntry(i, { durationMin: Number(ev.target.value) || undefined })}
                         className="w-20 px-2 py-1.5 text-sm text-right border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-rose-300" />
                       <span className="text-xs text-gray-400">分</span>
                       <input type="number" inputMode="decimal" step="0.1" value={e.distanceKm ?? ''}
+                        onFocus={ev => ev.currentTarget.select()}
                         onChange={ev => updateEntry(i, { distanceKm: Number(ev.target.value) || undefined })}
                         className="w-20 px-2 py-1.5 text-sm text-right border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-rose-300" />
                       <span className="text-xs text-gray-400">km</span>
