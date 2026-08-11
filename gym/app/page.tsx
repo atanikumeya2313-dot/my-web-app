@@ -122,15 +122,14 @@ export default function Home() {
         ex = { id: `ex_${Date.now()}_${master.length}`, name, part, kind: part === '有酸素' ? 'cardio' : 'strength' };
         master.push(ex);
       }
-      const reps = Number((it.reps.match(/\d+/) ?? ['10'])[0]) || 10;
+      // AIメニューの種目数（セット数）だけ空セットを用意し、重量・回数は空欄で始める。
+      // 推奨回数はメニュー画面に「3set × 10回」と表示されるので、そちらで確認できる。
       const setCount = Math.min(Math.max(it.sets ?? 3, 1), 8);
-      // その種目の前回の重量を引き継ぐ（AIは重量までは決められないため）
-      const prev = sessions.flatMap(s => s.entries).find(e => e.exerciseId === ex!.id);
       return {
         exerciseId: ex.id, name: ex.name, part: ex.part, kind: ex.kind,
         ...(ex.kind === 'strength'
-          ? { sets: Array.from({ length: setCount }, (_, i) => ({ weight: prev?.sets?.[i]?.weight ?? prev?.sets?.[0]?.weight ?? 0, reps })) }
-          : { durationMin: /分/.test(it.reps) ? reps : 20 }),
+          ? { sets: Array.from({ length: setCount }, () => ({ weight: 0, reps: 0 })) }
+          : { durationMin: undefined }),
       };
     });
     if (master.length !== exercises.length) { setExercises(master); saveExercises(master); }
