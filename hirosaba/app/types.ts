@@ -83,6 +83,19 @@ export const GEAR_CONFIG: Record<GearKind, GearConfig> = {
   },
 };
 
+// パーティ編成（キャラ3人＋コレクション4つ）
+export const PARTY_MAX_CHARS = 3;
+export const PARTY_MAX_COLLECTIONS = 4;
+
+export interface Party {
+  id: string;
+  name: string;
+  charIds: string[];        // 最大3
+  collectionIds: string[];  // 最大4
+  memo: string;
+  createdAt: string;
+}
+
 // 育成の進捗率（チェックリストの完了割合。0件なら優先度で判断）
 export function progressPct(c: { tasks: Task[]; priority: Priority }): number {
   if (c.tasks.length === 0) return c.priority === 'done' ? 100 : 0;

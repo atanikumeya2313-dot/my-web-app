@@ -1,7 +1,8 @@
-import { Character, Gear, GearKind, Task, Priority } from '../types';
+import { Character, Gear, GearKind, Party, Task, Priority } from '../types';
 
 const KEY = 'hirosaba_chars';
 const GEAR_KEY: Record<GearKind, string> = { equip: 'hirosaba_equip', collection: 'hirosaba_collection' };
+const PARTY_KEY = 'hirosaba_parties';
 
 // 旧フォーマット（type/curLv 等）を新項目へ吸収して読み込む
 function migrate(c: Partial<Character> & Record<string, unknown>): Character {
@@ -66,26 +67,51 @@ export function saveGear(kind: GearKind, list: Gear[]) {
   localStorage.setItem(GEAR_KEY[kind], JSON.stringify(list));
 }
 
+// ── パーティ ──
+function migrateParty(p: Partial<Party> & Record<string, unknown>): Party {
+  return {
+    id:            String(p.id ?? `${Date.now()}_${Math.random().toString(36).slice(2, 7)}`),
+    name:          String(p.name ?? ''),
+    charIds:       Array.isArray(p.charIds) ? p.charIds.map(String) : [],
+    collectionIds: Array.isArray(p.collectionIds) ? p.collectionIds.map(String) : [],
+    memo:          String(p.memo ?? ''),
+    createdAt:     String(p.createdAt ?? new Date().toISOString()),
+  };
+}
+export function loadParties(): Party[] {
+  try {
+    const s = localStorage.getItem(PARTY_KEY);
+    const a = s ? JSON.parse(s) : [];
+    return Array.isArray(a) ? a.map(migrateParty) : [];
+  } catch { return []; }
+}
+export function saveParties(list: Party[]) {
+  localStorage.setItem(PARTY_KEY, JSON.stringify(list));
+}
+
 // ── バックアップ / クラウド同期 ──
 export function exportData(): string {
   return JSON.stringify({
-    app: 'hirosaba', version: 2, exportedAt: new Date().toISOString(),
-    chars: loadChars(), equip: loadGear('equip'), collection: loadGear('collection'),
+    app: 'hirosaba', version: 3, exportedAt: new Date().toISOString(),
+    chars: loadChars(), equip: loadGear('equip'), collection: loadGear('collection'), parties: loadParties(),
   });
 }
 
 export function importData(raw: string): boolean {
   try {
     const d = JSON.parse(raw);
-    if (!Array.isArray(d?.chars) && !Array.isArray(d?.equip) && !Array.isArray(d?.collection)) return false;
+    if (!Array.isArray(d?.chars) && !Array.isArray(d?.equip) && !Array.isArray(d?.collection) && !Array.isArray(d?.parties)) return false;
     if (Array.isArray(d.chars))      saveChars(d.chars.map(migrate));
     if (Array.isArray(d.equip))      saveGear('equip', d.equip.map(migrateGear));
     if (Array.isArray(d.collection)) saveGear('collection', d.collection.map(migrateGear));
+    if (Array.isArray(d.parties))    saveParties(d.parties.map(migrateParty));
     return true;
   } catch { return false; }
 }
 
 export function hasData(): boolean {
-  try { return loadChars().length > 0 || loadGear('equip').length > 0 || loadGear('collection').length > 0; }
-  catch { return false; }
+  try {
+    return loadChars().length > 0 || loadGear('equip').length > 0
+      || loadGear('collection').length > 0 || loadParties().length > 0;
+  } catch { return false; }
 }

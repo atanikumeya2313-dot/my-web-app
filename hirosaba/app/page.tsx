@@ -6,8 +6,9 @@ import { useAutoSync } from './lib/autoSync';
 import CloudSync from './components/CloudSync';
 import CharForm from './components/CharForm';
 import GearSection from './components/GearSection';
+import PartySection from './components/PartySection';
 
-type Tab = 'char' | 'equip' | 'collection';
+type Tab = 'char' | 'equip' | 'collection' | 'party';
 type Filter = 'all' | Priority;
 type SortKey = 'priority' | 'rarity' | 'power' | 'progress' | 'name';
 
@@ -98,11 +99,11 @@ export default function Home() {
           </div>
         </div>
         <div className="max-w-lg mx-auto flex border-t border-gray-100">
-          {([['char', '🦸 キャラ'], ['equip', '🛡️ 装備'], ['collection', '🎴 コレクション']] as [Tab, string][]).map(([t, lbl]) => (
+          {([['char', '🦸キャラ'], ['equip', '🛡️装備'], ['collection', '🎴コレクト'], ['party', '⚔️パーティ']] as [Tab, string][]).map(([t, lbl]) => (
             <button key={t} onClick={() => setTab(t)}
-              className={`flex-1 py-2.5 text-xs font-medium transition-colors relative ${tab === t ? 'text-green-600' : 'text-gray-400'}`}>
+              className={`flex-1 py-2.5 text-[11px] font-medium transition-colors relative ${tab === t ? 'text-green-600' : 'text-gray-400'}`}>
               {lbl}
-              {tab === t && <span className="absolute bottom-0 inset-x-4 h-0.5 bg-green-600 rounded-full" />}
+              {tab === t && <span className="absolute bottom-0 inset-x-3 h-0.5 bg-green-600 rounded-full" />}
             </button>
           ))}
         </div>
@@ -110,6 +111,7 @@ export default function Home() {
 
       {tab === 'equip' && <GearSection kind="equip" />}
       {tab === 'collection' && <GearSection kind="collection" />}
+      {tab === 'party' && <PartySection />}
       {tab === 'char' && (
       <>
 
