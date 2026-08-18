@@ -10,14 +10,11 @@ interface Props {
   onClose: () => void;
 }
 
-const EMOJI_CHOICES = ['🦸', '🦹', '💥', '🔥', '⚡', '❄️', '🌀', '🛡️', '👊', '🦴', '🍃', '🎯', '🌟', '🩸', '👁️', '🕷️'];
-
 let seq = 0;
 const newId = () => `${Date.now()}_${seq++}`;
 
 export default function CharForm({ editing, groups, onSave, onDelete, onClose }: Props) {
   const [name,     setName]     = useState(editing?.name ?? '');
-  const [emoji,    setEmoji]    = useState(editing?.emoji ?? '🦸');
   const [rarity,   setRarity]   = useState(editing?.rarity ?? 0);
   const [group,    setGroup]    = useState(editing?.group ?? '');
   const [intimacy, setIntimacy] = useState(editing?.intimacy ? String(editing.intimacy) : '');
@@ -44,7 +41,7 @@ export default function CharForm({ editing, groups, onSave, onDelete, onClose }:
     onSave({
       id:        editing?.id ?? newId(),
       name:      name.trim(),
-      emoji:     emoji || '🦸',
+      emoji:     '',
       rarity,
       intimacy:  Math.max(0, parseInt(intimacy) || 0),
       group:     group.trim(),
@@ -67,19 +64,10 @@ export default function CharForm({ editing, groups, onSave, onDelete, onClose }:
         </div>
 
         <div className="flex-1 overflow-y-auto px-4 py-3 space-y-4">
-          {/* 名前＋アイコン */}
           <div>
             <label className="text-xs font-medium text-gray-600 mb-1 block">キャラ名 *</label>
             <input value={name} onChange={e => setName(e.target.value)} placeholder="例：緑谷出久"
-              className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-300" />
-            <div className="flex flex-wrap gap-1.5 mt-2">
-              {EMOJI_CHOICES.map(e => (
-                <button key={e} onClick={() => setEmoji(e)}
-                  className={`w-9 h-9 rounded-lg text-lg flex items-center justify-center border ${emoji === e ? 'border-green-500 bg-green-50' : 'border-gray-200'}`}>
-                  {e}
-                </button>
-              ))}
-            </div>
+              className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400" />
           </div>
 
           {/* レアリティ */}
@@ -98,12 +86,12 @@ export default function CharForm({ editing, groups, onSave, onDelete, onClose }:
           <div>
             <label className="text-xs font-medium text-gray-600 mb-1 block">グループ</label>
             <input value={group} onChange={e => setGroup(e.target.value)} placeholder="例：雄英1年A組 / 敵〈ヴィラン〉連合"
-              className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-300" />
+              className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-300" />
             {groups.length > 0 && (
               <div className="flex flex-wrap gap-1.5 mt-1.5">
                 {groups.map(g => (
                   <button key={g} onClick={() => setGroup(g)}
-                    className={`text-[11px] px-2 py-1 rounded-full border ${group === g ? 'border-green-500 bg-green-50 text-green-600' : 'border-gray-200 text-gray-500'}`}>
+                    className={`text-[11px] px-2 py-1 rounded-full border ${group === g ? 'border-slate-500 bg-slate-50 text-slate-600' : 'border-gray-200 text-gray-500'}`}>
                     {g}
                   </button>
                 ))}
@@ -117,19 +105,19 @@ export default function CharForm({ editing, groups, onSave, onDelete, onClose }:
               <label className="text-xs font-medium text-gray-600 mb-1 block">レベル</label>
               <input type="number" inputMode="numeric" min={0} value={level} onChange={e => setLevel(e.target.value)}
                 placeholder="1"
-                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-300" />
+                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-300" />
             </div>
             <div className="flex-1">
               <label className="text-xs font-medium text-gray-600 mb-1 block">親密度</label>
               <input type="number" inputMode="numeric" min={0} value={intimacy} onChange={e => setIntimacy(e.target.value)}
                 placeholder="0"
-                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-300" />
+                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-300" />
             </div>
             <div className="flex-1">
               <label className="text-xs font-medium text-gray-600 mb-1 block">戦闘力</label>
               <input type="number" inputMode="numeric" min={0} value={power} onChange={e => setPower(e.target.value)}
                 placeholder="0"
-                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-300" />
+                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-300" />
             </div>
           </div>
 
@@ -153,7 +141,7 @@ export default function CharForm({ editing, groups, onSave, onDelete, onClose }:
               {tasks.map(t => (
                 <div key={t.id} className="flex items-center gap-2">
                   <button onClick={() => toggleTask(t.id)}
-                    className={`w-5 h-5 rounded shrink-0 flex items-center justify-center text-[11px] border ${t.done ? 'bg-green-500 border-green-500 text-white' : 'border-gray-300'}`}>
+                    className={`w-5 h-5 rounded shrink-0 flex items-center justify-center text-[11px] border ${t.done ? 'bg-slate-500 border-slate-500 text-white' : 'border-gray-300'}`}>
                     {t.done ? '✓' : ''}
                   </button>
                   <span className={`text-sm flex-1 ${t.done ? 'line-through text-gray-400' : 'text-gray-700'}`}>{t.label}</span>
@@ -165,8 +153,8 @@ export default function CharForm({ editing, groups, onSave, onDelete, onClose }:
               <input value={newTask} onChange={e => setNewTask(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && !e.nativeEvent.isComposing && addTask()}
                 placeholder="育成項目を追加"
-                className="flex-1 border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-300" />
-              <button onClick={addTask} className="px-3 py-1.5 rounded-lg bg-green-100 text-green-600 text-sm font-medium">追加</button>
+                className="flex-1 border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-slate-300" />
+              <button onClick={addTask} className="px-3 py-1.5 rounded-lg bg-slate-100 text-slate-600 text-sm font-medium">追加</button>
             </div>
           </div>
 
@@ -175,7 +163,7 @@ export default function CharForm({ editing, groups, onSave, onDelete, onClose }:
             <label className="text-xs font-medium text-gray-600 mb-1 block">メモ</label>
             <textarea value={memo} onChange={e => setMemo(e.target.value)} rows={2}
               placeholder="ビルド・装備・必要素材など"
-              className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-300 resize-none" />
+              className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-300 resize-none" />
           </div>
         </div>
 
@@ -185,7 +173,7 @@ export default function CharForm({ editing, groups, onSave, onDelete, onClose }:
               className="px-4 py-2.5 rounded-xl border border-red-200 text-red-500 text-sm font-medium">削除</button>
           )}
           <button onClick={submit} disabled={!name.trim()}
-            className="flex-1 py-2.5 rounded-xl bg-green-600 text-white text-sm font-bold disabled:opacity-40">
+            className="flex-1 py-2.5 rounded-xl bg-slate-600 text-white text-sm font-bold disabled:opacity-40">
             {editing ? '更新' : '追加'}
           </button>
         </div>

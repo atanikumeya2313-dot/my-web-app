@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 import {
   Collection, CollectionRarity, CollStat, COLLECTION_RARITIES, COLL_RARITY_CLS,
-  COLLECTION_EVOLUTION_MAX, COLL_STAT_TYPES, COLL_EMOJIS,
+  COLLECTION_EVOLUTION_MAX, COLL_STAT_TYPES,
   Priority, PRIORITIES, priorityMeta, progressPct,
 } from '../types';
 import { loadCollections, saveCollections } from '../lib/storage';
@@ -48,7 +48,7 @@ export default function CollectionSection() {
   return (
     <div>
       <main className="max-w-lg mx-auto px-4 py-4 space-y-4">
-        <section className="bg-gradient-to-br from-green-600 to-emerald-600 rounded-2xl shadow-sm p-4 text-white">
+        <section className="bg-gradient-to-br from-slate-600 to-slate-600 rounded-2xl shadow-sm p-4 text-white">
           <div className="flex items-center justify-around text-center">
             <div><p className="text-[11px] text-white/70">最優先</p><p className="text-2xl font-bold">{counts.top}</p></div>
             <div className="w-px h-10 bg-white/20" />
@@ -63,10 +63,10 @@ export default function CollectionSection() {
           <div className="flex items-center gap-2">
             <div className="flex gap-1 overflow-x-auto">
               <button onClick={() => setFilter('all')}
-                className={`shrink-0 text-xs px-3 py-1.5 rounded-full font-medium ${filter === 'all' ? 'bg-green-600 text-white' : 'bg-gray-100 text-gray-500'}`}>すべて</button>
+                className={`shrink-0 text-xs px-3 py-1.5 rounded-full font-medium ${filter === 'all' ? 'bg-slate-600 text-white' : 'bg-gray-100 text-gray-500'}`}>すべて</button>
               {PRIORITIES.map(p => (
                 <button key={p.value} onClick={() => setFilter(p.value)}
-                  className={`shrink-0 text-xs px-3 py-1.5 rounded-full font-medium ${filter === p.value ? 'bg-green-600 text-white' : 'bg-gray-100 text-gray-500'}`}>{p.label}</button>
+                  className={`shrink-0 text-xs px-3 py-1.5 rounded-full font-medium ${filter === p.value ? 'bg-slate-600 text-white' : 'bg-gray-100 text-gray-500'}`}>{p.label}</button>
               ))}
             </div>
             <select value={sortKey} onChange={e => setSortKey(e.target.value as SortKey)}
@@ -82,7 +82,6 @@ export default function CollectionSection() {
 
         {list.length === 0 ? (
           <div className="text-center py-16">
-            <p className="text-5xl mb-3">🎴</p>
             <p className="text-gray-400 text-sm">右下の＋から、コレクションを登録しましょう</p>
           </div>
         ) : sorted.length === 0 ? (
@@ -95,9 +94,7 @@ export default function CollectionSection() {
               const doneTasks = c.tasks.filter(t => t.done).length;
               return (
                 <div key={c.id} className="bg-white rounded-xl shadow-sm p-3">
-                  <div className="flex items-center gap-3">
-                    <button onClick={() => { setEditing(c); setShowForm(true); }} className="text-2xl shrink-0">{c.emoji}</button>
-                    <button onClick={() => { setEditing(c); setShowForm(true); }} className="flex-1 text-left min-w-0">
+                  <button onClick={() => { setEditing(c); setShowForm(true); }} className="w-full text-left min-w-0">
                       <div className="flex items-center gap-1.5 flex-wrap">
                         <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold shrink-0 ${COLL_RARITY_CLS[c.rarity]}`}>{c.rarity}</span>
                         <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold shrink-0 ${pm.cls}`}>{pm.label}</span>
@@ -107,25 +104,24 @@ export default function CollectionSection() {
                         {(c.level > 0 || c.levelMax > 0) && <span>Lv{c.level}{c.levelMax > 0 ? `/${c.levelMax}` : ''}</span>}
                         {c.evolution > 0 && <span>　進化{c.evolution}/{COLLECTION_EVOLUTION_MAX}</span>}
                       </p>
-                    </button>
-                  </div>
+                  </button>
 
                   {/* ステータス */}
                   {c.stats.filter(s => s.type).length > 0 && (
                     <div className="mt-2 flex flex-wrap gap-1.5">
                       {c.stats.filter(s => s.type).map((s, i) => (
-                        <span key={i} className="text-[11px] px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600 font-medium">
+                        <span key={i} className="text-[11px] px-2 py-0.5 rounded-full bg-slate-50 text-slate-600 font-medium">
                           {s.type} +{s.pct}%
                         </span>
                       ))}
                     </div>
                   )}
-                  {c.effectText && <p className="text-[11px] text-gray-500 mt-1.5">✨ {c.effectText}</p>}
+                  {c.effectText && <p className="text-[11px] text-gray-500 mt-1.5">{c.effectText}</p>}
 
                   {c.tasks.length > 0 && (
                     <div className="mt-2 flex items-center gap-2">
                       <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                        <div className={`h-full rounded-full ${pct === 100 ? 'bg-blue-500' : 'bg-green-500'}`} style={{ width: `${pct}%` }} />
+                        <div className={`h-full rounded-full ${pct === 100 ? 'bg-blue-500' : 'bg-slate-500'}`} style={{ width: `${pct}%` }} />
                       </div>
                       <span className="text-[10px] text-gray-400 shrink-0">{doneTasks}/{c.tasks.length}・{pct}%</span>
                     </div>
@@ -134,13 +130,13 @@ export default function CollectionSection() {
                     <div className="mt-2 flex flex-wrap gap-1.5">
                       {c.tasks.map(t => (
                         <button key={t.id} onClick={() => toggleTask(c.id, t.id)}
-                          className={`text-[11px] px-2 py-1 rounded-full border ${t.done ? 'bg-green-50 border-green-200 text-green-600 line-through' : 'bg-white border-gray-200 text-gray-500'}`}>
+                          className={`text-[11px] px-2 py-1 rounded-full border ${t.done ? 'bg-slate-50 border-slate-200 text-slate-600 line-through' : 'bg-white border-gray-200 text-gray-500'}`}>
                           {t.done ? '✓ ' : ''}{t.label}
                         </button>
                       ))}
                     </div>
                   )}
-                  {c.memo && <p className="text-[11px] text-gray-400 mt-1.5">📝 {c.memo}</p>}
+                  {c.memo && <p className="text-[11px] text-gray-400 mt-1.5">{c.memo}</p>}
                 </div>
               );
             })}
@@ -150,7 +146,7 @@ export default function CollectionSection() {
 
       <button onClick={() => { setEditing(undefined); setShowForm(true); }} aria-label="コレクションを追加"
         style={{ bottom: 'max(1.5rem, calc(env(safe-area-inset-bottom) + 0.5rem))' }}
-        className="fixed right-4 w-14 h-14 bg-green-600 text-white rounded-full text-2xl shadow-lg active:scale-90 transition-transform flex items-center justify-center z-40">
+        className="fixed right-4 w-14 h-14 bg-slate-600 text-white rounded-full text-2xl shadow-lg active:scale-90 transition-transform flex items-center justify-center z-40">
         ＋
       </button>
 
@@ -178,7 +174,6 @@ function CollectionForm({ editing, onSave, onDelete, onClose }: {
   onClose: () => void;
 }) {
   const [name,     setName]     = useState(editing?.name ?? '');
-  const [emoji,    setEmoji]    = useState(editing?.emoji ?? COLL_EMOJIS[0]);
   const [rarity,   setRarity]   = useState<CollectionRarity>(editing?.rarity ?? 'R');
   const [level,    setLevel]    = useState(editing?.level ? String(editing.level) : '');
   const [levelMax, setLevelMax] = useState(editing?.levelMax ? String(editing.levelMax) : '');
@@ -203,7 +198,7 @@ function CollectionForm({ editing, onSave, onDelete, onClose }: {
     if (!name.trim()) return;
     onSave({
       id: editing?.id ?? newId(),
-      name: name.trim(), emoji: emoji || COLL_EMOJIS[0], rarity,
+      name: name.trim(), emoji: '', rarity,
       level: Math.max(0, parseInt(level) || 0), levelMax: Math.max(0, parseInt(levelMax) || 0),
       evolution,
       stats: stats.filter(s => s.type.trim()),
@@ -226,13 +221,7 @@ function CollectionForm({ editing, onSave, onDelete, onClose }: {
           <div>
             <label className="text-xs font-medium text-gray-600 mb-1 block">コレクション名 *</label>
             <input value={name} onChange={e => setName(e.target.value)}
-              className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-300" />
-            <div className="flex flex-wrap gap-1.5 mt-2">
-              {COLL_EMOJIS.map(e => (
-                <button key={e} onClick={() => setEmoji(e)}
-                  className={`w-9 h-9 rounded-lg text-lg flex items-center justify-center border ${emoji === e ? 'border-green-500 bg-green-50' : 'border-gray-200'}`}>{e}</button>
-              ))}
-            </div>
+              className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-300" />
           </div>
 
           {/* レアリティ */}
@@ -241,7 +230,7 @@ function CollectionForm({ editing, onSave, onDelete, onClose }: {
             <div className="flex gap-1.5">
               {COLLECTION_RARITIES.map(r => (
                 <button key={r} onClick={() => setRarity(r)}
-                  className={`flex-1 py-2 rounded-lg text-sm font-bold ${rarity === r ? COLL_RARITY_CLS[r] + ' ring-2 ring-offset-1 ring-green-400' : 'bg-gray-100 text-gray-400'}`}>{r}</button>
+                  className={`flex-1 py-2 rounded-lg text-sm font-bold ${rarity === r ? COLL_RARITY_CLS[r] + ' ring-2 ring-offset-1 ring-slate-400' : 'bg-gray-100 text-gray-400'}`}>{r}</button>
               ))}
             </div>
           </div>
@@ -251,12 +240,12 @@ function CollectionForm({ editing, onSave, onDelete, onClose }: {
             <div className="flex-1">
               <label className="text-xs font-medium text-gray-600 mb-1 block">レベル</label>
               <input type="number" inputMode="numeric" min={0} value={level} onChange={e => setLevel(e.target.value)} placeholder="1"
-                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-300" />
+                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-300" />
             </div>
             <div className="flex-1">
               <label className="text-xs font-medium text-gray-600 mb-1 block">レベル上限</label>
               <input type="number" inputMode="numeric" min={0} value={levelMax} onChange={e => setLevelMax(e.target.value)} placeholder="20"
-                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-300" />
+                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-300" />
             </div>
           </div>
 
@@ -282,17 +271,17 @@ function CollectionForm({ editing, onSave, onDelete, onClose }: {
                 <div key={i} className="flex items-center gap-2">
                   <input list="coll-stat-types" value={s.type} onChange={e => setStat(i, { type: e.target.value })}
                     placeholder="例：最大HP"
-                    className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-300" />
+                    className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-300" />
                   <span className="text-gray-400 text-sm">+</span>
                   <input type="number" inputMode="decimal" step="0.1" value={s.pct || ''} onChange={e => setStat(i, { pct: parseFloat(e.target.value) || 0 })}
-                    className="w-16 border border-gray-200 rounded-lg px-2 py-2 text-sm text-right focus:outline-none focus:ring-2 focus:ring-green-300" />
+                    className="w-16 border border-gray-200 rounded-lg px-2 py-2 text-sm text-right focus:outline-none focus:ring-2 focus:ring-slate-300" />
                   <span className="text-gray-400 text-sm">%</span>
                 </div>
               ))}
             </div>
             <div className="flex gap-2 mt-1.5">
               {stats.length < 4 && (
-                <button onClick={() => setStats(ss => [...ss, { type: '', pct: 0 }])} className="text-[11px] text-green-600 font-medium">＋ 枠を追加</button>
+                <button onClick={() => setStats(ss => [...ss, { type: '', pct: 0 }])} className="text-[11px] text-slate-600 font-medium">＋ 枠を追加</button>
               )}
               {stats.length > 1 && (
                 <button onClick={() => setStats(ss => ss.slice(0, -1))} className="text-[11px] text-gray-400">− 枠を減らす</button>
@@ -305,7 +294,7 @@ function CollectionForm({ editing, onSave, onDelete, onClose }: {
             <label className="text-xs font-medium text-gray-600 mb-1 block">効果（対象グループなど）</label>
             <textarea value={effectText} onChange={e => setEffectText(e.target.value)} rows={2}
               placeholder="例：ヒーローグループの攻撃力を20%アップ"
-              className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-300 resize-none" />
+              className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-300 resize-none" />
           </div>
 
           {/* 優先度 */}
@@ -326,7 +315,7 @@ function CollectionForm({ editing, onSave, onDelete, onClose }: {
               {tasks.map(t => (
                 <div key={t.id} className="flex items-center gap-2">
                   <button onClick={() => setTasks(ts => ts.map(x => x.id === t.id ? { ...x, done: !x.done } : x))}
-                    className={`w-5 h-5 rounded shrink-0 flex items-center justify-center text-[11px] border ${t.done ? 'bg-green-500 border-green-500 text-white' : 'border-gray-300'}`}>
+                    className={`w-5 h-5 rounded shrink-0 flex items-center justify-center text-[11px] border ${t.done ? 'bg-slate-500 border-slate-500 text-white' : 'border-gray-300'}`}>
                     {t.done ? '✓' : ''}
                   </button>
                   <span className={`text-sm flex-1 ${t.done ? 'line-through text-gray-400' : 'text-gray-700'}`}>{t.label}</span>
@@ -338,15 +327,15 @@ function CollectionForm({ editing, onSave, onDelete, onClose }: {
               <input value={newTask} onChange={e => setNewTask(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && !e.nativeEvent.isComposing && addTask()}
                 placeholder="育成項目を追加"
-                className="flex-1 border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-300" />
-              <button onClick={addTask} className="px-3 py-1.5 rounded-lg bg-green-100 text-green-600 text-sm font-medium">追加</button>
+                className="flex-1 border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-slate-300" />
+              <button onClick={addTask} className="px-3 py-1.5 rounded-lg bg-slate-100 text-slate-600 text-sm font-medium">追加</button>
             </div>
           </div>
 
           <div>
             <label className="text-xs font-medium text-gray-600 mb-1 block">メモ</label>
             <textarea value={memo} onChange={e => setMemo(e.target.value)} rows={2}
-              className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-300 resize-none" />
+              className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-300 resize-none" />
           </div>
         </div>
 
@@ -356,7 +345,7 @@ function CollectionForm({ editing, onSave, onDelete, onClose }: {
               className="px-4 py-2.5 rounded-xl border border-red-200 text-red-500 text-sm font-medium">削除</button>
           )}
           <button onClick={submit} disabled={!name.trim()}
-            className="flex-1 py-2.5 rounded-xl bg-green-600 text-white text-sm font-bold disabled:opacity-40">
+            className="flex-1 py-2.5 rounded-xl bg-slate-600 text-white text-sm font-bold disabled:opacity-40">
             {editing ? '更新' : '追加'}
           </button>
         </div>
