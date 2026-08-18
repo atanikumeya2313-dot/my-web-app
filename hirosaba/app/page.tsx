@@ -5,13 +5,16 @@ import { loadChars, saveChars, exportData, importData, hasData, todayYMD } from 
 import { useAutoSync } from './lib/autoSync';
 import CloudSync from './components/CloudSync';
 import CharForm from './components/CharForm';
+import GearSection from './components/GearSection';
 
+type Tab = 'char' | 'equip' | 'collection';
 type Filter = 'all' | Priority;
-type SortKey = 'priority' | 'rarity' | 'progress' | 'name';
+type SortKey = 'priority' | 'rarity' | 'power' | 'progress' | 'name';
 
 const PRIORITY_ORDER: Record<Priority, number> = { top: 0, active: 1, later: 2, done: 3 };
 
 export default function Home() {
+  const [tab,      setTab]      = useState<Tab>('char');
   const [chars,    setChars]    = useState<Character[]>([]);
   const [filter,   setFilter]   = useState<Filter>('all');
   const [sortKey,  setSortKey]  = useState<SortKey>('priority');
@@ -68,9 +71,12 @@ export default function Home() {
     done:   chars.filter(c => c.priority === 'done').length,
   };
 
+  const groups = Array.from(new Set(chars.map(c => c.group).filter(Boolean)));
+
   const filtered = chars.filter(c => filter === 'all' ? true : c.priority === filter);
   const sorted = [...filtered].sort((a, b) => {
     if (sortKey === 'rarity')   return b.rarity - a.rarity;
+    if (sortKey === 'power')    return b.power - a.power;
     if (sortKey === 'progress') return progressPct(b) - progressPct(a);
     if (sortKey === 'name')     return a.name.localeCompare(b.name, 'ja');
     return PRIORITY_ORDER[a.priority] - PRIORITY_ORDER[b.priority]; // priority
@@ -91,7 +97,21 @@ export default function Home() {
             <input ref={importRef} type="file" accept=".json" className="hidden" onChange={handleImport} />
           </div>
         </div>
+        <div className="max-w-lg mx-auto flex border-t border-gray-100">
+          {([['char', '🦸 キャラ'], ['equip', '🛡️ 装備'], ['collection', '🎴 コレクション']] as [Tab, string][]).map(([t, lbl]) => (
+            <button key={t} onClick={() => setTab(t)}
+              className={`flex-1 py-2.5 text-xs font-medium transition-colors relative ${tab === t ? 'text-green-600' : 'text-gray-400'}`}>
+              {lbl}
+              {tab === t && <span className="absolute bottom-0 inset-x-4 h-0.5 bg-green-600 rounded-full" />}
+            </button>
+          ))}
+        </div>
       </header>
+
+      {tab === 'equip' && <GearSection kind="equip" />}
+      {tab === 'collection' && <GearSection kind="collection" />}
+      {tab === 'char' && (
+      <>
 
       <main className="max-w-lg mx-auto px-4 py-4 space-y-4">
         {/* 集計 */}
@@ -123,6 +143,7 @@ export default function Home() {
               className="ml-auto border border-gray-200 rounded-xl px-2 py-1.5 text-xs bg-white text-gray-600 shrink-0">
               <option value="priority">優先度順</option>
               <option value="rarity">レア順</option>
+              <option value="power">戦闘力順</option>
               <option value="progress">進捗順</option>
               <option value="name">名前順</option>
             </select>
@@ -154,9 +175,10 @@ export default function Home() {
                       </div>
                       <p className="text-xs text-gray-400 mt-0.5 truncate">
                         {c.rarity > 0 && <span className="text-amber-400">{'★'.repeat(c.rarity)}</span>}
-                        {c.type && <span> {c.type}</span>}
-                        {(c.curLv > 0 || c.targetLv > 0) && <span>　Lv {c.curLv}{c.targetLv > 0 ? `/${c.targetLv}` : ''}</span>}
-                        {c.awaken > 0 && <span>　{c.awaken}凸</span>}
+                        {c.group && <span> {c.group}</span>}
+                        {c.level > 0 && <span>　Lv{c.level}</span>}
+                        {c.intimacy > 0 && <span>　💚{c.intimacy}</span>}
+                        {c.power > 0 && <span>　⚔{c.power.toLocaleString()}</span>}
                       </p>
                     </button>
                   </div>
@@ -197,12 +219,15 @@ export default function Home() {
         ＋
       </button>
 
-      {showCloud && <CloudSync bucket="hirosaba" serialize={exportData} apply={importData} onClose={() => setShowCloud(false)} />}
       {showForm && (
-        <CharForm editing={editing} onSave={handleSave}
+        <CharForm editing={editing} groups={groups} onSave={handleSave}
           onDelete={editing ? () => handleDelete(editing.id) : undefined}
           onClose={() => { setShowForm(false); setEditing(undefined); }} />
       )}
+      </>
+      )}
+
+      {showCloud && <CloudSync bucket="hirosaba" serialize={exportData} apply={importData} onClose={() => setShowCloud(false)} />}
     </div>
   );
 }

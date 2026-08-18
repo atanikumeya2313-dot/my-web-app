@@ -4,6 +4,7 @@ import { Character, Task, Priority, PRIORITIES, DEFAULT_TASKS } from '../types';
 
 interface Props {
   editing?: Character;
+  groups: string[];              // 既存キャラで使われているグループ（候補チップ用）
   onSave: (c: Character) => void;
   onDelete?: () => void;
   onClose: () => void;
@@ -14,15 +15,14 @@ const EMOJI_CHOICES = ['🦸', '🦹', '💥', '🔥', '⚡', '❄️', '🌀', 
 let seq = 0;
 const newId = () => `${Date.now()}_${seq++}`;
 
-export default function CharForm({ editing, onSave, onDelete, onClose }: Props) {
+export default function CharForm({ editing, groups, onSave, onDelete, onClose }: Props) {
   const [name,     setName]     = useState(editing?.name ?? '');
   const [emoji,    setEmoji]    = useState(editing?.emoji ?? '🦸');
   const [rarity,   setRarity]   = useState(editing?.rarity ?? 0);
-  const [type,     setType]     = useState(editing?.type ?? '');
-  const [quirk,    setQuirk]    = useState(editing?.quirk ?? '');
-  const [curLv,    setCurLv]    = useState(editing?.curLv ? String(editing.curLv) : '');
-  const [targetLv, setTargetLv] = useState(editing?.targetLv ? String(editing.targetLv) : '');
-  const [awaken,   setAwaken]   = useState(editing?.awaken ?? 0);
+  const [group,    setGroup]    = useState(editing?.group ?? '');
+  const [intimacy, setIntimacy] = useState(editing?.intimacy ? String(editing.intimacy) : '');
+  const [level,    setLevel]    = useState(editing?.level ? String(editing.level) : '');
+  const [power,    setPower]    = useState(editing?.power ? String(editing.power) : '');
   const [priority, setPriority] = useState<Priority>(editing?.priority ?? 'active');
   const [memo,     setMemo]     = useState(editing?.memo ?? '');
   const [tasks,    setTasks]    = useState<Task[]>(
@@ -30,12 +30,8 @@ export default function CharForm({ editing, onSave, onDelete, onClose }: Props) 
   );
   const [newTask,  setNewTask]  = useState('');
 
-  function toggleTask(id: string) {
-    setTasks(ts => ts.map(t => t.id === id ? { ...t, done: !t.done } : t));
-  }
-  function removeTask(id: string) {
-    setTasks(ts => ts.filter(t => t.id !== id));
-  }
+  function toggleTask(id: string) { setTasks(ts => ts.map(t => t.id === id ? { ...t, done: !t.done } : t)); }
+  function removeTask(id: string) { setTasks(ts => ts.filter(t => t.id !== id)); }
   function addTask() {
     const l = newTask.trim();
     if (!l) return;
@@ -50,11 +46,10 @@ export default function CharForm({ editing, onSave, onDelete, onClose }: Props) 
       name:      name.trim(),
       emoji:     emoji || '🦸',
       rarity,
-      type:      type.trim(),
-      quirk:     quirk.trim(),
-      curLv:     Math.max(0, parseInt(curLv) || 0),
-      targetLv:  Math.max(0, parseInt(targetLv) || 0),
-      awaken,
+      intimacy:  Math.max(0, parseInt(intimacy) || 0),
+      group:     group.trim(),
+      level:     Math.max(0, parseInt(level) || 0),
+      power:     Math.max(0, parseInt(power.replace(/,/g, '')) || 0),
       priority,
       tasks,
       memo:      memo.trim(),
@@ -99,41 +94,42 @@ export default function CharForm({ editing, onSave, onDelete, onClose }: Props) 
             </div>
           </div>
 
-          {/* タイプ・個性 */}
-          <div className="flex gap-2">
-            <div className="flex-1">
-              <label className="text-xs font-medium text-gray-600 mb-1 block">タイプ/属性</label>
-              <input value={type} onChange={e => setType(e.target.value)} placeholder="例：アタッカー"
-                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-300" />
-            </div>
-            <div className="flex-1">
-              <label className="text-xs font-medium text-gray-600 mb-1 block">個性</label>
-              <input value={quirk} onChange={e => setQuirk(e.target.value)} placeholder="例：ワン・フォー・オール"
-                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-300" />
-            </div>
+          {/* グループ */}
+          <div>
+            <label className="text-xs font-medium text-gray-600 mb-1 block">グループ</label>
+            <input value={group} onChange={e => setGroup(e.target.value)} placeholder="例：雄英1年A組 / 敵〈ヴィラン〉連合"
+              className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-300" />
+            {groups.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 mt-1.5">
+                {groups.map(g => (
+                  <button key={g} onClick={() => setGroup(g)}
+                    className={`text-[11px] px-2 py-1 rounded-full border ${group === g ? 'border-green-500 bg-green-50 text-green-600' : 'border-gray-200 text-gray-500'}`}>
+                    {g}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
-          {/* レベル・凸 */}
+          {/* レベル・親密度・戦闘力 */}
           <div className="flex gap-2">
             <div className="flex-1">
-              <label className="text-xs font-medium text-gray-600 mb-1 block">現在Lv</label>
-              <input type="number" inputMode="numeric" min={0} value={curLv} onChange={e => setCurLv(e.target.value)}
+              <label className="text-xs font-medium text-gray-600 mb-1 block">レベル</label>
+              <input type="number" inputMode="numeric" min={0} value={level} onChange={e => setLevel(e.target.value)}
                 placeholder="1"
                 className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-300" />
             </div>
             <div className="flex-1">
-              <label className="text-xs font-medium text-gray-600 mb-1 block">目標Lv</label>
-              <input type="number" inputMode="numeric" min={0} value={targetLv} onChange={e => setTargetLv(e.target.value)}
-                placeholder="80"
+              <label className="text-xs font-medium text-gray-600 mb-1 block">親密度</label>
+              <input type="number" inputMode="numeric" min={0} value={intimacy} onChange={e => setIntimacy(e.target.value)}
+                placeholder="0"
                 className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-300" />
             </div>
-            <div className="w-24">
-              <label className="text-xs font-medium text-gray-600 mb-1 block">凸/覚醒</label>
-              <div className="flex items-center border border-gray-200 rounded-xl overflow-hidden">
-                <button onClick={() => setAwaken(Math.max(0, awaken - 1))} className="px-2.5 py-2 text-gray-500">−</button>
-                <span className="flex-1 text-center text-sm font-bold">{awaken}</span>
-                <button onClick={() => setAwaken(awaken + 1)} className="px-2.5 py-2 text-green-600">＋</button>
-              </div>
+            <div className="flex-1">
+              <label className="text-xs font-medium text-gray-600 mb-1 block">戦闘力</label>
+              <input type="number" inputMode="numeric" min={0} value={power} onChange={e => setPower(e.target.value)}
+                placeholder="0"
+                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-300" />
             </div>
           </div>
 

@@ -23,20 +23,68 @@ export interface Character {
   id: string;
   name: string;
   emoji: string;       // アイコン絵文字
-  rarity: number;      // ★の数（0=未設定）
-  type: string;        // タイプ/属性（自由入力）
-  quirk: string;       // 個性メモ
-  curLv: number;       // 現在レベル
-  targetLv: number;    // 目標レベル
-  awaken: number;      // 凸/覚醒段階
+  rarity: number;      // レアリティ（★の数。0=未設定）
+  intimacy: number;    // 親密度
+  group: string;       // グループ
+  level: number;       // レベル
+  power: number;       // 戦闘力
   priority: Priority;
   tasks: Task[];
   memo: string;
   createdAt: string;
 }
 
+// 装備・コレクション（共通の育成アイテム）
+export interface Gear {
+  id: string;
+  name: string;
+  emoji: string;
+  rarity: number;      // レアリティ（★）
+  level: number;       // レベル
+  grade: number;       // 装備=グレード / コレクション=ランク
+  sub: string;         // 装備=スロット/タイプ / コレクション=元ネタ（名シーン）
+  effect: string;      // 強化効果メモ
+  priority: Priority;
+  tasks: Task[];
+  memo: string;
+  createdAt: string;
+}
+
+export type GearKind = 'equip' | 'collection';
+
+export interface GearConfig {
+  title: string;
+  emoji: string;
+  subLabel: string;
+  subPlaceholder: string;
+  gradeLabel: string;
+  defaultTasks: string[];
+  emojiChoices: string[];
+}
+
+export const GEAR_CONFIG: Record<GearKind, GearConfig> = {
+  equip: {
+    title: '装備',
+    emoji: '🛡️',
+    subLabel: 'スロット/タイプ',
+    subPlaceholder: '例：武器スロット / 攻撃タイプ',
+    gradeLabel: 'グレード',
+    defaultTasks: ['レベル上げ', '欠片を集める', 'グレードUP', 'スキル解放'],
+    emojiChoices: ['🛡️', '⚔️', '🥊', '👟', '🧤', '🎽', '💍', '🔮', '📿', '🗡️', '🏹', '💊'],
+  },
+  collection: {
+    title: 'コレクション',
+    emoji: '🎴',
+    subLabel: '元ネタ（名シーン）',
+    subPlaceholder: '例：デク vs オールマイト',
+    gradeLabel: 'ランク',
+    defaultTasks: ['レベル上げ', '被りでランクアップ', 'スキル解放'],
+    emojiChoices: ['🎴', '🖼️', '🌟', '💫', '🔥', '⚡', '💥', '🌀', '🏆', '🎬', '📸', '💚'],
+  },
+};
+
 // 育成の進捗率（チェックリストの完了割合。0件なら優先度で判断）
-export function progressPct(c: Character): number {
+export function progressPct(c: { tasks: Task[]; priority: Priority }): number {
   if (c.tasks.length === 0) return c.priority === 'done' ? 100 : 0;
   const done = c.tasks.filter(t => t.done).length;
   return Math.round((done / c.tasks.length) * 100);
