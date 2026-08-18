@@ -1,0 +1,15 @@
+{
+  "name": "ヒロサバ育成管理",
+  "short_name": "ヒロサバ育成",
+  "description": "僕のヒーローアカデミア UNITED SURVIVAL のキャラ育成を管理・見える化",
+  "start_url": "/hirosaba/",
+  "scope": "/hirosaba/",
+  "display": "standalone",
+  "background_color": "#f0fdf4",
+  "theme_color": "#16a34a",
+  "lang": "ja",
+  "icons": [
+    { "src": "/hirosaba/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/hirosaba/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

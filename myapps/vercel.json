@@ -50,6 +50,10 @@
 
     { "source": "/gym", "destination": "https://gym-ten-topaz.vercel.app/gym" },
     { "source": "/gym/", "destination": "https://gym-ten-topaz.vercel.app/gym" },
-    { "source": "/gym/:path*", "destination": "https://gym-ten-topaz.vercel.app/gym/:path*" }
+    { "source": "/gym/:path*", "destination": "https://gym-ten-topaz.vercel.app/gym/:path*" },
+
+    { "source": "/hirosaba", "destination": "https://hirosaba.vercel.app/hirosaba" },
+    { "source": "/hirosaba/", "destination": "https://hirosaba.vercel.app/hirosaba" },
+    { "source": "/hirosaba/:path*", "destination": "https://hirosaba.vercel.app/hirosaba/:path*" }
   ]
 }
