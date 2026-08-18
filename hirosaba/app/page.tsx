@@ -6,6 +6,7 @@ import { useAutoSync } from './lib/autoSync';
 import CloudSync from './components/CloudSync';
 import CharForm from './components/CharForm';
 import GearSection from './components/GearSection';
+import CollectionSection from './components/CollectionSection';
 import PartySection from './components/PartySection';
 
 type Tab = 'char' | 'equip' | 'collection' | 'party';
@@ -110,7 +111,7 @@ export default function Home() {
       </header>
 
       {tab === 'equip' && <GearSection kind="equip" />}
-      {tab === 'collection' && <GearSection kind="collection" />}
+      {tab === 'collection' && <CollectionSection />}
       {tab === 'party' && <PartySection />}
       {tab === 'char' && (
       <>

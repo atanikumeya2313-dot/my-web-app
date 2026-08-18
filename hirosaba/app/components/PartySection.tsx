@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { Party, Character, Gear, PARTY_MAX_CHARS, PARTY_MAX_COLLECTIONS } from '../types';
-import { loadParties, saveParties, loadChars, loadGear } from '../lib/storage';
+import { Party, Character, Collection, PARTY_MAX_CHARS, PARTY_MAX_COLLECTIONS } from '../types';
+import { loadParties, saveParties, loadChars, loadCollections } from '../lib/storage';
 
 let seq = 0;
 const newId = () => `${Date.now()}_${seq++}`;
@@ -10,7 +10,7 @@ const fmtPower = (n: number) => n.toLocaleString();
 export default function PartySection() {
   const [parties, setParties] = useState<Party[]>([]);
   const [chars, setChars]     = useState<Character[]>([]);
-  const [colls, setColls]     = useState<Gear[]>([]);
+  const [colls, setColls]     = useState<Collection[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing]   = useState<Party | undefined>();
 
@@ -18,7 +18,7 @@ export default function PartySection() {
   useEffect(() => {
     setParties(loadParties());
     setChars(loadChars());
-    setColls(loadGear('collection'));
+    setColls(loadCollections());
   }, []);
   /* eslint-enable react-hooks/set-state-in-effect */
 
@@ -46,7 +46,7 @@ export default function PartySection() {
           <div className="space-y-3">
             {parties.map(p => {
               const members = p.charIds.map(id => charMap.get(id)).filter(Boolean) as Character[];
-              const cols    = p.collectionIds.map(id => collMap.get(id)).filter(Boolean) as Gear[];
+              const cols    = p.collectionIds.map(id => collMap.get(id)).filter(Boolean) as Collection[];
               return (
                 <div key={p.id} className="bg-white rounded-xl shadow-sm p-4">
                   <div className="flex items-center justify-between mb-3">
@@ -128,7 +128,7 @@ export default function PartySection() {
 function PartyForm({ editing, chars, colls, onSave, onDelete, onClose }: {
   editing?: Party;
   chars: Character[];
-  colls: Gear[];
+  colls: Collection[];
   onSave: (p: Party) => void;
   onDelete?: () => void;
   onClose: () => void;

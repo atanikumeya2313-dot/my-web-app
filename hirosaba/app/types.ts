@@ -50,7 +50,7 @@ export interface Gear {
   createdAt: string;
 }
 
-export type GearKind = 'equip' | 'collection';
+export type GearKind = 'equip';
 
 export interface GearConfig {
   title: string;
@@ -72,16 +72,38 @@ export const GEAR_CONFIG: Record<GearKind, GearConfig> = {
     defaultTasks: ['レベル上げ', '欠片を集める', 'グレードUP', 'スキル解放'],
     emojiChoices: ['🛡️', '⚔️', '🥊', '👟', '🧤', '🎽', '💍', '🔮', '📿', '🗡️', '🏹', '💊'],
   },
-  collection: {
-    title: 'コレクション',
-    emoji: '🎴',
-    subLabel: '元ネタ（名シーン）',
-    subPlaceholder: '例：デク vs オールマイト',
-    gradeLabel: 'ランク',
-    defaultTasks: ['レベル上げ', '被りでランクアップ', 'スキル解放'],
-    emojiChoices: ['🎴', '🖼️', '🌟', '💫', '🔥', '⚡', '💥', '🌀', '🏆', '🎬', '📸', '💚'],
-  },
 };
+
+// ── コレクション（実ゲーム仕様） ──
+export type CollectionRarity = 'R' | 'SR' | 'UR' | 'LR';
+export const COLLECTION_RARITIES: CollectionRarity[] = ['R', 'SR', 'UR', 'LR'];
+export const COLL_RARITY_CLS: Record<CollectionRarity, string> = {
+  R:  'bg-gray-200 text-gray-600',
+  SR: 'bg-blue-100 text-blue-600',
+  UR: 'bg-purple-100 text-purple-600',
+  LR: 'bg-amber-100 text-amber-700',
+};
+export const COLLECTION_EVOLUTION_MAX = 5;
+export const COLL_STAT_TYPES = ['最大HP', '攻撃力', '防御力', '攻撃速度', 'HP回復量', 'クリティカル率', 'スキル威力', '移動速度'];
+export const COLL_EMOJIS = ['🎴', '🖼️', '🌟', '💫', '🔥', '⚡', '💥', '🌀', '🏆', '🎬', '📸', '💚'];
+
+export interface CollStat { type: string; pct: number }   // 例: {type:'最大HP', pct:15}
+
+export interface Collection {
+  id: string;
+  name: string;
+  emoji: string;
+  rarity: CollectionRarity;
+  level: number;
+  levelMax: number;
+  evolution: number;      // 進化段階（0〜5）
+  stats: CollStat[];      // ステータス上昇（2枠想定）
+  effectText: string;     // 「〇〇グループの攻撃力を◯%アップ」など
+  priority: Priority;
+  tasks: Task[];
+  memo: string;
+  createdAt: string;
+}
 
 // パーティ編成（キャラ3人＋コレクション4つ）
 export const PARTY_MAX_CHARS = 3;

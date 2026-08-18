@@ -1,7 +1,8 @@
-import { Character, Gear, GearKind, Party, Task, Priority } from '../types';
+import { Character, Gear, GearKind, Collection, CollectionRarity, Party, Task, Priority } from '../types';
 
 const KEY = 'hirosaba_chars';
-const GEAR_KEY: Record<GearKind, string> = { equip: 'hirosaba_equip', collection: 'hirosaba_collection' };
+const GEAR_KEY: Record<GearKind, string> = { equip: 'hirosaba_equip' };
+const COLL_KEY = 'hirosaba_collection';
 const PARTY_KEY = 'hirosaba_parties';
 
 // 旧フォーマット（type/curLv 等）を新項目へ吸収して読み込む
@@ -67,6 +68,38 @@ export function saveGear(kind: GearKind, list: Gear[]) {
   localStorage.setItem(GEAR_KEY[kind], JSON.stringify(list));
 }
 
+// ── コレクション ──
+function migrateColl(c: Partial<Collection> & Record<string, unknown>): Collection {
+  const rar = String(c.rarity);
+  return {
+    id:         String(c.id ?? `${Date.now()}_${Math.random().toString(36).slice(2, 7)}`),
+    name:       String(c.name ?? ''),
+    emoji:      String(c.emoji ?? '🎴'),
+    rarity:     (['R', 'SR', 'UR', 'LR'].includes(rar) ? rar : 'R') as CollectionRarity,
+    level:      Number(c.level ?? 0) || 0,
+    levelMax:   Number(c.levelMax ?? 0) || 0,
+    evolution:  Number(c.evolution ?? 0) || 0,
+    stats:      Array.isArray(c.stats)
+      ? c.stats.map(s => ({ type: String((s as { type?: unknown })?.type ?? ''), pct: Number((s as { pct?: unknown })?.pct ?? 0) || 0 }))
+      : [],
+    effectText: String(c.effectText ?? c.effect ?? ''),
+    priority:   (['top', 'active', 'done', 'later'].includes(String(c.priority)) ? c.priority : 'active') as Priority,
+    tasks:      Array.isArray(c.tasks) ? (c.tasks as Task[]) : [],
+    memo:       String(c.memo ?? ''),
+    createdAt:  String(c.createdAt ?? new Date().toISOString()),
+  };
+}
+export function loadCollections(): Collection[] {
+  try {
+    const s = localStorage.getItem(COLL_KEY);
+    const a = s ? JSON.parse(s) : [];
+    return Array.isArray(a) ? a.map(migrateColl) : [];
+  } catch { return []; }
+}
+export function saveCollections(list: Collection[]) {
+  localStorage.setItem(COLL_KEY, JSON.stringify(list));
+}
+
 // ── パーティ ──
 function migrateParty(p: Partial<Party> & Record<string, unknown>): Party {
   return {
@@ -93,7 +126,7 @@ export function saveParties(list: Party[]) {
 export function exportData(): string {
   return JSON.stringify({
     app: 'hirosaba', version: 3, exportedAt: new Date().toISOString(),
-    chars: loadChars(), equip: loadGear('equip'), collection: loadGear('collection'), parties: loadParties(),
+    chars: loadChars(), equip: loadGear('equip'), collection: loadCollections(), parties: loadParties(),
   });
 }
 
@@ -103,7 +136,7 @@ export function importData(raw: string): boolean {
     if (!Array.isArray(d?.chars) && !Array.isArray(d?.equip) && !Array.isArray(d?.collection) && !Array.isArray(d?.parties)) return false;
     if (Array.isArray(d.chars))      saveChars(d.chars.map(migrate));
     if (Array.isArray(d.equip))      saveGear('equip', d.equip.map(migrateGear));
-    if (Array.isArray(d.collection)) saveGear('collection', d.collection.map(migrateGear));
+    if (Array.isArray(d.collection)) saveCollections(d.collection.map(migrateColl));
     if (Array.isArray(d.parties))    saveParties(d.parties.map(migrateParty));
     return true;
   } catch { return false; }
@@ -112,6 +145,6 @@ export function importData(raw: string): boolean {
 export function hasData(): boolean {
   try {
     return loadChars().length > 0 || loadGear('equip').length > 0
-      || loadGear('collection').length > 0 || loadParties().length > 0;
+      || loadCollections().length > 0 || loadParties().length > 0;
   } catch { return false; }
 }
