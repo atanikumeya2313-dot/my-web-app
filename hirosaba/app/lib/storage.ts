@@ -1,4 +1,4 @@
-import { Character, Gear, GearKind, Collection, CollectionRarity, Party, Task, Priority } from '../types';
+import { Character, Gear, GearKind, Collection, Rarity, Party, Task, Priority } from '../types';
 
 const KEY = 'hirosaba_chars';
 const GEAR_KEY: Record<GearKind, string> = { equip: 'hirosaba_equip' };
@@ -7,18 +7,23 @@ const PARTY_KEY = 'hirosaba_parties';
 
 // 旧フォーマット（type/curLv 等）を新項目へ吸収して読み込む
 function migrate(c: Partial<Character> & Record<string, unknown>): Character {
+  const rar = String(c.rarity);
   return {
     id:        String(c.id ?? `${Date.now()}_${Math.random().toString(36).slice(2, 7)}`),
     name:      String(c.name ?? ''),
-    emoji:     String(c.emoji ?? '🦸'),
-    rarity:    Number(c.rarity ?? 0) || 0,
-    intimacy:  Number(c.intimacy ?? 0) || 0,
+    title:     String(c.title ?? ''),
+    rarity:    (['R', 'SR', 'UR', 'LR'].includes(rar) ? rar : 'R') as Rarity,
     group:     String(c.group ?? c.type ?? ''),
+    intimacy:  Number(c.intimacy ?? 0) || 0,
     level:     Number(c.level ?? c.curLv ?? 0) || 0,
+    levelMax:  Number(c.levelMax ?? 0) || 0,
+    atk:       Number(c.atk ?? 0) || 0,
+    hp:        Number(c.hp ?? 0) || 0,
     power:     Number(c.power ?? 0) || 0,
     priority:  (['top', 'active', 'done', 'later'].includes(String(c.priority)) ? c.priority : 'active') as Priority,
     tasks:     Array.isArray(c.tasks) ? (c.tasks as Task[]) : [],
     memo:      String(c.memo ?? ''),
+    emoji:     '',
     createdAt: String(c.createdAt ?? new Date().toISOString()),
   };
 }
@@ -75,12 +80,13 @@ function migrateColl(c: Partial<Collection> & Record<string, unknown>): Collecti
     id:         String(c.id ?? `${Date.now()}_${Math.random().toString(36).slice(2, 7)}`),
     name:       String(c.name ?? ''),
     emoji:      String(c.emoji ?? '🎴'),
-    rarity:     (['R', 'SR', 'UR', 'LR'].includes(rar) ? rar : 'R') as CollectionRarity,
+    rarity:     (['R', 'SR', 'UR', 'LR'].includes(rar) ? rar : 'R') as Rarity,
     level:      Number(c.level ?? 0) || 0,
     levelMax:   Number(c.levelMax ?? 0) || 0,
     evolution:  Number(c.evolution ?? 0) || 0,
+    power:      Number(c.power ?? 0) || 0,
     stats:      Array.isArray(c.stats)
-      ? c.stats.map(s => ({ type: String((s as { type?: unknown })?.type ?? ''), pct: Number((s as { pct?: unknown })?.pct ?? 0) || 0 }))
+      ? c.stats.map(s => ({ type: String((s as { type?: unknown })?.type ?? ''), value: Number((s as { value?: unknown; pct?: unknown })?.value ?? (s as { pct?: unknown })?.pct ?? 0) || 0 }))
       : [],
     effectText: String(c.effectText ?? c.effect ?? ''),
     priority:   (['top', 'active', 'done', 'later'].includes(String(c.priority)) ? c.priority : 'active') as Priority,

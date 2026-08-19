@@ -1,6 +1,6 @@
 'use client';
 import { useState } from 'react';
-import { Character, Task, Priority, PRIORITIES, DEFAULT_TASKS } from '../types';
+import { Character, Task, Priority, Rarity, RARITIES, RARITY_CLS, PRIORITIES, DEFAULT_TASKS } from '../types';
 
 interface Props {
   editing?: Character;
@@ -15,10 +15,14 @@ const newId = () => `${Date.now()}_${seq++}`;
 
 export default function CharForm({ editing, groups, onSave, onDelete, onClose }: Props) {
   const [name,     setName]     = useState(editing?.name ?? '');
-  const [rarity,   setRarity]   = useState(editing?.rarity ?? 0);
+  const [title,    setTitle]    = useState(editing?.title ?? '');
+  const [rarity,   setRarity]   = useState<Rarity>(editing?.rarity ?? 'R');
   const [group,    setGroup]    = useState(editing?.group ?? '');
   const [intimacy, setIntimacy] = useState(editing?.intimacy ? String(editing.intimacy) : '');
   const [level,    setLevel]    = useState(editing?.level ? String(editing.level) : '');
+  const [levelMax, setLevelMax] = useState(editing?.levelMax ? String(editing.levelMax) : '');
+  const [atk,      setAtk]      = useState(editing?.atk ? String(editing.atk) : '');
+  const [hp,       setHp]       = useState(editing?.hp ? String(editing.hp) : '');
   const [power,    setPower]    = useState(editing?.power ? String(editing.power) : '');
   const [priority, setPriority] = useState<Priority>(editing?.priority ?? 'active');
   const [memo,     setMemo]     = useState(editing?.memo ?? '');
@@ -41,15 +45,19 @@ export default function CharForm({ editing, groups, onSave, onDelete, onClose }:
     onSave({
       id:        editing?.id ?? newId(),
       name:      name.trim(),
-      emoji:     '',
+      title:     title.trim(),
       rarity,
-      intimacy:  Math.max(0, parseInt(intimacy) || 0),
       group:     group.trim(),
+      intimacy:  Math.max(0, parseInt(intimacy) || 0),
       level:     Math.max(0, parseInt(level) || 0),
+      levelMax:  Math.max(0, parseInt(levelMax) || 0),
+      atk:       Math.max(0, parseInt(atk.replace(/,/g, '')) || 0),
+      hp:        Math.max(0, parseInt(hp.replace(/,/g, '')) || 0),
       power:     Math.max(0, parseInt(power.replace(/,/g, '')) || 0),
       priority,
       tasks,
       memo:      memo.trim(),
+      emoji:     '',
       createdAt: editing?.createdAt ?? new Date().toISOString(),
     });
   }
@@ -70,15 +78,20 @@ export default function CharForm({ editing, groups, onSave, onDelete, onClose }:
               className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400" />
           </div>
 
+          <div>
+            <label className="text-xs font-medium text-gray-600 mb-1 block">二つ名（省略可）</label>
+            <input value={title} onChange={e => setTitle(e.target.value)} placeholder="例：見出した力の形"
+              className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400" />
+          </div>
+
           {/* レアリティ */}
           <div>
             <label className="text-xs font-medium text-gray-600 mb-1 block">レアリティ</label>
-            <div className="flex items-center gap-1">
-              {[1, 2, 3, 4, 5, 6].map(n => (
-                <button key={n} onClick={() => setRarity(rarity === n ? 0 : n)}
-                  className={`text-2xl leading-none ${n <= rarity ? 'text-amber-400' : 'text-gray-200'}`}>★</button>
+            <div className="flex gap-1.5">
+              {RARITIES.map(r => (
+                <button key={r} onClick={() => setRarity(r)}
+                  className={`flex-1 py-2 rounded-lg text-sm font-bold ${rarity === r ? RARITY_CLS[r] + ' ring-2 ring-offset-1 ring-slate-400' : 'bg-gray-100 text-gray-400'}`}>{r}</button>
               ))}
-              <span className="text-xs text-gray-400 ml-1">{rarity > 0 ? `★${rarity}` : '未設定'}</span>
             </div>
           </div>
 
@@ -99,17 +112,39 @@ export default function CharForm({ editing, groups, onSave, onDelete, onClose }:
             )}
           </div>
 
-          {/* レベル・親密度・戦闘力 */}
+          {/* レベル（現在/上限）・親密度 */}
           <div className="flex gap-2">
             <div className="flex-1">
               <label className="text-xs font-medium text-gray-600 mb-1 block">レベル</label>
               <input type="number" inputMode="numeric" min={0} value={level} onChange={e => setLevel(e.target.value)}
-                placeholder="1"
+                placeholder="50"
+                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-300" />
+            </div>
+            <div className="flex-1">
+              <label className="text-xs font-medium text-gray-600 mb-1 block">レベル上限</label>
+              <input type="number" inputMode="numeric" min={0} value={levelMax} onChange={e => setLevelMax(e.target.value)}
+                placeholder="80"
                 className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-300" />
             </div>
             <div className="flex-1">
               <label className="text-xs font-medium text-gray-600 mb-1 block">親密度</label>
               <input type="number" inputMode="numeric" min={0} value={intimacy} onChange={e => setIntimacy(e.target.value)}
+                placeholder="0"
+                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-300" />
+            </div>
+          </div>
+
+          {/* 攻撃力・HP・戦闘力 */}
+          <div className="flex gap-2">
+            <div className="flex-1">
+              <label className="text-xs font-medium text-gray-600 mb-1 block">攻撃力</label>
+              <input type="number" inputMode="numeric" min={0} value={atk} onChange={e => setAtk(e.target.value)}
+                placeholder="0"
+                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-300" />
+            </div>
+            <div className="flex-1">
+              <label className="text-xs font-medium text-gray-600 mb-1 block">HP</label>
+              <input type="number" inputMode="numeric" min={0} value={hp} onChange={e => setHp(e.target.value)}
                 placeholder="0"
                 className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-300" />
             </div>

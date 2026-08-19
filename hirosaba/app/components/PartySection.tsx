@@ -26,8 +26,10 @@ export default function PartySection() {
   const collMap = new Map(colls.map(c => [c.id, c]));
 
   function persist(next: Party[]) { setParties(next); saveParties(next); }
+  // 合計戦闘力＝編成キャラ＋編成コレクションの戦闘力
   const totalPower = (p: Party) =>
-    p.charIds.reduce((s, id) => s + (charMap.get(id)?.power ?? 0), 0);
+    p.charIds.reduce((s, id) => s + (charMap.get(id)?.power ?? 0), 0)
+    + p.collectionIds.reduce((s, id) => s + (collMap.get(id)?.power ?? 0), 0);
 
   return (
     <div>
@@ -143,7 +145,8 @@ function PartyForm({ editing, chars, colls, onSave, onDelete, onClose }: {
       : prev.length < PARTY_MAX_COLLECTIONS ? [...prev, id] : prev);
   }
 
-  const total = charIds.reduce((s, id) => s + (chars.find(c => c.id === id)?.power ?? 0), 0);
+  const total = charIds.reduce((s, id) => s + (chars.find(c => c.id === id)?.power ?? 0), 0)
+    + collIds.reduce((s, id) => s + (colls.find(c => c.id === id)?.power ?? 0), 0);
 
   function submit() {
     onSave({

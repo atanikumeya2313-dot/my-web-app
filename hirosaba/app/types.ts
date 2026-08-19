@@ -17,20 +17,35 @@ export function priorityMeta(p: Priority) {
 export interface Task { id: string; label: string; done: boolean }
 
 // よく使う育成項目（新規キャラ作成時の初期チェックリスト）
-export const DEFAULT_TASKS = ['レベル上げ', 'スキル強化', '必殺技の解放', '育成素材を集める'];
+export const DEFAULT_TASKS = ['レベル上げ', 'トレーニング', 'レアリティUP'];
+
+// レアリティ（R < SR < UR < LR）。キャラ・コレクション共通。
+export type Rarity = 'R' | 'SR' | 'UR' | 'LR';
+export const RARITIES: Rarity[] = ['R', 'SR', 'UR', 'LR'];
+export const RARITY_CLS: Record<Rarity, string> = {
+  R:  'bg-gray-200 text-gray-600',
+  SR: 'bg-slate-300 text-slate-700',
+  UR: 'bg-amber-100 text-amber-700',
+  LR: 'bg-yellow-200 text-yellow-800',
+};
+export const RARITY_ORDER: Record<Rarity, number> = { LR: 0, UR: 1, SR: 2, R: 3 };
 
 export interface Character {
   id: string;
   name: string;
-  emoji: string;       // アイコン絵文字
-  rarity: number;      // レアリティ（★の数。0=未設定）
-  intimacy: number;    // 親密度
+  title: string;       // 二つ名（例：見出した力の形）
+  rarity: Rarity;
   group: string;       // グループ
-  level: number;       // レベル
-  power: number;       // 戦闘力
+  intimacy: number;    // 親密度
+  level: number;       // レベル（現在）
+  levelMax: number;    // レベル上限
+  atk: number;         // 攻撃力
+  hp: number;          // HP
+  power: number;       // 戦闘力（強化段階）
   priority: Priority;
   tasks: Task[];
   memo: string;
+  emoji: string;       // 未使用（後方互換のため残す）
   createdAt: string;
 }
 
@@ -75,33 +90,28 @@ export const GEAR_CONFIG: Record<GearKind, GearConfig> = {
 };
 
 // ── コレクション（実ゲーム仕様） ──
-export type CollectionRarity = 'R' | 'SR' | 'UR' | 'LR';
-export const COLLECTION_RARITIES: CollectionRarity[] = ['R', 'SR', 'UR', 'LR'];
-export const COLL_RARITY_CLS: Record<CollectionRarity, string> = {
-  R:  'bg-gray-200 text-gray-600',
-  SR: 'bg-blue-100 text-blue-600',
-  UR: 'bg-purple-100 text-purple-600',
-  LR: 'bg-amber-100 text-amber-700',
-};
-export const COLLECTION_EVOLUTION_MAX = 5;
-export const COLL_STAT_TYPES = ['最大HP', '攻撃力', '防御力', '攻撃速度', 'HP回復量', 'クリティカル率', 'スキル威力', '移動速度'];
-export const COLL_EMOJIS = ['🎴', '🖼️', '🌟', '💫', '🔥', '⚡', '💥', '🌀', '🏆', '🎬', '📸', '💚'];
+export type CollectionRarity = Rarity;                          // 後方互換エイリアス
+export const COLLECTION_RARITIES = RARITIES;
+export const COLL_RARITY_CLS = RARITY_CLS;                      // 後方互換
+export const COLLECTION_EVOLUTION_MAX = 4;
+export const COLL_STAT_TYPES = ['最大HP', '攻撃速度', '攻撃力', '防御力', 'HP回復量', 'クリティカル値', 'スキル威力'];
 
-export interface CollStat { type: string; pct: number }   // 例: {type:'最大HP', pct:15}
+export interface CollStat { type: string; value: number }      // 実数値（例: 最大HP 6667）
 
 export interface Collection {
   id: string;
   name: string;
-  emoji: string;
-  rarity: CollectionRarity;
-  level: number;
-  levelMax: number;
-  evolution: number;      // 進化段階（0〜5）
-  stats: CollStat[];      // ステータス上昇（2枠想定）
-  effectText: string;     // 「〇〇グループの攻撃力を◯%アップ」など
+  rarity: Rarity;
+  level: number;          // レベル（現在）
+  levelMax: number;       // レベル上限
+  evolution: number;      // 進化段階（0〜4）
+  power: number;          // 戦闘力
+  stats: CollStat[];      // 最大HP・攻撃速度など（実数値・2枠想定）
+  effectText: string;     // コレクションスキルの効果メモ
   priority: Priority;
   tasks: Task[];
   memo: string;
+  emoji: string;          // 未使用（後方互換のため残す）
   createdAt: string;
 }
 

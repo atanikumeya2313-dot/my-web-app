@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
-import { Character, Priority, PRIORITIES, priorityMeta, progressPct } from './types';
+import { Character, Priority, PRIORITIES, priorityMeta, progressPct, RARITY_CLS, RARITY_ORDER } from './types';
 import { loadChars, saveChars, exportData, importData, hasData, todayYMD } from './lib/storage';
 import { useAutoSync } from './lib/autoSync';
 import CloudSync from './components/CloudSync';
@@ -77,7 +77,7 @@ export default function Home() {
 
   const filtered = chars.filter(c => filter === 'all' ? true : c.priority === filter);
   const sorted = [...filtered].sort((a, b) => {
-    if (sortKey === 'rarity')   return b.rarity - a.rarity;
+    if (sortKey === 'rarity')   return RARITY_ORDER[a.rarity] - RARITY_ORDER[b.rarity];
     if (sortKey === 'power')    return b.power - a.power;
     if (sortKey === 'progress') return progressPct(b) - progressPct(a);
     if (sortKey === 'name')     return a.name.localeCompare(b.name, 'ja');
@@ -170,15 +170,19 @@ export default function Home() {
                 <div key={c.id} className="bg-white rounded-xl shadow-sm p-3">
                   <button onClick={() => { setEditing(c); setShowForm(true); }} className="w-full text-left min-w-0">
                     <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold shrink-0 ${RARITY_CLS[c.rarity]}`}>{c.rarity}</span>
                       <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold shrink-0 ${pm.cls}`}>{pm.label}</span>
                       <p className="text-sm font-semibold text-gray-800 truncate">{c.name}</p>
                     </div>
                     <p className="text-xs text-gray-400 mt-0.5 truncate">
-                      {c.rarity > 0 && <span className="text-amber-500">{'★'.repeat(c.rarity)}</span>}
-                      {c.group && <span> {c.group}</span>}
-                      {c.level > 0 && <span>　Lv{c.level}</span>}
+                      {c.group && <span>{c.group}</span>}
+                      {(c.level > 0 || c.levelMax > 0) && <span>　Lv{c.level}{c.levelMax > 0 ? `/${c.levelMax}` : ''}</span>}
                       {c.intimacy > 0 && <span>　親密度{c.intimacy}</span>}
-                      {c.power > 0 && <span>　戦闘力{c.power.toLocaleString()}</span>}
+                    </p>
+                    <p className="text-xs text-gray-400 mt-0.5 truncate">
+                      {c.power > 0 && <span>戦闘力{c.power.toLocaleString()}</span>}
+                      {c.atk > 0 && <span>　攻撃{c.atk.toLocaleString()}</span>}
+                      {c.hp > 0 && <span>　HP{c.hp.toLocaleString()}</span>}
                     </p>
                   </button>
 
