@@ -16,6 +16,11 @@ function hashStr(s: string): string {
   for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
   return String(h);
 }
+// 変更検知は「中身」で行う：毎回変わる時刻(exportedAt)を無視してハッシュする。
+// これが無いと、中身が同じでも送信し続けてサーバー呼び出しが膨らむ。
+function contentHash(s: string): string {
+  return hashStr(s.replace(/"exportedAt":"[^"]*"/g, '"exportedAt":""'));
+}
 
 interface Opts {
   bucket: string;
@@ -47,7 +52,7 @@ export function useAutoSync(opts: Opts) {
       try {
         if (!opts.hasData()) return;
         const cur = opts.serialize();
-        const h = hashStr(cur);
+        const h = contentHash(cur);
         if (h === lastPushedHash) return;
         const { at } = await cloudPush(code, opts.bucket, cur);
         lastPushedHash = h;
@@ -71,8 +76,8 @@ export function useAutoSync(opts: Opts) {
       } catch { /* 取得失敗時はローカルのまま続行 */ }
       if (disposed) return;
       // 取得直後のデータは送り返さない
-      lastPushedHash = hashStr(opts.serialize());
-      timer = setInterval(pushIfChanged, 3000);
+      lastPushedHash = contentHash(opts.serialize());
+      timer = setInterval(pushIfChanged, 15000);
     })();
 
     const onVisibility = () => { if (document.visibilityState === 'hidden') void pushIfChanged(); };
