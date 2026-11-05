@@ -24,17 +24,9 @@
     { "source": "/diary/", "destination": "https://hitokoto-two.vercel.app/diary" },
     { "source": "/diary/:path*", "destination": "https://hitokoto-two.vercel.app/diary/:path*" },
 
-    { "source": "/cards", "destination": "https://cards-green-eight.vercel.app/cards" },
-    { "source": "/cards/", "destination": "https://cards-green-eight.vercel.app/cards" },
-    { "source": "/cards/:path*", "destination": "https://cards-green-eight.vercel.app/cards/:path*" },
-
     { "source": "/newshops", "destination": "https://newshops-pi.vercel.app/newshops" },
     { "source": "/newshops/", "destination": "https://newshops-pi.vercel.app/newshops" },
     { "source": "/newshops/:path*", "destination": "https://newshops-pi.vercel.app/newshops/:path*" },
-
-    { "source": "/appnotes", "destination": "https://appnotes-phi.vercel.app/appnotes" },
-    { "source": "/appnotes/", "destination": "https://appnotes-phi.vercel.app/appnotes" },
-    { "source": "/appnotes/:path*", "destination": "https://appnotes-phi.vercel.app/appnotes/:path*" },
 
     { "source": "/books", "destination": "https://books-eta-blue.vercel.app/books" },
     { "source": "/books/", "destination": "https://books-eta-blue.vercel.app/books" },
@@ -43,10 +35,6 @@
     { "source": "/kondate", "destination": "https://kondate-nine.vercel.app/kondate" },
     { "source": "/kondate/", "destination": "https://kondate-nine.vercel.app/kondate" },
     { "source": "/kondate/:path*", "destination": "https://kondate-nine.vercel.app/kondate/:path*" },
-
-    { "source": "/subsc", "destination": "https://subsc-taupe.vercel.app/subsc" },
-    { "source": "/subsc/", "destination": "https://subsc-taupe.vercel.app/subsc" },
-    { "source": "/subsc/:path*", "destination": "https://subsc-taupe.vercel.app/subsc/:path*" },
 
     { "source": "/gym", "destination": "https://gym-ten-topaz.vercel.app/gym" },
     { "source": "/gym/", "destination": "https://gym-ten-topaz.vercel.app/gym" },
