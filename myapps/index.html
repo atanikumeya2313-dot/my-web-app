@@ -132,11 +132,6 @@
         <span class="name">献立アシスタント</span>
         <span class="tag local">この入口</span>
       </a>
-      <a class="card" href="/subsc">
-        <span class="icon">📆</span>
-        <span class="name">サブスク管理</span>
-        <span class="tag local">この入口</span>
-      </a>
       <a class="card" href="/books">
         <span class="icon">📚</span>
         <span class="name">AI本だな</span>
@@ -270,24 +265,6 @@
         }
       } catch (e) {}
 
-      // サブスク（7日以内に更新）
-      try {
-        var subs = ls('subsc_subs', []);
-        if (Array.isArray(subs) && subs.length) {
-          var t1 = new Date(today + 'T00:00:00');
-          var soon = subs.filter(function (s) { return s.active; }).map(function (s) {
-            var dd = Math.ceil((new Date(s.nextDate + 'T00:00:00').getTime() - t1.getTime()) / 86400000);
-            return { name: s.name, days: dd };
-          }).filter(function (x) { return x.days <= 7; }).sort(function (a, b) { return a.days - b.days; });
-          if (soon.length) {
-            var top = soon[0];
-            var s0 = top.days <= 0 ? esc(top.name) + ' 本日更新' : esc(top.name) + ' あと' + top.days + '日';
-            if (soon.length > 1) s0 += ' ほか' + (soon.length - 1) + '件';
-            cards.push(card('/subsc', '📆', 'サブスク更新', s0, pill(soon.length, top.days <= 1 ? 'd-red' : 'd-amber')));
-          }
-        }
-      } catch (e) {}
-
       // 未バックアップ警告：データがあるのに、そのアプリのクラウド保存記録が無いものを集める。
       // cloud_last_at_<bucket> は push/pull 成功時に記録される（＝一度でも同期したか）。
       try {
@@ -296,13 +273,10 @@
           { name: 'ジム記録', href: '/gym', bucket: 'gym', keys: ['gym_sessions', 'gym_weights'] },
           { name: '在庫管理', href: '/inventory', bucket: 'inventory', keys: ['inventory_items'] },
           { name: '家計簿', href: '/kakeibo', bucket: 'kakeibo', keys: ['kakeibo_transactions'] },
-          { name: 'サブスク管理', href: '/subsc', bucket: 'subsc', keys: ['subsc_subs'] },
           { name: '資産形成', href: '/interest', bucket: 'interest', keys: ['interest_calc_v1'] },
           { name: 'AI本だな', href: '/books', bucket: 'books', keys: ['books_books'] },
-          { name: 'AI暗記カード', href: '/cards', bucket: 'cards', keys: ['cards_cards', 'cards_decks'] },
           { name: '献立アシスタント', href: '/kondate', bucket: 'kondate', keys: ['kondate_pantry', 'kondate_saved'] },
-          { name: 'ひとこと日記', href: '/diary', bucket: 'diary', keys: ['hitokoto_entries'] },
-          { name: 'アプリ改善メモ', href: '/appnotes', bucket: 'appnotes', keys: ['appnotes_notes'] }
+          { name: 'ひとこと日記', href: '/diary', bucket: 'diary', keys: ['hitokoto_entries'] }
         ];
         function hasData(keys) {
           for (var i = 0; i < keys.length; i++) {
