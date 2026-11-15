@@ -71,3 +71,35 @@ export const EHIME_AREAS = [
   '松山市', '今治市', '宇和島市', '八幡浜市', '新居浜市', '西条市', '大洲市',
   '伊予市', '四国中央市', '西予市', '東温市', '砥部町', '松前町', 'その他',
 ];
+
+// ───────────── イベント ─────────────
+export interface MyEvent {
+  id: string;
+  name: string;
+  category: string;     // 祭り・マルシェ・ポップアップ など（自由）
+  area: string;         // 市町
+  venue?: string;       // 会場名
+  startDate?: string;   // 開始日 YYYY-MM-DD（不明可）
+  endDate?: string;     // 終了日 YYYY-MM-DD（単日・不明なら空）
+  url?: string;         // 公式・SNSなど
+  memo?: string;
+  favorite?: boolean;
+  source?: string;      // 'ai' など
+  createdAt: string;
+}
+
+// AIのイベント候補（保存前）
+export interface EventCandidate {
+  name: string;
+  category: string;
+  area: string;
+  venue?: string;
+  startDate?: string;
+  endDate?: string;
+  note?: string;
+}
+
+export const EVENT_CATEGORIES = [
+  '祭り・花火', 'マルシェ・市', 'ポップアップ', 'グルメ・フード',
+  '展示・アート', 'ライブ・音楽', 'ワークショップ', 'スポーツ', 'その他',
+];
