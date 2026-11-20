@@ -122,16 +122,6 @@
         <span class="name">資産形成シミュレーター</span>
         <span class="tag local">この入口</span>
       </a>
-      <a class="card" href="/inventory">
-        <span class="icon">📦</span>
-        <span class="name">在庫管理</span>
-        <span class="tag local">この入口</span>
-      </a>
-      <a class="card" href="/kondate">
-        <span class="icon">🍳</span>
-        <span class="name">献立アシスタント</span>
-        <span class="tag local">この入口</span>
-      </a>
       <a class="card" href="/books">
         <span class="icon">📚</span>
         <span class="name">AI本だな</span>
@@ -222,29 +212,6 @@
         }
       } catch (e) {}
 
-      // 在庫（要補充・期限間近）
-      try {
-        var items = ls('inventory_items', []);
-        if (Array.isArray(items) && items.length) {
-          var low = items.filter(function (i) { return i.minQuantity > 0 && i.quantity <= i.minQuantity; }).length;
-          var t0 = new Date(); t0.setHours(0, 0, 0, 0);
-          var expSoon = items.filter(function (i) {
-            if (!i.expiryDate) return false;
-            var dd = Math.round((new Date(i.expiryDate).getTime() - t0.getTime()) / 86400000);
-            return dd <= 7;
-          }).length;
-          if (low === 0 && expSoon === 0) {
-            cards.push(card('/inventory', '📦', '在庫', '不足なし・期限も余裕', pill('✓', 'd-green')));
-          } else {
-            var parts = [];
-            if (low) parts.push('要補充 ' + low + '件');
-            if (expSoon) parts.push('期限間近 ' + expSoon + '件');
-            cards.push(card('/inventory', '📦', '在庫', parts.join('・'),
-              pill(low + expSoon, low ? 'd-red' : 'd-amber')));
-          }
-        }
-      } catch (e) {}
-
       // 家計簿（今月の収支）
       try {
         var txs = ls('kakeibo_transactions', []);
@@ -271,11 +238,9 @@
         var APPS = [
           { name: 'TODO', href: '/todo', bucket: 'todo', keys: ['todo_tasks'] },
           { name: 'ジム記録', href: '/gym', bucket: 'gym', keys: ['gym_sessions', 'gym_weights'] },
-          { name: '在庫管理', href: '/inventory', bucket: 'inventory', keys: ['inventory_items'] },
           { name: '家計簿', href: '/kakeibo', bucket: 'kakeibo', keys: ['kakeibo_transactions'] },
           { name: '資産形成', href: '/interest', bucket: 'interest', keys: ['interest_calc_v1'] },
           { name: 'AI本だな', href: '/books', bucket: 'books', keys: ['books_books'] },
-          { name: '献立アシスタント', href: '/kondate', bucket: 'kondate', keys: ['kondate_pantry', 'kondate_saved'] },
           { name: 'ひとこと日記', href: '/diary', bucket: 'diary', keys: ['hitokoto_entries'] }
         ];
         function hasData(keys) {

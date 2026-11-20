@@ -12,10 +12,6 @@
     { "source": "/kakeibo/", "destination": "https://kakeibo-seven-iota.vercel.app/kakeibo" },
     { "source": "/kakeibo/:path*", "destination": "https://kakeibo-seven-iota.vercel.app/kakeibo/:path*" },
 
-    { "source": "/inventory", "destination": "https://inventory-xi-three.vercel.app/inventory" },
-    { "source": "/inventory/", "destination": "https://inventory-xi-three.vercel.app/inventory" },
-    { "source": "/inventory/:path*", "destination": "https://inventory-xi-three.vercel.app/inventory/:path*" },
-
     { "source": "/todo", "destination": "https://todo-sandy-eight-90.vercel.app/todo" },
     { "source": "/todo/", "destination": "https://todo-sandy-eight-90.vercel.app/todo" },
     { "source": "/todo/:path*", "destination": "https://todo-sandy-eight-90.vercel.app/todo/:path*" },
@@ -31,10 +27,6 @@
     { "source": "/books", "destination": "https://books-eta-blue.vercel.app/books" },
     { "source": "/books/", "destination": "https://books-eta-blue.vercel.app/books" },
     { "source": "/books/:path*", "destination": "https://books-eta-blue.vercel.app/books/:path*" },
-
-    { "source": "/kondate", "destination": "https://kondate-nine.vercel.app/kondate" },
-    { "source": "/kondate/", "destination": "https://kondate-nine.vercel.app/kondate" },
-    { "source": "/kondate/:path*", "destination": "https://kondate-nine.vercel.app/kondate/:path*" },
 
     { "source": "/gym", "destination": "https://gym-ten-topaz.vercel.app/gym" },
     { "source": "/gym/", "destination": "https://gym-ten-topaz.vercel.app/gym" },
